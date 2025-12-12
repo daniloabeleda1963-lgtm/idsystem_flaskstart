@@ -1,0 +1,590 @@
+{% extends "base.html" %}
+{% block title %}Add New Member{% endblock %}
+
+{% block content %}
+
+<h1 style="text-align:center; color:#333;">Add New Member</h1>
+
+<form method="POST" class="form-container" style="display:flex; flex-direction:column; gap:15px; padding:20px; border:1px solid #ddd; border-radius:10px; background:#fff;">
+
+    <!-- =======================
+         ID TOOLS SECTION
+    ======================= -->
+    <div style="border: 1px solid #eee; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+        <label for="id_no_field" style="font-weight: bold;">ID No.:</label>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="text" id="id_no_field" name="id_no" placeholder="e.g., ID-2024-0001" readonly style="padding:10px; font-size:16px; flex-grow: 1; background-color: #e9e9e9;">
+            <button id="refresh_id_btn" type="button" style="padding:10px; border:none; border-radius:50%; background-color:#007bff; color:white; cursor:pointer; font-size:16px;">🔄</button>
+        </div>
+        <div id="id_details_container" style="display:none; margin-top: 15px;">
+            <div style="display:flex; gap:15px;">
+                <div style="flex:1;">
+                    <label for="word_field">Word Format:</label>
+                    <input type="text" id="word_field" name="word_field" placeholder="e.g., MEMBER" style="padding:10px; font-size:16px; width:100%;">
+                </div>
+                <div style="flex:1;">
+                    <label for="number_field">Number Format:</label>
+                    <input type="number" id="number_field" name="number_field" placeholder="e.g., 12345" style="padding:10px; font-size:16px; width:100%;">
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+                <button id="cancel_id_btn" type="button" style="padding:8px 15px; border:1px solid #ccc; border-radius:5px; background:#fff; color:#333; cursor:pointer;">Cancel</button>
+                <button id="save_id_btn" type="button" style="padding:8px 15px; border:none; border-radius:5px; background:#28a745; color:white; cursor:pointer;">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =======================
+         PERSONAL DETAILS SECTION
+    ======================= -->
+    <div style="border: 1px solid #eee; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+        <h3 style="margin-top:0; color:#555;">Personal Details</h3>
+        <div style="display:flex; gap:15px;">
+            <div style="flex:1;">
+                <label for="name_field">Full Name:</label>
+                <input type="text" id="name_field" name="name" placeholder="Juan Dela Cruz" required style="padding:10px; font-size:16px; width:100%;">
+            </div>
+            <div style="flex:1;">
+                <label for="gender_field">Gender:</label>
+                <select id="gender_field" name="gender" style="padding:10px; font-size:16px; width:100%;">
+                    <option value="">-- Select Gender --</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+        </div>
+        <div style="display:flex; gap:15px;">
+            <div style="flex:1;">
+                <label for="birthdate_field">Birthdate:</label>
+                <input type="date" id="birthdate_field" name="birthdate" required style="padding:10px; font-size:16px; width:100%;">
+            </div>
+            <div style="flex:1;">
+                <label for="civil_status_field">Civil Status:</label>
+                <select id="civil_status_field" name="civil_status" style="padding:10px; font-size:16px; width:100%;">
+                    <option value="">-- Select Status --</option>
+                    <option value="Single">Single</option>
+                    <option value="Married">Married</option>
+                    <option value="Widowed">Widowed</option>
+                    <option value="Widower">Widower</option>
+                    <option value="Separated">Separated</option>
+                    <option value="Divorced">Divorced</option>
+                </select>
+            </div>
+        </div>
+        <div style="display:flex; gap:15px;">
+            <div style="flex:1;">
+                <label for="country_field">Country:</label>
+                <input type="text" id="country_field" name="country" placeholder="e.g., Philippines" list="country_list" style="padding:10px; font-size:16px; width:100%;">
+                <datalist id="country_list">
+                    <option value="Afghanistan"><option value="Albania"><option value="Algeria"><option value="Andorra"><option value="Angola"><option value="Argentina"><option value="Armenia"><option value="Australia"><option value="Austria"><option value="Azerbaijan"><option value="Bahamas"><option value="Bahrain"><option value="Bangladesh"><option value="Barbados"><option value="Belarus"><option value="Belgium"><option value="Belize"><option value="Benin"><option value="Bhutan"><option value="Bolivia"><option value="Bosnia and Herzegovina"><option value="Botswana"><option value="Brazil"><option value="Brunei"><option value="Bulgaria"><option value="Burkina Faso"><option value="Burundi"><option value="Cabo Verde"><option value="Cambodia"><option value="Cameroon"><option value="Canada"><option value="Central African Republic"><option value="Chad"><option value="Chile"><option value="China"><option value="Colombia"><option value="Comoros"><option value="Congo (Congo-Brazzaville)"><option value="Costa Rica"><option value="Croatia"><option value="Cuba"><option value="Cyprus"><option value="Czechia (Czech Republic)"><option value="Denmark"><option value="Djibouti"><option value="Dominica"><option value="Dominican Republic"><option value="Ecuador"><option value="Egypt"><option value="El Salvador"><option value="Equatorial Guinea"><option value="Eritrea"><option value="Estonia"><option value="Eswatini (fmr. Swaziland)"><option value="Ethiopia"><option value="Fiji"><option value="Finland"><option value="France"><option value="Gabon"><option value="Gambia"><option value="Georgia"><option value="Germany"><option value="Ghana"><option value="Greece"><option value="Grenada"><option value="Guatemala"><option value="Guinea"><option value="Guinea-Bissau"><option value="Guyana"><option value="Haiti"><option value="Holy See"><option value="Honduras"><option value="Hungary"><option value="Iceland"><option value="India"><option value="Indonesia"><option value="Iran"><option value="Iraq"><option value="Ireland"><option value="Israel"><option value="Italy"><option value="Jamaica"><option value="Japan"><option value="Jordan"><option value="Kazakhstan"><option value="Kenya"><option value="Kiribati"><option value="Kuwait"><option value="Kyrgyzstan"><option value="Laos"><option value="Latvia"><option value="Lebanon"><option value="Lesotho"><option value="Liberia"><option value="Libya"><option value="Liechtenstein"><option value="Lithuania"><option value="Luxembourg"><option value="Madagascar"><option value="Malawi"><option value="Malaysia"><option value="Maldives"><option value="Mali"><option value="Malta"><option value="Marshall Islands"><option value="Mauritania"><option value="Mauritius"><option value="Mexico"><option value="Micronesia"><option value="Moldova"><option value="Monaco"><option value="Mongolia"><option value="Montenegro"><option value="Morocco"><option value="Mozambique"><option value="Myanmar (formerly Burma)"><option value="Namibia"><option value="Nauru"><option value="Nepal"><option value="Netherlands"><option value="New Zealand"><option value="Nicaragua"><option value="Niger"><option value="Nigeria"><option value="North Korea"><option value="North Macedonia"><option value="Norway"><option value="Oman"><option value="Pakistan"><option value="Palau"><option value="Palestine State"><option value="Panama"><option value="Papua New Guinea"><option value="Paraguay"><option value="Peru"><option value="Philippines"><option value="Poland"><option value="Portugal"><option value="Qatar"><option value="Romania"><option value="Russia"><option value="Rwanda"><option value="Saint Kitts and Nevis"><option value="Saint Lucia"><option value="Saint Vincent and the Grenadines"><option value="Samoa"><option value="San Marino"><option value="Sao Tome and Principe"><option value="Saudi Arabia"><option value="Senegal"><option value="Serbia"><option value="Seychelles"><option value="Sierra Leone"><option value="Singapore"><option value="Slovakia"><option value="Slovenia"><option value="Solomon Islands"><option value="Somalia"><option value="South Africa"><option value="South Korea"><option value="South Sudan"><option value="Spain"><option value="Sri Lanka"><option value="Sudan"><option value="Suriname"><option value="Sweden"><option value="Switzerland"><option value="Syria"><option value="Tajikistan"><option value="Tanzania"><option value="Thailand"><option value="Timor-Leste"><option value="Togo"><option value="Tonga"><option value="Trinidad and Tobago"><option value="Tunisia"><option value="Turkey"><option value="Turkmenistan"><option value="Tuvalu"><option value="Uganda"><option value="Ukraine"><option value="United Arab Emirates"><option value="United Kingdom"><option value="United States of America"><option value="Uruguay"><option value="Uzbekistan"><option value="Vanuatu"><option value="Venezuela"><option value="Vietnam"><option value="Yemen"><option value="Zambia"><option value="Zimbabwe">
+                </datalist>
+            </div>
+            <div style="flex:1;">
+                <label for="blood_type_field">Blood Type:</label>
+                <select id="blood_type_field" name="blood_type" required style="padding:10px; font-size:16px; width:100%;">
+                    <option value="">-- Select Blood Type --</option>
+                    <option value="A+">A+</option><option value="A-">A-</option>
+                    <option value="B+">B+</option><option value="B-">B-</option>
+                    <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                    <option value="O+">O+</option><option value="O-">O-</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- =======================
+         MEMBERSHIP & CONTACT SECTION
+    ======================= -->
+    <div style="border: 1px solid #eee; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+        <h3 style="margin-top:0; color:#555;">Membership & Contact</h3>
+        <div style="display:flex; gap:15px;">
+            <div style="flex:1;">
+                <label for="designation_field">Designation:</label>
+                <input type="text" id="designation_field" name="designation" placeholder="Member" required style="padding:10px; font-size:16px; width:100%;">
+            </div>
+            <div style="flex:1;">
+                <label for="chapter_field">Chapter:</label>
+                <input type="text" id="chapter_field" name="chapter" placeholder="Occidental Mindoro" required style="padding:10px; font-size:16px; width:100%;">
+            </div>
+        </div>
+        <div style="display:flex; gap:15px;">
+            <div style="flex:1;">
+                <label for="date_of_membership_field">Date of Membership:</label>
+                <input type="date" id="date_of_membership_field" name="date_of_membership" required style="padding:10px; font-size:16px; width:100%;">
+            </div>
+            <div style="flex:1;">
+                <label for="membership_type_field">Membership Type:</label>
+                <input type="text" id="membership_type_field" name="membership_type" placeholder="Regular" style="padding:10px; font-size:16px; width:100%;">
+            </div>
+        </div>
+        <div style="display:flex; gap:15px;">
+            <div style="flex:1;">
+                <label for="contact_no_field">Contact No.:</label>
+                <input type="tel" id="contact_no_field" name="contact_no" placeholder="+639123456789" required style="padding:10px; font-size:16px; width:100%;">
+            </div>
+            <div style="flex:1;">
+                <label for="email_field">Email Address:</label>
+                <input type="email" id="email_field" name="email" placeholder="juan.delacruz@example.com" style="padding:10px; font-size:16px; width:100%;">
+            </div>
+        </div>
+        <label for="home_address_field">Home Address:</label>
+        <textarea id="home_address_field" name="home_address" rows="3" placeholder="123 Main St, Barangay, City" required style="padding:10px; font-size:16px;"></textarea>
+    </div>
+
+    <!-- =======================
+         OTHER INFORMATION SECTION
+    ======================= -->
+    <div style="border: 1px solid #eee; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+        <h3 style="margin-top:0; color:#555;">Other Information</h3>
+        <div style="display:flex; gap:15px;">
+            <div style="flex:1;">
+                <label for="height_field">Height (cm):</label>
+                <input type="number" id="height_field" name="height" placeholder="170" required style="padding:10px; font-size:16px; width:100%;">
+            </div>
+            <div style="flex:1;">
+                <label for="weight_field">Weight (kg):</label>
+                <input type="number" id="weight_field" name="weight" placeholder="70" required style="padding:10px; font-size:16px; width:100%;">
+            </div>
+        </div>
+        <div style="display:flex; gap:15px;">
+            <div style="flex:1;">
+                <label for="occupation_field">Occupation:</label>
+                <input type="text" id="occupation_field" name="occupation" placeholder="e.g., Engineer" style="padding:10px; font-size:16px; width:100%;">
+            </div>
+            <div style="flex:1;">
+                <label for="govt_id_presented_field">Gov't ID Presented:</label>
+                <select id="govt_id_presented_field" name="govt_id_presented" style="padding:10px; font-size:16px; width:100%;">
+                    <option value="">-- Select ID --</option>
+                    <option value="Passport">Passport</option>
+                    <option value="Driver's License">Driver's License</option>
+                    <option value="National ID">National ID</option>
+                    <option value="SSS ID">SSS ID</option>
+                </select>
+            </div>
+        </div>
+        <label for="govt_id_no_field">Gov't ID Number:</label>
+        <input type="text" id="govt_id_no_field" name="govt_id_no" placeholder="e.g., XXXXXXXXX" style="padding:10px; font-size:16px;">
+    </div>
+
+    <!-- =======================
+         EMERGENCY CONTACT SECTION
+    ======================= -->
+    <div style="border: 1px solid #eee; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+        <h3 style="margin-top:0; color:#555;">Emergency Contact</h3>
+        <label for="emergency_person_name_field">Emergency Person Name:</label>
+        <input type="text" id="emergency_person_name_field" name="emergency_person_name" placeholder="Maria Dela Cruz" style="padding:10px; font-size:16px;">
+        <label for="emergency_contact_no_field">Emergency Contact No.:</label>
+        <input type="tel" id="emergency_contact_no_field" name="emergency_contact_no" placeholder="+639987654321" style="padding:10px; font-size:16px;">
+        <button id="search_emergency_btn" type="button" onclick="openSearchModal()" style="padding:10px 20px; background:#17a2b8; color:white; border:none; border-radius:8px; cursor:pointer; align-self: flex-start; margin-top:10px;">Search</button>
+    </div>
+
+    <!-- =======================
+         PHOTO / CAMERA SECTION
+    ======================= -->
+    <div style="border: 1px solid #eee; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+        <h3 style="margin-top:0; color:#555;">Member Photo</h3>
+        <div style="position: relative; text-align: center;">
+            <div class="camera-preview-container" style="position:relative; display:inline-block; width:280px; height:280px; border:2px solid #ccc; border-radius:10px; overflow:hidden;">
+                <video id="video" autoplay playsinline style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; display:none;"></video>
+                <img id="photo_preview" src="https://placehold.co/280x280/cccccc/333333?text=Photo+Preview" alt="Captured Photo Preview" style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0;">
+            </div>
+            <button id="cancel_camera_btn" type="button" style="position: absolute; left: calc(50% + 165px); bottom: 100px; padding:10px 14px; border:none; border-radius:50%; background-color:#f44336; color:white; cursor:pointer; font-size:18px; display:none;">✖</button>
+            <button id="upload_photo_btn" type="button" style="position: absolute; left: calc(50% + 165px); bottom: 50px; padding:10px 14px; border:none; border-radius:50%; background-color:#2196F3; color:white; cursor:pointer; font-size:18px;">📷</button>
+            <div id="main_camera_controls" style="display:flex; justify-content:center; gap:10px; margin-top:10px;">
+                <button id="activate_camera_btn" type="button" style="padding:10px 20px; background:#4CAF50; color:white; border:none; cursor:pointer;">Activate Camera</button>
+                <button id="take_picture_btn" type="button" style="display:none; padding:10px 20px; background:#008CBA; color:white; border:none; cursor:pointer;">Take Picture</button>
+                <button id="clear_photo_btn" type="button" style="display:none; padding:10px 20px; background:#ff9800; color:white; border:none; cursor:pointer;">Clear Photo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Elements -->
+    <input type="file" id="file_input" accept="image/*" style="display:none;">
+    <canvas id="canvas" width="280" height="280" style="display:none;"></canvas>
+    <input type="hidden" name="photo_data" id="photo_data">
+
+    <!-- =======================
+         Magic Button
+    ======================= -->
+    <button type="button" id="magic_btn" style="margin:10px auto; display:block; padding:10px 20px; background:#6a1b9a; color:white; border:none; border-radius:8px; cursor:pointer;">Button Show</button>
+    <div id="magic_buttons_group" style="display:none; flex-wrap:wrap; gap:10px; justify-content:center; margin-bottom:10px;">
+        <button type="button" class="magic-action-btn" data-action="add" style="padding:10px 20px; border:2px solid #6a1b9a; border-radius:8px; background:#f3e5f5; color:#6a1b9a; cursor:pointer;">Add</button>
+        <button type="button" class="magic-action-btn" data-action="edit" style="padding:10px 20px; border:2px solid #6a1b9a; border-radius:8px; background:#f3e5f5; color:#6a1b9a; cursor:pointer;">Edit</button>
+        <button type="button" class="magic-action-btn" data-action="save" style="padding:10px 20px; border:2px solid #6a1b9a; border-radius:8px; background:#f3e5f5; color:#6a1b9a; cursor:pointer;">Save</button>
+        <button type="button" class="magic-action-btn" data-action="delete" style="padding:10px 20px; border:2px solid #6a1b9a; border-radius:8px; background:#f3e5f5; color:#6a1b9a; cursor:pointer;">Delete</button>
+        <button type="button" class="magic-action-btn" data-action="cancel" style="padding:10px 20px; border:2px solid #6a1b9a; border-radius:8px; background:#f3e5f5; color:#6a1b9a; cursor:pointer;">Cancel</button>
+    </div>
+
+    <!-- Submit -->
+    <button type="submit" id="submit_btn" style="margin-top:10px; padding:10px; background:#333; color:white; border:none; cursor:pointer;">Submit Registration</button>
+
+</form>
+
+<!-- =======================
+     SEARCH MODAL
+======================= -->
+<div id="searchModal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5);">
+    <div style="background-color:white; margin:5% auto; padding:20px; border-radius:8px; width:80%; max-width:600px; box-shadow:0 4px 20px rgba(0,0,0,0.3); max-height:80vh; overflow-y:auto;">
+        <span onclick="closeSearchModal()" style="color:#aaa; float:right; font-size:28px; font-weight:bold; cursor:pointer; line-height:20px;">&times;</span>
+        <div id="searchFormContainer"></div>
+    </div>
+</div>
+
+<script>
+/*
+  Robust camera & UI logic for add_member_form.html
+  - Replace the existing <script> block with this one.
+  - DOES NOT change any HTML layout or element IDs.
+*/
+
+(function () {
+    // -----------------------
+    // Element references (same IDs as your HTML)
+    // -----------------------
+    const video = document.getElementById('video');
+    const photoPreview = document.getElementById('photo_preview');
+    const canvas = document.getElementById('canvas');
+    const photoInput = document.getElementById('photo_data');
+    const fileInput = document.getElementById('file_input');
+    const activateCameraBtn = document.getElementById('activate_camera_btn');
+    const takePictureBtn = document.getElementById('take_picture_btn');
+    const clearPhotoBtn = document.getElementById('clear_photo_btn');
+    const uploadPhotoBtn = document.getElementById('upload_photo_btn');
+    const cancelCameraBtn = document.getElementById('cancel_camera_btn');
+
+    // other UI elements used before
+    const refreshIdBtn = document.getElementById('refresh_id_btn');
+    const idNoField = document.getElementById('id_no_field');
+    const idDetailsContainer = document.getElementById('id_details_container');
+    const cancelIdBtn = document.getElementById('cancel_id_btn');
+    const saveIdBtn = document.getElementById('save_id_btn');
+    const wordField = document.getElementById('word_field');
+    const numberField = document.getElementById('number_field');
+    const magicBtn = document.getElementById('magic_btn');
+    const magicGroup = document.getElementById('magic_buttons_group');
+
+    // -----------------------
+    // State
+    // -----------------------
+    let cameraStream = null;
+    let photoSource = null;
+    let currentDeviceId = null; // when using specific device
+    let lastFacing = 'user'; // 'user' or 'environment'
+
+    // -----------------------
+    // Utility helpers
+    // -----------------------
+    function isSecureContext() {
+        return location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    }
+
+    async function enumerateCameras() {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            return devices.filter(d => d.kind === 'videoinput');
+        } catch (e) {
+            console.warn('enumerateDevices failed:', e);
+            return [];
+        }
+    }
+
+    // Try to find deviceId for desired facingMode (best-effort)
+    async function findDeviceForFacing(facing) {
+        const cams = await enumerateCameras();
+        if (!cams.length) return null;
+
+        // heuristics: label may include 'front', 'back', 'rear', 'user', or vendor-specific
+        const fl = facing === 'user' ? ['front', 'user'] : ['back', 'rear', 'environment'];
+        for (const cam of cams) {
+            const label = (cam.label || '').toLowerCase();
+            if (fl.some(f => label.includes(f))) return cam.deviceId;
+        }
+
+        // fallback: if only 1 camera return that, otherwise return null (let constraints handle)
+        if (cams.length === 1) return cams[0].deviceId;
+        return null;
+    }
+
+    // -----------------------
+    // UI state functions (unchanged UI)
+    // -----------------------
+    function resetPhotoUI() {
+        stopCamera();
+        photoPreview.src = "https://placehold.co/280x280/cccccc/333333?text=Photo+Preview";
+        photoInput.value = '';
+        photoSource = null;
+        if (activateCameraBtn) activateCameraBtn.style.display = 'inline-block';
+        if (takePictureBtn) takePictureBtn.style.display = 'none';
+        if (clearPhotoBtn) clearPhotoBtn.style.display = 'none';
+        if (cancelCameraBtn) cancelCameraBtn.style.display = 'none';
+    }
+
+    function showCameraUI() {
+        if (activateCameraBtn) activateCameraBtn.style.display = 'none';
+        if (takePictureBtn) takePictureBtn.style.display = 'inline-block';
+        if (clearPhotoBtn) clearPhotoBtn.style.display = 'none';
+        if (cancelCameraBtn) cancelCameraBtn.style.display = 'inline-block';
+    }
+
+    function showPhotoTakenUI() {
+        if (activateCameraBtn) activateCameraBtn.style.display = 'none';
+        if (takePictureBtn) takePictureBtn.style.display = 'none';
+        if (clearPhotoBtn) clearPhotoBtn.style.display = 'inline-block';
+        if (cancelCameraBtn) cancelCameraBtn.style.display = 'none';
+    }
+
+    // -----------------------
+    // Camera start/stop
+    // -----------------------
+    async function startCamera(preferredFacing = 'user') {
+        // keep track
+        lastFacing = preferredFacing;
+
+        // Security check
+        if (!isSecureContext()) {
+            // Mobile browsers often block camera on plain http (not localhost)
+            console.warn('Non-secure context — camera may be blocked on mobile browsers.');
+            // show a gentle alert but don't break UI
+            alert('Note: Camera reliability on mobile requires HTTPS or running on localhost. If camera fails, try serving via https or use a tunnel (e.g., ngrok).');
+        }
+
+        // Stop any existing stream before starting new
+        stopCamera();
+
+        // Setup constraints: try deviceId first (preferred) else fallback to facingMode
+        try {
+            // Attempt to pick a deviceId for the facing mode (best-effort)
+            const deviceId = await findDeviceForFacing(preferredFacing);
+            let constraints;
+            if (deviceId) {
+                constraints = { video: { deviceId: { exact: deviceId } } };
+                currentDeviceId = deviceId;
+            } else {
+                // fallback to facingMode constraint
+                constraints = { video: { facingMode: { exact: preferredFacing } } };
+                currentDeviceId = null;
+            }
+
+            // also include ideal resolution (don't force)
+            constraints.video.width = { ideal: 1280 };
+            constraints.video.height = { ideal: 720 };
+
+            // Request media
+            cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+            // Attach stream to video
+            if ('srcObject' in video) {
+                video.srcObject = cameraStream;
+            } else {
+                video.src = window.URL.createObjectURL(cameraStream);
+            }
+
+            // for mobile autoplay policies
+            video.muted = true;
+            video.playsInline = true;
+
+            await video.play();
+
+            video.style.display = 'block';
+            photoPreview.style.display = 'none';
+            showCameraUI();
+        } catch (err) {
+            console.error('startCamera() error with facing', preferredFacing, err);
+
+            // Retry logic: if faced with OverconstrainedError or NotFoundError, try opposite facing or generic request
+            const name = err && err.name ? err.name : '';
+            if (name === 'OverconstrainedError' || name === 'NotFoundError' || name === 'NotReadableError') {
+                if (preferredFacing === 'user') {
+                    // try environment as fallback
+                    console.warn('Retrying with environment facing as fallback...');
+                    return startCamera('environment');
+                } else if (preferredFacing === 'environment') {
+                    // final fallback: try plain video:true
+                    try {
+                        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                        if ('srcObject' in video) video.srcObject = cameraStream; else video.src = window.URL.createObjectURL(cameraStream);
+                        video.muted = true;
+                        video.playsInline = true;
+                        await video.play();
+                        video.style.display = 'block';
+                        photoPreview.style.display = 'none';
+                        showCameraUI();
+                        return;
+                    } catch (err2) {
+                        console.error('final fallback failed', err2);
+                        alert('Hindi ma-access ang camera — paki-verify ang permissions at browser settings.');
+                        resetPhotoUI();
+                        return;
+                    }
+                }
+            }
+
+            // Generic error handling
+            alert('Hindi ma-access ang camera. Paki-verify ang permissions at siguraduhin na naka-allow ang browser access sa camera.');
+            resetPhotoUI();
+        }
+    }
+
+    function stopCamera() {
+        if (cameraStream) {
+            try {
+                cameraStream.getTracks().forEach(track => track.stop());
+            } catch (e) { console.warn('Error stopping camera tracks', e); }
+            cameraStream = null;
+        }
+        video.pause();
+        if (video.srcObject) video.srcObject = null;
+        video.src = '';
+        video.style.display = 'none';
+        photoPreview.style.display = 'block';
+    }
+
+    // -----------------------
+    // Capture logic
+    // -----------------------
+    function takePicture() {
+        // ensure video has size
+        const ctx = canvas.getContext('2d');
+        const videoWidth = video.videoWidth || video.clientWidth;
+        const videoHeight = video.videoHeight || video.clientHeight;
+        const canvasSize = canvas.width; // 280
+
+        if (!videoWidth || !videoHeight) {
+            alert('Camera not ready yet. Subukan muli.');
+            return;
+        }
+
+        // center crop logic (square)
+        let sx, sy, sWidth, sHeight;
+        if (videoWidth > videoHeight) {
+            sWidth = videoHeight; sHeight = videoHeight; sx = (videoWidth - videoHeight) / 2; sy = 0;
+        } else {
+            sWidth = videoWidth; sHeight = videoWidth; sx = 0; sy = (videoHeight - videoWidth) / 2;
+        }
+
+        // draw
+        ctx.clearRect(0, 0, canvasSize, canvasSize);
+        ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvasSize, canvasSize);
+
+        const dataURL = canvas.toDataURL('image/jpeg', 0.9);
+        photoPreview.src = dataURL;
+        photoInput.value = dataURL;
+        photoSource = 'camera';
+
+        // stop stream after capture to save resources
+        stopCamera();
+        showPhotoTakenUI();
+    }
+
+    // -----------------------
+    // Event bindings
+    // -----------------------
+    if (activateCameraBtn) activateCameraBtn.addEventListener('click', () => startCamera('user'));
+    if (takePictureBtn) takePictureBtn.addEventListener('click', takePicture);
+    if (cancelCameraBtn) cancelCameraBtn.addEventListener('click', resetPhotoUI);
+    if (clearPhotoBtn) clearPhotoBtn.addEventListener('click', resetPhotoUI);
+    if (uploadPhotoBtn) uploadPhotoBtn.addEventListener('click', () => fileInput.click());
+
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    photoPreview.src = event.target.result;
+                    photoInput.value = event.target.result;
+                    photoSource = 'upload';
+                    showPhotoTakenUI();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // Stop camera when page is hidden or user navigates away
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopCamera();
+    });
+
+    window.addEventListener('beforeunload', () => {
+        stopCamera();
+    });
+
+    // -----------------------
+    // Small additional features preserved from your original script
+    // -----------------------
+    // ID tools
+    if (refreshIdBtn) {
+        refreshIdBtn.addEventListener('click', () => {
+            const randomNum = Math.floor(1000 + Math.random() * 9000);
+            const newId = `ID-${new Date().getFullYear()}-${randomNum}`;
+            idNoField.value = newId;
+            if (idDetailsContainer) idDetailsContainer.style.display = 'block';
+        });
+    }
+    if (cancelIdBtn) {
+        cancelIdBtn.addEventListener('click', () => {
+            if (idDetailsContainer) idDetailsContainer.style.display = 'none';
+            if (wordField) wordField.value = '';
+            if (numberField) numberField.value = '';
+        });
+    }
+    if (saveIdBtn) {
+        saveIdBtn.addEventListener('click', () => {
+            alert('ID details saved!');
+            if (idDetailsContainer) idDetailsContainer.style.display = 'none';
+        });
+    }
+
+    // Magic buttons group
+    if (magicBtn && magicGroup) {
+        magicBtn.addEventListener('click', () => {
+            magicGroup.style.display = magicGroup.style.display === 'flex' ? 'none' : 'flex';
+            magicBtn.textContent = magicGroup.style.display === 'flex' ? 'Button Hide' : 'Button Show';
+        });
+    }
+    document.querySelectorAll('.magic-action-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const action = e.target.dataset.action;
+            alert(`'${action.charAt(0).toUpperCase() + action.slice(1)}' button clicked! We will add real function later.`);
+        });
+    });
+
+    // Search modal functions (preserve)
+    window.openSearchModal = function () {
+        const modal = document.getElementById('searchModal');
+        const container = document.getElementById('searchFormContainer');
+
+        fetch('/search')
+            .then(response => response.text())
+            .then(html => {
+                container.innerHTML = html;
+                modal.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error loading search form:', error);
+                alert('Error loading search form');
+            });
+    };
+    window.closeSearchModal = function () {
+        const m = document.getElementById('searchModal');
+        if (m) m.style.display = 'none';
+    };
+    window.onclick = function (event) {
+        const modal = document.getElementById('searchModal');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    };
+
+    // Initialize UI when DOM ready
+    document.addEventListener('DOMContentLoaded', () => {
+        resetPhotoUI();
+    });
+
+})();
+</script>
+
+
+{% endblock %}

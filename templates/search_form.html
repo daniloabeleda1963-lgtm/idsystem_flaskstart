@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Search - UGB RoMove</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .search-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .search-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .search-header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .search-header p {
+            color: #666;
+            font-size: 16px;
+        }
+        .search-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .search-row {
+            display: flex;
+            gap: 10px;
+            align-items: end;
+        }
+        .search-input {
+            flex: 1;
+        }
+        .search-type {
+            min-width: 180px;
+        }
+        .search-button {
+            min-width: 120px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        .search-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .search-btn:hover {
+            background: #0056b3;
+        }
+        .results-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .results-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: bold;
+            color: #495057;
+        }
+        .member-card {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+        .member-card:hover {
+            background-color: #f8f9fa;
+        }
+        .member-card:last-child {
+            border-bottom: none;
+        }
+        .member-info h3 {
+            margin: 0 0 8px 0;
+            color: #333;
+            font-size: 18px;
+        }
+        .member-info p {
+            margin: 0 0 4px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .member-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .view-id-btn {
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        .view-id-btn:hover {
+            background: #1e7e34;
+        }
+        .no-results {
+            padding: 40px 20px;
+            text-align: center;
+            color: #666;
+        }
+        .loading {
+            padding: 20px;
+            text-align: center;
+            color: #007bff;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #007bff;
+            text-decoration: none;
+            font-size: 16px;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .search-stats {
+            background: #e9f4ff;
+            padding: 10px 20px;
+            border-bottom: 1px solid #bee5eb;
+            font-size: 14px;
+            color: #0c5460;
+        }
+        .highlight {
+            background-color: yellow;
+            font-weight: bold;
+            padding: 1px 2px;
+        }
+        
+        /* === MOBILE RESPONSIVENESS === */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .search-row {
+                flex-direction: column; /* I-stack vertically */
+                gap: 15px;
+            }
+            .search-input, .search-type, .search-button {
+                min-width: unset; /* Alisin ang min-width */
+                width: 100%; /* Gawing full width */
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="{{ url_for('home') }}" class="back-link">← Back to Members</a>
+
+    
+    <div class="search-container">
+        <div class="search-header">
+            <h1>🔍 Global Search</h1>
+            <p>Search across all member data using Supabase global search</p>
+        </div>
+        
+        <form method="POST" action="{{ url_for('search_members') }}" class="search-form">
+            <div class="search-row">
+                <div class="search-input">
+                    <label for="search_term">Search Term:</label>
+                    <input type="text" id="search_term" name="search_term" 
+                           placeholder="Enter name, chapter, designation, contact, address..." 
+                           required>
+                </div>
+                
+                <div class="search-type">
+                    <label for="search_type">Search In:</label>
+                    <select id="search_type" name="search_type">
+                        <option value="all">🌐 All Fields (Global)</option>
+                        <option value="name">👤 Name Only</option>
+                        <option value="chapter">🏢 Chapter Only</option>
+                        <option value="designation">💼 Designation Only</option>
+                        <option value="contact">📞 Contact Only</option>
+                    </select>
+                </div>
+                
+                <div class="search-button">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="search-btn">🔍 Search</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="results-container" id="resultsContainer" style="display: none;">
+        <div class="results-header" id="resultsHeader"></div>
+        <div class="search-stats" id="searchStats" style="display: none;"></div>
+        <div id="searchResults"></div>
+    </div>
+
+    <script>
+        let allMembers = [];
+        let currentSearchTerm = '';
+
+        async function loadMembers() {
+            try {
+                const response = await fetch('/api/members');
+                if (response.ok) {
+                    allMembers = await response.json();
+                    console.log('Loaded members from Supabase:', allMembers.length);
+                } else {
+                    console.error('Failed to load members:', response.statusText);
+                }
+            } catch (error) {
+                console.error('Error loading members:', error);
+            }
+        }
+
+        function performRealTimeSearch() {
+            const searchTerm = document.getElementById('search_term').value.trim().toLowerCase();
+            const searchType = document.getElementById('search_type').value;
+            const resultsContainer = document.getElementById('resultsContainer');
+            const searchResults = document.getElementById('searchResults');
+            const resultsHeader = document.getElementById('resultsHeader');
+            const searchStats = document.getElementById('searchStats');
+
+            currentSearchTerm = searchTerm;
+
+            if (!searchTerm) {
+                resultsContainer.style.display = 'none';
+                return;
+            }
+
+            searchResults.innerHTML = '<div class="loading">🔍 Searching Supabase...</div>';
+            resultsContainer.style.display = 'block';
+            resultsHeader.textContent = 'Search Results';
+            searchStats.style.display = 'none';
+
+            let filteredMembers = [];
+            
+            if (searchType === 'name') {
+                filteredMembers = allMembers.filter(member => 
+                    member.name && member.name.toLowerCase().includes(searchTerm)
+                );
+            } else if (searchType === 'chapter') {
+                filteredMembers = allMembers.filter(member => 
+                    member.chapter && member.chapter.toLowerCase().includes(searchTerm)
+                );
+            } else if (searchType === 'designation') {
+                filteredMembers = allMembers.filter(member => 
+                    member.designation && member.designation.toLowerCase().includes(searchTerm)
+                );
+            } else if (searchType === 'contact') {
+                filteredMembers = allMembers.filter(member => 
+                    member.contact_no && member.contact_no.includes(searchTerm)
+                );
+            } else {
+                filteredMembers = allMembers.filter(member => {
+                    return (
+                        (member.name && member.name.toLowerCase().includes(searchTerm)) ||
+                        (member.chapter && member.chapter.toLowerCase().includes(searchTerm)) ||
+                        (member.designation && member.designation.toLowerCase().includes(searchTerm)) ||
+                        (member.contact_no && member.contact_no.includes(searchTerm)) ||
+                        (member.blood_type && member.blood_type.toLowerCase().includes(searchTerm)) ||
+                        (member.home_address && member.home_address.toLowerCase().includes(searchTerm))
+                    );
+                });
+            }
+
+            if (filteredMembers.length > 0) {
+                searchStats.innerHTML = `Found ${filteredMembers.length} result(s) for "${searchTerm}" in ${searchType === 'all' ? 'all fields' : searchType}`;
+                searchStats.style.display = 'block';
+
+                const resultsHTML = filteredMembers.map(member => `
+                    <div class="member-card">
+                        <div class="member-info">
+                            <h3>${highlightText(member.name || '', searchTerm)}</h3>
+                            <p><strong>Chapter:</strong> ${highlightText(member.chapter || '', searchTerm)} | <strong>Designation:</strong> ${highlightText(member.designation || '', searchTerm)}</p>
+                            <p><strong>Contact:</strong> ${highlightText(member.contact_no || '', searchTerm)} | <strong>Blood Type:</strong> ${highlightText(member.blood_type || '', searchTerm)}</p>
+                            <p><strong>Address:</strong> ${highlightText(member.home_address || '', searchTerm)}</p>
+                        </div>
+                        <div class="member-actions">
+                            <a href="/display_id/${member.id}" class="view-id-btn">View ID</a>
+                        </div>
+                    </div>
+                `).join('');
+                searchResults.innerHTML = resultsHTML;
+            } else {
+                searchStats.style.display = 'none';
+                searchResults.innerHTML = '<div class="no-results">🚫 No members found matching your search criteria.<br>Try using different keywords or search in all fields.</div>';
+            }
+        }
+
+        function highlightText(text, searchTerm) {
+            if (!text || !searchTerm) return text;
+            const regex = new RegExp(`(${searchTerm})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        document.getElementById('search_term').addEventListener('input', performRealTimeSearch);
+        document.getElementById('search_type').addEventListener('change', performRealTimeSearch);
+        document.getElementById('search_term').focus();
+        loadMembers();
+    </script>
+</body>
+</html>

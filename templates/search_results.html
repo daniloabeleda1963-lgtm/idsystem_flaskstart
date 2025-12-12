@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results - UGB RoMove</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .results-header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .results-header h1 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .search-stats {
+            background: #e9f4ff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+            margin: 15px 0;
+        }
+        .member-card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .member-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        .member-info h3 {
+            margin: 0 0 8px 0;
+            color: #333;
+            font-size: 20px;
+        }
+        .member-info p {
+            margin: 0 0 4px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .member-actions {
+            display: flex;
+            gap: 10px;
+            flex-direction: column;
+        }
+        .view-id-btn {
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 14px;
+            text-align: center;
+            transition: background-color 0.2s;
+        }
+        .view-id-btn:hover {
+            background: #1e7e34;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #007bff;
+            text-decoration: none;
+            font-size: 16px;
+            padding: 10px 15px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .back-link:hover {
+            background: #f8f9fa;
+            text-decoration: underline;
+        }
+        .no-results {
+            background: white;
+            padding: 60px 20px;
+            text-align: center;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            color: #666;
+        }
+        .no-results h3 {
+            color: #999;
+            margin-bottom: 15px;
+        }
+        .highlight {
+            background-color: yellow;
+            font-weight: bold;
+            padding: 1px 2px;
+            border-radius: 2px;
+        }
+        .search-type-badge {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        /* === MOBILE RESPONSIVENESS === */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .member-card {
+                flex-direction: column; /* I-stack ang info at actions */
+                align-items: flex-start; /* I-align sa left */
+                gap: 15px;
+            }
+            .member-actions {
+                width: 100%; /* Gawing full width ang actions */
+            }
+            .view-id-btn {
+                width: 100%; /* Gawing full width ang button */
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="{{ url_for('search_form') }}" class="back-link">← Back to Search</a>
+    
+    <div class="results-header">
+        <h1>🔍 Search Results</h1>
+        <div class="search-stats">
+            <strong>Found {{ total_results }} member(s)</strong> for "<em>{{ search_term }}</em>"
+            {% if search_type != 'all' %}
+                <span class="search-type-badge">{{ search_type.title() }} Only</span>
+            {% else %}
+                <span class="search-type-badge">Global Search</span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if members %}
+        {% for member in members %}
+        <div class="member-card">
+            <div class="member-info">
+                <h3>{{ member.name }}</h3>
+                <p><strong>Chapter:</strong> {{ member.chapter }} | <strong>Designation:</strong> {{ member.designation }}</p>
+                <p><strong>Contact:</strong> {{ member.contact_no }} | <strong>Blood Type:</strong> {{ member.blood_type }}</p>
+                <p><strong>Address:</strong> {{ member.home_address }}</p>
+                <p><strong>Birth Date:</strong> {{ member.birthdate }} | <strong>Height:</strong> {{ member.height }} | <strong>Weight:</strong> {{ member.weight }}</p>
+            </div>
+            <div class="member-actions">
+                <a href="{{ url_for('display_id', member_id=member.id) }}" class="view-id-btn">👁️ View ID</a>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="no-results">
+            <h3>🚫 No members found</h3>
+            <p>No members match your search criteria for "<strong>{{ search_term }}</strong>"</p>
+            <p>Try searching with different keywords or use global search to search all fields.</p>
+            <br>
+            <a href="{{ url_for('search_form') }}" style="color: #007bff; text-decoration: none; font-weight: bold;">← Try a different search</a>
+        </div>
+    {% endif %}
+</body>
+</html>

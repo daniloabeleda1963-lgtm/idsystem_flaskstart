@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Members (Placeholder){% endblock %}
+
+{% block content %}
+
+<h2 style="text-align:center; margin-top:20px;">UGBROMOVE Members - Placeholder</h2>
+
+<p style="text-align:center; color:#666;">
+    This is a temporary members page while we fix Render caching.
+</p>
+
+<hr style="margin:20px 0;">
+
+{% if members %}
+    <ul style="list-style:none; padding:0;">
+        {% for member in members %}
+            <li style="padding:10px; border-bottom:1px solid #ddd;">
+                <strong>{{ member['name'] }}</strong><br>
+                <span style="color:#777;">{{ member['designation'] }} - {{ member['chapter'] }}</span>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p style="text-align:center; color:#999;">
+        No members found.
+    </p>
+{% endif %}
+
+{% endblock %}
