@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Camera Test</title>
+</head>
+<body>
+
+<h3>TAKE 2 – Camera Switch Test</h3>
+
+<video id="video" autoplay playsinline style="width:100%; max-width:400px;"></video>
+<br><br>
+
+<button id="switchCamera">
+    🔄 Switch Camera
+</button>
+
+<script>
+let currentFacingMode = "user"; // front cam default
+let stream = null;
+
+async function startCamera() {
+    try {
+        // stop current camera if exists
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: currentFacingMode },
+            audio: false
+        });
+
+        document.getElementById("video").srcObject = stream;
+
+    } catch (err) {
+        alert("Camera error: " + err.message);
+        console.error(err);
+    }
+}
+
+document.getElementById("switchCamera").addEventListener("click", () => {
+    currentFacingMode =
+        currentFacingMode === "user" ? "environment" : "user";
+    startCamera();
+});
+
+// auto start
+startCamera();
+</script>
+
+</body>
+</html>

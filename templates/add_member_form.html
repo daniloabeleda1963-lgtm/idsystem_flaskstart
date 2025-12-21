@@ -189,6 +189,7 @@
                 <video id="video" autoplay playsinline style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; display:none;"></video>
                 <img id="photo_preview" src="https://placehold.co/280x280/cccccc/333333?text=Photo+Preview" alt="Captured Photo Preview" style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0;">
             </div>
+            <button id="switch_camera_btn" type="button" style="position: absolute; left: calc(50% + 165px); bottom: 150px; padding:10px 14px; border:none; border-radius:50%; background-color:#FF9800; color:white; cursor:pointer; font-size:18px; display:none;">🔄</button>
             <button id="cancel_camera_btn" type="button" style="position: absolute; left: calc(50% + 165px); bottom: 100px; padding:10px 14px; border:none; border-radius:50%; background-color:#f44336; color:white; cursor:pointer; font-size:18px; display:none;">✖</button>
             <button id="upload_photo_btn" type="button" style="position: absolute; left: calc(50% + 165px); bottom: 50px; padding:10px 14px; border:none; border-radius:50%; background-color:#2196F3; color:white; cursor:pointer; font-size:18px;">📷</button>
             <div id="main_camera_controls" style="display:flex; justify-content:center; gap:10px; margin-top:10px;">
@@ -233,14 +234,13 @@
 
 <script>
 /*
-  Robust camera & UI logic for add_member_form.html
-  - Replace the existing <script> block with this one.
-  - DOES NOT change any HTML layout or element IDs.
+  Enhanced camera & UI logic with CAMERA SWITCH functionality
+  - Added switch camera button to toggle between front and rear cameras
 */
 
 (function () {
     // -----------------------
-    // Element references (same IDs as your HTML)
+    // Element references
     // -----------------------
     const video = document.getElementById('video');
     const photoPreview = document.getElementById('photo_preview');
@@ -252,8 +252,9 @@
     const clearPhotoBtn = document.getElementById('clear_photo_btn');
     const uploadPhotoBtn = document.getElementById('upload_photo_btn');
     const cancelCameraBtn = document.getElementById('cancel_camera_btn');
+    const switchCameraBtn = document.getElementById('switch_camera_btn');
 
-    // other UI elements used before
+    // other UI elements
     const refreshIdBtn = document.getElementById('refresh_id_btn');
     const idNoField = document.getElementById('id_no_field');
     const idDetailsContainer = document.getElementById('id_details_container');
@@ -269,7 +270,7 @@
     // -----------------------
     let cameraStream = null;
     let photoSource = null;
-    let currentDeviceId = null; // when using specific device
+    let currentDeviceId = null;
     let lastFacing = 'user'; // 'user' or 'environment'
 
     // -----------------------
@@ -289,25 +290,22 @@
         }
     }
 
-    // Try to find deviceId for desired facingMode (best-effort)
     async function findDeviceForFacing(facing) {
         const cams = await enumerateCameras();
         if (!cams.length) return null;
 
-        // heuristics: label may include 'front', 'back', 'rear', 'user', or vendor-specific
         const fl = facing === 'user' ? ['front', 'user'] : ['back', 'rear', 'environment'];
         for (const cam of cams) {
             const label = (cam.label || '').toLowerCase();
             if (fl.some(f => label.includes(f))) return cam.deviceId;
         }
 
-        // fallback: if only 1 camera return that, otherwise return null (let constraints handle)
         if (cams.length === 1) return cams[0].deviceId;
         return null;
     }
 
     // -----------------------
-    // UI state functions (unchanged UI)
+    // UI state functions
     // -----------------------
     function resetPhotoUI() {
         stopCamera();
@@ -318,6 +316,7 @@
         if (takePictureBtn) takePictureBtn.style.display = 'none';
         if (clearPhotoBtn) clearPhotoBtn.style.display = 'none';
         if (cancelCameraBtn) cancelCameraBtn.style.display = 'none';
+        if (switchCameraBtn) switchCameraBtn.style.display = 'none';
     }
 
     function showCameraUI() {
@@ -325,6 +324,7 @@
         if (takePictureBtn) takePictureBtn.style.display = 'inline-block';
         if (clearPhotoBtn) clearPhotoBtn.style.display = 'none';
         if (cancelCameraBtn) cancelCameraBtn.style.display = 'inline-block';
+        if (switchCameraBtn) switchCameraBtn.style.display = 'inline-block';
     }
 
     function showPhotoTakenUI() {
@@ -332,55 +332,44 @@
         if (takePictureBtn) takePictureBtn.style.display = 'none';
         if (clearPhotoBtn) clearPhotoBtn.style.display = 'inline-block';
         if (cancelCameraBtn) cancelCameraBtn.style.display = 'none';
+        if (switchCameraBtn) switchCameraBtn.style.display = 'none';
     }
 
     // -----------------------
     // Camera start/stop
     // -----------------------
     async function startCamera(preferredFacing = 'user') {
-        // keep track
         lastFacing = preferredFacing;
 
-        // Security check
         if (!isSecureContext()) {
-            // Mobile browsers often block camera on plain http (not localhost)
             console.warn('Non-secure context — camera may be blocked on mobile browsers.');
-            // show a gentle alert but don't break UI
             alert('Note: Camera reliability on mobile requires HTTPS or running on localhost. If camera fails, try serving via https or use a tunnel (e.g., ngrok).');
         }
 
-        // Stop any existing stream before starting new
         stopCamera();
 
-        // Setup constraints: try deviceId first (preferred) else fallback to facingMode
         try {
-            // Attempt to pick a deviceId for the facing mode (best-effort)
             const deviceId = await findDeviceForFacing(preferredFacing);
             let constraints;
             if (deviceId) {
                 constraints = { video: { deviceId: { exact: deviceId } } };
                 currentDeviceId = deviceId;
             } else {
-                // fallback to facingMode constraint
                 constraints = { video: { facingMode: { exact: preferredFacing } } };
                 currentDeviceId = null;
             }
 
-            // also include ideal resolution (don't force)
             constraints.video.width = { ideal: 1280 };
             constraints.video.height = { ideal: 720 };
 
-            // Request media
             cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
 
-            // Attach stream to video
             if ('srcObject' in video) {
                 video.srcObject = cameraStream;
             } else {
                 video.src = window.URL.createObjectURL(cameraStream);
             }
 
-            // for mobile autoplay policies
             video.muted = true;
             video.playsInline = true;
 
@@ -392,15 +381,12 @@
         } catch (err) {
             console.error('startCamera() error with facing', preferredFacing, err);
 
-            // Retry logic: if faced with OverconstrainedError or NotFoundError, try opposite facing or generic request
             const name = err && err.name ? err.name : '';
             if (name === 'OverconstrainedError' || name === 'NotFoundError' || name === 'NotReadableError') {
                 if (preferredFacing === 'user') {
-                    // try environment as fallback
                     console.warn('Retrying with environment facing as fallback...');
                     return startCamera('environment');
                 } else if (preferredFacing === 'environment') {
-                    // final fallback: try plain video:true
                     try {
                         cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
                         if ('srcObject' in video) video.srcObject = cameraStream; else video.src = window.URL.createObjectURL(cameraStream);
@@ -420,7 +406,6 @@
                 }
             }
 
-            // Generic error handling
             alert('Hindi ma-access ang camera. Paki-verify ang permissions at siguraduhin na naka-allow ang browser access sa camera.');
             resetPhotoUI();
         }
@@ -441,21 +426,29 @@
     }
 
     // -----------------------
+    // NEW: Switch Camera Function
+    // -----------------------
+    async function switchCamera() {
+        // Toggle between 'user' and 'environment'
+        const newFacing = lastFacing === 'user' ? 'environment' : 'user';
+        console.log('Switching camera from', lastFacing, 'to', newFacing);
+        await startCamera(newFacing);
+    }
+
+    // -----------------------
     // Capture logic
     // -----------------------
     function takePicture() {
-        // ensure video has size
         const ctx = canvas.getContext('2d');
         const videoWidth = video.videoWidth || video.clientWidth;
         const videoHeight = video.videoHeight || video.clientHeight;
-        const canvasSize = canvas.width; // 280
+        const canvasSize = canvas.width;
 
         if (!videoWidth || !videoHeight) {
             alert('Camera not ready yet. Subukan muli.');
             return;
         }
 
-        // center crop logic (square)
         let sx, sy, sWidth, sHeight;
         if (videoWidth > videoHeight) {
             sWidth = videoHeight; sHeight = videoHeight; sx = (videoWidth - videoHeight) / 2; sy = 0;
@@ -463,7 +456,6 @@
             sWidth = videoWidth; sHeight = videoWidth; sx = 0; sy = (videoHeight - videoWidth) / 2;
         }
 
-        // draw
         ctx.clearRect(0, 0, canvasSize, canvasSize);
         ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvasSize, canvasSize);
 
@@ -472,7 +464,6 @@
         photoInput.value = dataURL;
         photoSource = 'camera';
 
-        // stop stream after capture to save resources
         stopCamera();
         showPhotoTakenUI();
     }
@@ -485,6 +476,9 @@
     if (cancelCameraBtn) cancelCameraBtn.addEventListener('click', resetPhotoUI);
     if (clearPhotoBtn) clearPhotoBtn.addEventListener('click', resetPhotoUI);
     if (uploadPhotoBtn) uploadPhotoBtn.addEventListener('click', () => fileInput.click());
+    
+    // NEW: Switch Camera Button Event
+    if (switchCameraBtn) switchCameraBtn.addEventListener('click', switchCamera);
 
     if (fileInput) {
         fileInput.addEventListener('change', (e) => {
@@ -502,7 +496,6 @@
         });
     }
 
-    // Stop camera when page is hidden or user navigates away
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) stopCamera();
     });
@@ -512,9 +505,8 @@
     });
 
     // -----------------------
-    // Small additional features preserved from your original script
-    // -----------------------
     // ID tools
+    // -----------------------
     if (refreshIdBtn) {
         refreshIdBtn.addEventListener('click', () => {
             const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -551,7 +543,7 @@
         });
     });
 
-    // Search modal functions (preserve)
+    // Search modal functions
     window.openSearchModal = function () {
         const modal = document.getElementById('searchModal');
         const container = document.getElementById('searchFormContainer');
@@ -578,13 +570,11 @@
         }
     };
 
-    // Initialize UI when DOM ready
     document.addEventListener('DOMContentLoaded', () => {
         resetPhotoUI();
     });
 
 })();
 </script>
-
 
 {% endblock %}
