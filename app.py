@@ -1,20 +1,23 @@
 # --- Load environment variables safely
+# --- Load environment variables safely
 from dotenv import load_dotenv
 import os
+from supabase import create_client, Client
 
 load_dotenv()  # Load .env file
 
-# Fetch Supabase config from environment
 SUPAB_URL = os.getenv("SUPAB_URL")
 SUPAB_SERVICE_KEY = os.getenv("SUPAB_SERVICE_KEY")
 
-# Debug prints (optional sa local)
-print("DEBUG SUPAB_URL =", SUPAB_URL)
-print("DEBUG SUPAB_SERVICE_KEY =", SUPAB_SERVICE_KEY[:10] + "...")  # truncated for safety
-
-# Ensure they are set
 if not SUPAB_URL or not SUPAB_SERVICE_KEY:
     raise ValueError("SUPAB_URL and SUPAB_SERVICE_KEY must be set")
+
+# --- Supabase client
+supabase: Client = create_client(SUPAB_URL, SUPAB_SERVICE_KEY)
+
+# --- Database helper
+def get_db():
+    return supabase
 
 # --- Continue with original imports
 import click
@@ -24,12 +27,6 @@ from supabase import create_client, Client
 
 # --- Flask app
 app = Flask(__name__)
-
-# --- Supabase Configuration ---
-SUPABASE_URL = os.environ.get('SUPABASE_URL', "https://ffcynlefytkchggkkkam.supabase.co")
-SUPABASE_KEY = os.environ.get('SUPABASE_KEY', "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmY3lubGVmeXRrY2hnZ2tra2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDYwNDYsImV4cCI6MjA4MDM4MjA0Nn0.mVw2Nq81-4y0vqhGI5i38Z4_xyyFgpXpT-xrPQ3Rn-k")
-
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # --- Database Helper ---
 def get_db():
