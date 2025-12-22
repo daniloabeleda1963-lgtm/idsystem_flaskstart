@@ -1,30 +1,36 @@
-# --- Load environment variables safely
+# -----------------------------
+# Imports & Environment Setup
+# -----------------------------
 from dotenv import load_dotenv
 import os
 from supabase import create_client, Client
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from datetime import datetime, timedelta
 
-# Load .env file
+# Load environment variables
 load_dotenv()
-
 SUPAB_URL = os.getenv("SUPAB_URL")
 SUPAB_SERVICE_KEY = os.getenv("SUPAB_SERVICE_KEY")
 
 if not SUPAB_URL or not SUPAB_SERVICE_KEY:
     raise ValueError("SUPAB_URL and SUPAB_SERVICE_KEY must be set")
 
-# --- Supabase client
+# -----------------------------
+# Supabase Client
+# -----------------------------
 supabase: Client = create_client(SUPAB_URL, SUPAB_SERVICE_KEY)
 
-# --- Database helper
 def get_db():
     return supabase
 
-# --- Flask app
+# -----------------------------
+# Flask App Initialization
+# -----------------------------
 app = Flask(__name__)
 
-# --- Routes ---
+# -----------------------------
+# Routes - Home & Navigation
+# -----------------------------
 @app.route('/')
 def home():
     return render_template('placeholder_members.html')
@@ -33,6 +39,21 @@ def home():
 def members_redirect():
     return redirect(url_for('home'))
 
+@app.route('/contact')
+def contact():
+    return "<h1>Contact Page</h1><p>This is a placeholder for contact information.</p>"
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+@app.route('/login')
+def login():
+    return "<h1>Login Page</h1><p>This is a placeholder for a login page.</p>"
+
+# -----------------------------
+# Routes - Search
+# -----------------------------
 @app.route("/search")
 def search_form():
     return render_template("search_form.html")
@@ -47,11 +68,9 @@ def api_members():
                 f"name.ilike.%{search_term}%,chapter.ilike.%{search_term}%,designation.ilike.%{search_term}%,contact_no.ilike.%{search_term}%,blood_type.ilike.%{search_term}%,home_address.ilike.%{search_term}%"
             ).order('name', desc=False)
             response = query.execute()
-            members = response.data
         else:
             response = db.from_('members').select('*').order('name', desc=False).execute()
-            members = response.data
-        return jsonify(members)
+        return jsonify(response.data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -59,12 +78,14 @@ def api_members():
 def search_members():
     search_term = request.form.get('search_term', '').strip() if request.method == 'POST' else request.args.get('search_term', '').strip()
     search_type = request.form.get('search_type', 'all') if request.method == 'POST' else request.args.get('search_type', 'all')
-    
+
     if not search_term:
         return redirect(url_for('search_form'))
+
     try:
         db = get_db()
         query = db.from_('members').select('*')
+
         if search_type == 'name':
             query = query.ilike('name', f'%{search_term}%')
         elif search_type == 'chapter':
@@ -77,8 +98,10 @@ def search_members():
             query = query.or_(
                 f"name.ilike.%{search_term}%,chapter.ilike.%{search_term}%,designation.ilike.%{search_term}%,contact_no.ilike.%{search_term}%,blood_type.ilike.%{search_term}%,home_address.ilike.%{search_term}%"
             )
+
         response = query.order('name', desc=False).execute()
         members = response.data
+
         return render_template('search_results.html', 
                                members=members, 
                                search_term=search_term,
@@ -87,6 +110,9 @@ def search_members():
     except Exception as e:
         return f"Search error: {str(e)}", 500
 
+# -----------------------------
+# Routes - Member Management
+# -----------------------------
 @app.route('/add_member', methods=['GET', 'POST'])
 def add_member():
     if request.method == 'POST':
@@ -112,6 +138,7 @@ def add_member():
             return redirect(url_for('list_members'))
         except Exception as e:
             return f"Error adding member: {str(e)}", 500
+
     return render_template('add_member_form.html')
 
 @app.route('/display_id/<int:member_id>')
@@ -126,18 +153,6 @@ def display_id(member_id):
     except Exception as e:
         return f"Database error: {str(e)}", 500
 
-@app.route('/contact')
-def contact():
-    return "<h1>Contact Page</h1><p>This is a placeholder for contact information.</p>"
-
-@app.route('/about')
-def about():
-    return render_template('about.html')
-
-@app.route('/login')
-def login():
-    return "<h1>Login Page</h1><p>This is a placeholder for a login page.</p>"
-
 @app.route('/edit_member/<int:member_id>')
 def edit_member(member_id):
     return f"Edit member with ID: {member_id}"
@@ -146,10 +161,15 @@ def edit_member(member_id):
 def delete_member(member_id):
     return f"Delete member with ID: {member_id}"
 
+# -----------------------------
+# Routes - Health Check
+# -----------------------------
 @app.route('/health')
 def health_check():
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
 
-# --- Run the app
+# -----------------------------
+# Run the App
+# -----------------------------
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
