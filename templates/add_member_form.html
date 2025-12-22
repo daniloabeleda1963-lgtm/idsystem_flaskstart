@@ -209,12 +209,36 @@
          Magic Button
     ======================= -->
     <button type="button" id="magic_btn" style="margin:10px auto; display:block; padding:10px 20px; background:#6a1b9a; color:white; border:none; border-radius:8px; cursor:pointer;">Button Show</button>
-    <div id="magic_buttons_group" style="display:none; flex-wrap:wrap; gap:10px; justify-content:center; margin-bottom:10px;">
-        <button type="button" class="magic-action-btn" data-action="add" style="padding:10px 20px; border:2px solid #6a1b9a; border-radius:8px; background:#f3e5f5; color:#6a1b9a; cursor:pointer;">Add</button>
-        <button type="button" class="magic-action-btn" data-action="edit" style="padding:10px 20px; border:2px solid #6a1b9a; border-radius:8px; background:#f3e5f5; color:#6a1b9a; cursor:pointer;">Edit</button>
-        <button type="button" class="magic-action-btn" data-action="save" style="padding:10px 20px; border:2px solid #6a1b9a; border-radius:8px; background:#f3e5f5; color:#6a1b9a; cursor:pointer;">Save</button>
-        <button type="button" class="magic-action-btn" data-action="delete" style="padding:10px 20px; border:2px solid #6a1b9a; border-radius:8px; background:#f3e5f5; color:#6a1b9a; cursor:pointer;">Delete</button>
-        <button type="button" class="magic-action-btn" data-action="cancel" style="padding:10px 20px; border:2px solid #6a1b9a; border-radius:8px; background:#f3e5f5; color:#6a1b9a; cursor:pointer;">Cancel</button>
+    
+    <!-- =======================
+         NEW: Magic Content Area (Listbox + Navigation + Textbox + Action Buttons)
+    ======================= -->
+    <div id="magic_content_area" style="display:none; border: 1px solid #6a1b9a; padding: 20px; border-radius: 8px; background-color: #faf5ff; margin-bottom:10px;">
+        
+        <!-- Listbox for Members -->
+        <select id="members_listbox" size="8" style="width:100%; padding:8px; font-size:14px; border:2px solid #6a1b9a; border-radius:5px; background:#fff; margin-bottom:15px;">
+            <!-- Empty listbox ready for members -->
+        </select>
+
+        <!-- Navigation Buttons (Cute & Small with Icons) -->
+        <div style="display:flex; justify-content:center; gap:8px; margin-bottom:15px;">
+            <button type="button" id="nav_home_btn" title="Home" style="padding:8px 12px; border:2px solid #6a1b9a; border-radius:50%; background:#f3e5f5; color:#6a1b9a; cursor:pointer; font-size:16px; transition:all 0.3s;">🏠</button>
+            <button type="button" id="nav_prev_btn" title="Previous" style="padding:8px 12px; border:2px solid #6a1b9a; border-radius:50%; background:#f3e5f5; color:#6a1b9a; cursor:pointer; font-size:16px; transition:all 0.3s;">⬅️</button>
+            <button type="button" id="nav_next_btn" title="Next" style="padding:8px 12px; border:2px solid #6a1b9a; border-radius:50%; background:#f3e5f5; color:#6a1b9a; cursor:pointer; font-size:16px; transition:all 0.3s;">➡️</button>
+            <button type="button" id="nav_end_btn" title="End" style="padding:8px 12px; border:2px solid #6a1b9a; border-radius:50%; background:#f3e5f5; color:#6a1b9a; cursor:pointer; font-size:16px; transition:all 0.3s;">🔚</button>
+        </div>
+
+        <!-- Textbox -->
+        <input type="text" id="magic_textbox" placeholder="Enter text here..." style="width:100%; padding:10px; font-size:14px; border:2px solid #6a1b9a; border-radius:5px; margin-bottom:15px;">
+
+        <!-- Action Buttons (Add, Edit, Save, Delete, Cancel) -->
+        <div style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center;">
+            <button type="button" class="magic-action-btn" data-action="add" style="padding:10px 20px; border:2px solid #6a1b9a; border-radius:8px; background:#f3e5f5; color:#6a1b9a; cursor:pointer;">Add</button>
+            <button type="button" class="magic-action-btn" data-action="edit" style="padding:10px 20px; border:2px solid #6a1b9a; border-radius:8px; background:#f3e5f5; color:#6a1b9a; cursor:pointer;">Edit</button>
+            <button type="button" class="magic-action-btn" data-action="save" style="padding:10px 20px; border:2px solid #6a1b9a; border-radius:8px; background:#f3e5f5; color:#6a1b9a; cursor:pointer;">Save</button>
+            <button type="button" class="magic-action-btn" data-action="delete" style="padding:10px 20px; border:2px solid #6a1b9a; border-radius:8px; background:#f3e5f5; color:#6a1b9a; cursor:pointer;">Delete</button>
+            <button type="button" class="magic-action-btn" data-action="cancel" style="padding:10px 20px; border:2px solid #6a1b9a; border-radius:8px; background:#f3e5f5; color:#6a1b9a; cursor:pointer;">Cancel</button>
+        </div>
     </div>
 
     <!-- Submit -->
@@ -236,6 +260,7 @@
 /*
   Enhanced camera & UI logic with CAMERA SWITCH functionality
   - Added switch camera button to toggle between front and rear cameras
+  - Added Magic Content Area with Listbox, Navigation Buttons, Textbox, and Action Buttons
 */
 
 (function () {
@@ -263,7 +288,15 @@
     const wordField = document.getElementById('word_field');
     const numberField = document.getElementById('number_field');
     const magicBtn = document.getElementById('magic_btn');
-    const magicGroup = document.getElementById('magic_buttons_group');
+    const magicContentArea = document.getElementById('magic_content_area');
+
+    // NEW: Magic content elements
+    const membersListbox = document.getElementById('members_listbox');
+    const navHomeBtn = document.getElementById('nav_home_btn');
+    const navPrevBtn = document.getElementById('nav_prev_btn');
+    const navNextBtn = document.getElementById('nav_next_btn');
+    const navEndBtn = document.getElementById('nav_end_btn');
+    const magicTextbox = document.getElementById('magic_textbox');
 
     // -----------------------
     // State
@@ -529,17 +562,64 @@
         });
     }
 
-    // Magic buttons group
-    if (magicBtn && magicGroup) {
+    // -----------------------
+    // NEW: Magic Button Toggle (Show/Hide Magic Content Area)
+    // -----------------------
+    if (magicBtn && magicContentArea) {
         magicBtn.addEventListener('click', () => {
-            magicGroup.style.display = magicGroup.style.display === 'flex' ? 'none' : 'flex';
-            magicBtn.textContent = magicGroup.style.display === 'flex' ? 'Button Hide' : 'Button Show';
+            if (magicContentArea.style.display === 'none' || magicContentArea.style.display === '') {
+                magicContentArea.style.display = 'block';
+                magicBtn.textContent = 'Button Hide';
+            } else {
+                magicContentArea.style.display = 'none';
+                magicBtn.textContent = 'Button Show';
+            }
         });
     }
+
+    // -----------------------
+    // NEW: Navigation Buttons (Placeholder functionality)
+    // -----------------------
+    if (navHomeBtn) {
+        navHomeBtn.addEventListener('click', () => {
+            if (membersListbox && membersListbox.options.length > 0) {
+                membersListbox.selectedIndex = 0;
+            }
+            console.log('Home button clicked');
+        });
+    }
+    if (navPrevBtn) {
+        navPrevBtn.addEventListener('click', () => {
+            if (membersListbox && membersListbox.selectedIndex > 0) {
+                membersListbox.selectedIndex--;
+            }
+            console.log('Previous button clicked');
+        });
+    }
+    if (navNextBtn) {
+        navNextBtn.addEventListener('click', () => {
+            if (membersListbox && membersListbox.selectedIndex < membersListbox.options.length - 1) {
+                membersListbox.selectedIndex++;
+            }
+            console.log('Next button clicked');
+        });
+    }
+    if (navEndBtn) {
+        navEndBtn.addEventListener('click', () => {
+            if (membersListbox && membersListbox.options.length > 0) {
+                membersListbox.selectedIndex = membersListbox.options.length - 1;
+            }
+            console.log('End button clicked');
+        });
+    }
+
+    // -----------------------
+    // Magic Action Buttons (Placeholder functionality)
+    // -----------------------
     document.querySelectorAll('.magic-action-btn').forEach(button => {
         button.addEventListener('click', (e) => {
             const action = e.target.dataset.action;
-            alert(`'${action.charAt(0).toUpperCase() + action.slice(1)}' button clicked! We will add real function later.`);
+            alert(`'${action.charAt(0).toUpperCase() + action.slice(1)}' button clicked! Ready for future implementation.`);
         });
     });
 
