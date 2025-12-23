@@ -208,6 +208,38 @@ def get_next_id():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # -----------------------------
+# NEW ROUTE FIX FOR TAKE 3 HTML
+# -----------------------------
+@app.route('/save_id_to_db', methods=['POST'])
+def save_id_to_db():
+    """
+    Saves the combined ID (Word-Number) directly to Supabase.
+    Target Table: 'idgenerate' (lowercase)
+    Target Field: 'idnumber' (lowercase)
+    Called by JavaScript in add_member_form.html
+    """
+    try:
+        db = get_db()
+        # Kunin ang data galing sa Fetch Request ng JavaScript
+        data = request.json
+        
+        # HTML padala niya: { "id_value": "MEMBER-123" }
+        id_value = data.get('id_value')
+
+        # Simple validation
+        if not id_value:
+            return jsonify({'success': False, 'message': 'No ID provided'}), 400
+
+        # I-save sa Supabase Table 'idgenerate', Column 'idnumber'
+        db.table('idgenerate').insert({"idnumber": id_value}).execute()
+
+        return jsonify({'success': True, 'message': 'ID saved successfully!'})
+
+    except Exception as e:
+        print(f"Error saving ID: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# -----------------------------
 # Routes - Add Member
 # -----------------------------
 @app.route('/add_member', methods=['GET', 'POST'])
