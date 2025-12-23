@@ -3,6 +3,7 @@
 # -----------------------------
 from dotenv import load_dotenv
 import os
+import re # Dagdag para sa ID parsing
 from supabase import create_client, Client
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from datetime import datetime, timedelta
@@ -74,41 +75,56 @@ def api_members():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/search_members', methods=['GET', 'POST'])
-def search_members():
-    search_term = request.form.get('search_term', '').strip() if request.method == 'POST' else request.args.get('search_term', '').strip()
-    search_type = request.form.get('search_type', 'all') if request.method == 'POST' else request.args.get('search_type', 'all')
-
-    if not search_term:
-        return redirect(url_for('search_form'))
-
+# -----------------------------
+# Routes - ID Generator Logic (DAGDAG)
+# -----------------------------
+@app.route('/save-id-base', methods=['POST'])
+def save_id_base():
     try:
         db = get_db()
-        query = db.from_('members').select('*')
-
-        if search_type == 'name':
-            query = query.ilike('name', f'%{search_term}%')
-        elif search_type == 'chapter':
-            query = query.ilike('chapter', f'%{search_term}%')
-        elif search_type == 'designation':
-            query = query.ilike('designation', f'%{search_term}%')
-        elif search_type == 'contact':
-            query = query.ilike('contact_no', f'%{search_term}%')
-        else:
-            query = query.or_(
-                f"name.ilike.%{search_term}%,chapter.ilike.%{search_term}%,designation.ilike.%{search_term}%,contact_no.ilike.%{search_term}%,blood_type.ilike.%{search_term}%,home_address.ilike.%{search_term}%"
-            )
-
-        response = query.order('name', desc=False).execute()
-        members = response.data
-
-        return render_template('search_results.html', 
-                               members=members, 
-                               search_term=search_term,
-                               search_type=search_type,
-                               total_results=len(members))
+        data = request.json
+        word_part = data.get('word', '').strip()
+        num_part = data.get('number', '').strip()
+        
+        full_format = f"{word_part}-{num_part}"
+        
+        # I-save sa IdGenerate table
+        db.table('IdGenerate').insert({"idNumber": full_format}).execute()
+        return jsonify({"status": "success", "format": full_format})
     except Exception as e:
-        return f"Search error: {str(e)}", 500
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/get-next-id')
+def get_next_id():
+    try:
+        db = get_db()
+        # 1. Check muna ang huling member sa 'members' table base sa 'idnumb'
+        last_member = db.table('members').select('idnumb').order('id', desc=True).limit(1).execute()
+        
+        source_id = ""
+        if last_member.data and last_member.data[0].get('idnumb'):
+            source_id = last_member.data[0]['idnumb']
+        else:
+            # 2. Kung walang member, kunin sa IdGenerate table
+            base_id = db.table('IdGenerate').select('idNumber').order('id', desc=True).limit(1).execute()
+            if base_id.data:
+                source_id = base_id.data[0]['idNumber']
+        
+        if not source_id:
+            return jsonify({"status": "error", "message": "No base ID found"})
+
+        # 3. Increment Logic (+1)
+        match = re.match(r"([a-zA-Z]+)-(\d+)", source_id)
+        if match:
+            word = match.group(1)
+            num_str = match.group(2)
+            next_num = int(num_str) + 1
+            new_id = f"{word}-{str(next_num).zfill(len(num_str))}"
+            return jsonify({"status": "success", "next_id": new_id})
+        
+        return jsonify({"status": "error", "message": "Invalid ID format"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 # -----------------------------
 # Routes - Member Management
@@ -117,13 +133,14 @@ def search_members():
 def add_member():
     if request.method == 'POST':
         form_data = {
+            'idnumb': request.form.get('id_no'), # DAGDAG: Field para sa ID increment
             'name': request.form['name'],
-            'designation': request.form['designation'],
-            'chapter': request.form['chapter'],
+            'designation': request.form.get('designation', ''), # Handled for safety
+            'chapter': request.form.get('chapter', ''),
             'birthdate': request.form['birthdate'],
-            'blood_type': request.form['blood_type'],
-            'contact_no': request.form['contact_no'],
-            'home_address': request.form['home_address'],
+            'blood_type': request.form.get('blood_type', ''),
+            'contact_no': request.form.get('contact_no', ''),
+            'home_address': request.form.get('home_address', ''),
             'height': request.form.get('height'),
             'weight': request.form.get('weight'),
             'emergency_person_address': request.form.get('emergency_person_address'),
@@ -135,7 +152,8 @@ def add_member():
         try:
             db = get_db()
             db.from_('members').insert(form_data).execute()
-            return redirect(url_for('list_members'))
+            # Redirect back to search or home after success
+            return redirect(url_for('home'))
         except Exception as e:
             return f"Error adding member: {str(e)}", 500
 
