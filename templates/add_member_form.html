@@ -3,8 +3,51 @@
 
 {% block content %}
 
-<h1 style="text-align:center; color:#333;">Add New Member</h1>
+<!-- 
+   STYLE BLOCK FOR MOBILE RESPONSIVENESS 
+   Para gumanda ang pagkakaplano sa celphone (pang-mobile environment)
+-->
+<style>
+    /* Center form and give it a max width on large screens */
+    .form-container {
+        width: 100%;
+        max-width: 800px; /* Dito nagkaka-center sa desktop */
+        margin: 0 auto;
+        box-sizing: border-box;
+    }
 
+    /* Mobile Adjustments: If screen is smaller than 700px (Celphone/Tablet) */
+    @media (max-width: 700px) {
+        /* Force side-by-side divs to stack vertically on mobile */
+        .form-container > div > div[style*="display:flex"] {
+            flex-direction: column !important;
+            gap: 10px !important;
+        }
+
+        /* Ensure inputs look good stacked */
+        .form-container input, 
+        .form-container select, 
+        .form-container textarea {
+            font-size: 16px !important; /* Prevent iOS zoom */
+            width: 100% !important;
+        }
+        
+        /* Fix camera buttons on small screens */
+        #switch_camera_btn, #cancel_camera_btn, #upload_photo_btn {
+            position: static !important;
+            margin-top: 5px;
+            display: inline-block !important;
+            width: auto;
+        }
+        
+        /* Magic content area responsiveness */
+        #magic_content_area .magic-action-btn {
+            flex-grow: 1;
+        }
+    }
+</style>
+
+<h1 style="text-align:center; color:#333;">Add New Member</h1>
 <form method="POST" class="form-container" style="display:flex; flex-direction:column; gap:15px; padding:20px; border:1px solid #ddd; border-radius:10px; background:#fff;">
 
     <!-- =======================
@@ -189,6 +232,7 @@
                 <video id="video" autoplay playsinline style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; display:none;"></video>
                 <img id="photo_preview" src="https://placehold.co/280x280/cccccc/333333?text=Photo+Preview" alt="Captured Photo Preview" style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0;">
             </div>
+            <!-- Adjusted buttons to be more accessible on mobile via CSS, keeping inline styles for structure -->
             <button id="switch_camera_btn" type="button" style="position: absolute; left: calc(50% + 165px); bottom: 150px; padding:10px 14px; border:none; border-radius:50%; background-color:#FF9800; color:white; cursor:pointer; font-size:18px; display:none;">🔄</button>
             <button id="cancel_camera_btn" type="button" style="position: absolute; left: calc(50% + 165px); bottom: 100px; padding:10px 14px; border:none; border-radius:50%; background-color:#f44336; color:white; cursor:pointer; font-size:18px; display:none;">✖</button>
             <button id="upload_photo_btn" type="button" style="position: absolute; left: calc(50% + 165px); bottom: 50px; padding:10px 14px; border:none; border-radius:50%; background-color:#2196F3; color:white; cursor:pointer; font-size:18px;">📷</button>
@@ -258,9 +302,10 @@
 
 <script>
 /*
-  Enhanced camera & UI logic with CAMERA SWITCH functionality
-  - Added switch camera button to toggle between front and rear cameras
-  - Added Magic Content Area with Listbox, Navigation Buttons, Textbox, and Action Buttons
+  Take 3: Enhanced camera & UI logic with CAMERA SWITCH functionality
+  - Fixed Camera Switch Logic (more flexible constraints for back camera access)
+  - Updated ID Save Logic to POST to Supabase table 'idgenerate'
+  - Maintained Mobile Responsive Interface
 */
 
 (function () {
@@ -333,6 +378,12 @@
             if (fl.some(f => label.includes(f))) return cam.deviceId;
         }
 
+        // If labels are missing (common on first load), pick the one that ISN'T the current one
+        if (cams.length === 2 && currentDeviceId) {
+            const other = cams.find(c => c.deviceId !== currentDeviceId);
+            if (other) return other.deviceId;
+        }
+
         if (cams.length === 1) return cams[0].deviceId;
         return null;
     }
@@ -388,7 +439,8 @@
                 constraints = { video: { deviceId: { exact: deviceId } } };
                 currentDeviceId = deviceId;
             } else {
-                constraints = { video: { facingMode: { exact: preferredFacing } } };
+                // Changed 'exact' to 'ideal' to allow browser fallback to the other camera if exact facing fails
+                constraints = { video: { facingMode: { ideal: preferredFacing } } };
                 currentDeviceId = null;
             }
 
@@ -538,13 +590,16 @@
     });
 
     // -----------------------
-    // ID tools
+    // ID tools (UPDATED FIX FOR SUPABASE)
     // -----------------------
     if (refreshIdBtn) {
         refreshIdBtn.addEventListener('click', () => {
             const randomNum = Math.floor(1000 + Math.random() * 9000);
             const newId = `ID-${new Date().getFullYear()}-${randomNum}`;
             idNoField.value = newId;
+            // Clear fields for new editing
+            if (wordField) wordField.value = '';
+            if (numberField) numberField.value = '';
             if (idDetailsContainer) idDetailsContainer.style.display = 'block';
         });
     }
@@ -556,9 +611,44 @@
         });
     }
     if (saveIdBtn) {
-        saveIdBtn.addEventListener('click', () => {
-            alert('ID details saved!');
-            if (idDetailsContainer) idDetailsContainer.style.display = 'none';
+        saveIdBtn.addEventListener('click', async () => { // Added async
+            // Get values
+            const wordVal = wordField ? wordField.value.trim() : '';
+            const numVal = numberField ? numberField.value.trim() : '';
+
+            // Check if not empty
+            if (wordVal && numVal) {
+                // Combine logic (Word-Number)
+                const combinedId = `${wordVal}-${numVal}`;
+                
+                // Update main ID Field
+                idNoField.value = combinedId;
+                
+                // --- FETCH LOGIC TO SAVE TO SUPABASE ---
+                try {
+                    const response = await fetch('/save_id_to_db', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id_value: combinedId })
+                    });
+                    
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        alert('Saved to Database! ID: ' + combinedId);
+                        if (idDetailsContainer) idDetailsContainer.style.display = 'none';
+                    } else {
+                        alert('Failed to save: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error saving ID:', error);
+                    alert('Network error while saving ID.');
+                }
+                // -------------------------------------
+
+            } else {
+                alert('Pakipunan ang Word at Number fields.');
+            }
         });
     }
 
