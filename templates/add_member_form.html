@@ -67,7 +67,8 @@
                 </div>
                 <div style="flex:1;">
                     <label for="number_field">Number Format:</label>
-                    <input type="number" id="number_field" name="number_field" placeholder="e.g., 12345" style="padding:10px; font-size:16px; width:100%;">
+                    <!-- Changed type to text so leading zeros (e.g., 00000) are preserved -->
+                    <input type="text" id="number_field" name="number_field" placeholder="e.g., 00000" style="padding:10px; font-size:16px; width:100%;">
                 </div>
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
@@ -302,10 +303,10 @@
 
 <script>
 /*
-  Take 3: Enhanced camera & UI logic with CAMERA SWITCH functionality
-  - Fixed Camera Switch Logic (more flexible constraints for back camera access)
-  - Updated ID Save Logic to POST to Supabase table 'idgenerate'
-  - Maintained Mobile Responsive Interface
+  Take 5: Toggle Button Fix for ID Tools
+  - Refresh button now Toggles (Show/Hide) the details panel
+  - Camera logic remains intact
+  - Magic button logic remains intact
 */
 
 (function () {
@@ -590,41 +591,105 @@
     });
 
     // -----------------------
-    // ID tools (UPDATED FIX FOR SUPABASE)
+    // UPDATED: ID tools (Toggle Logic + Check DB)
     // -----------------------
     if (refreshIdBtn) {
-        refreshIdBtn.addEventListener('click', () => {
-            const randomNum = Math.floor(1000 + Math.random() * 9000);
-            const newId = `ID-${new Date().getFullYear()}-${randomNum}`;
-            idNoField.value = newId;
-            // Clear fields for new editing
-            if (wordField) wordField.value = '';
-            if (numberField) numberField.value = '';
+        refreshIdBtn.addEventListener('click', async () => {
+            // 1. TOGGLE LOGIC: Kung visible na, itago na
+            if (idDetailsContainer && idDetailsContainer.style.display === 'block') {
+                idDetailsContainer.style.display = 'none';
+                return; // Stop execution, wag na mag fetch
+            }
+
+            // 2. Kung nakatago, ipakita at i-fetch data
             if (idDetailsContainer) idDetailsContainer.style.display = 'block';
+
+            // 3. Check Supabase via Backend Endpoint
+            try {
+                const response = await fetch('/get_current_id'); 
+                const data = await response.json();
+
+                if (data && data.idnumber) {
+                    // --- Data Found (e.g., Guardians-00000) ---
+                    const idString = data.idnumber;
+                    
+                    // Split logic: Word-Number
+                    const parts = idString.split('-');
+                    
+                    if (parts.length >= 2) {
+                        if (wordField) wordField.value = parts[0]; // "Guardians"
+                        if (numberField) numberField.value = parts.slice(1).join('-'); // "00000"
+                    } else {
+                        // Fallback if no dash found
+                        if (wordField) wordField.value = idString;
+                        if (numberField) numberField.value = '';
+                    }
+
+                    // Update Main ID Field
+                    if (idNoField) idNoField.value = idString;
+
+                    // Change Button to UPDATE mode
+                    if (saveIdBtn) {
+                        saveIdBtn.textContent = 'Update';
+                        saveIdBtn.style.backgroundColor = '#ffc107'; 
+                        saveIdBtn.style.color = '#000';
+                    }
+
+                } else {
+                    // --- No Data or Empty ---
+                    const randomNum = Math.floor(10000 + Math.random() * 90000); 
+                    
+                    if (wordField) wordField.value = '';
+                    if (numberField) numberField.value = randomNum.toString();
+                    if (idNoField) idNoField.value = '';
+
+                    // Reset Button to SAVE mode
+                    if (saveIdBtn) {
+                        saveIdBtn.textContent = 'Save';
+                        saveIdBtn.style.backgroundColor = '#28a745';
+                        saveIdBtn.style.color = '#fff';
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking ID in DB:', error);
+                
+                // Fallback behavior if fetch fails
+                alert('Warning: Could not check database. Using manual mode.');
+                const randomNum = Math.floor(10000 + Math.random() * 90000); 
+                if (wordField) wordField.value = '';
+                if (numberField) numberField.value = randomNum.toString();
+                
+                if (saveIdBtn) {
+                    saveIdBtn.textContent = 'Save';
+                    saveIdBtn.style.backgroundColor = '#28a745';
+                    saveIdBtn.style.color = '#fff';
+                }
+            }
         });
     }
+
     if (cancelIdBtn) {
         cancelIdBtn.addEventListener('click', () => {
             if (idDetailsContainer) idDetailsContainer.style.display = 'none';
             if (wordField) wordField.value = '';
             if (numberField) numberField.value = '';
+            if (saveIdBtn) {
+                saveIdBtn.textContent = 'Save';
+                saveIdBtn.style.backgroundColor = '#28a745';
+                saveIdBtn.style.color = '#fff';
+            }
         });
     }
+
     if (saveIdBtn) {
-        saveIdBtn.addEventListener('click', async () => { // Added async
-            // Get values
+        saveIdBtn.addEventListener('click', async () => { 
             const wordVal = wordField ? wordField.value.trim() : '';
             const numVal = numberField ? numberField.value.trim() : '';
 
-            // Check if not empty
             if (wordVal && numVal) {
-                // Combine logic (Word-Number)
                 const combinedId = `${wordVal}-${numVal}`;
-                
-                // Update main ID Field
                 idNoField.value = combinedId;
                 
-                // --- FETCH LOGIC TO SAVE TO SUPABASE ---
                 try {
                     const response = await fetch('/save_id_to_db', {
                         method: 'POST',
@@ -635,7 +700,7 @@
                     const result = await response.json();
 
                     if (response.ok && result.success) {
-                        alert('Saved to Database! ID: ' + combinedId);
+                        alert((saveIdBtn.textContent === 'Update' ? 'Updated' : 'Saved') + ' to Database! ID: ' + combinedId);
                         if (idDetailsContainer) idDetailsContainer.style.display = 'none';
                     } else {
                         alert('Failed to save: ' + result.message);
@@ -644,8 +709,6 @@
                     console.error('Error saving ID:', error);
                     alert('Network error while saving ID.');
                 }
-                // -------------------------------------
-
             } else {
                 alert('Pakipunan ang Word at Number fields.');
             }
