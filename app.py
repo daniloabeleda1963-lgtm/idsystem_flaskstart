@@ -1,6 +1,6 @@
-# -----------------------------
+# ==============================
 # Imports & Environment Setup
-# -----------------------------
+# ==============================
 import os
 import re
 from datetime import datetime, timedelta
@@ -9,9 +9,9 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
-# -----------------------------
+# ==============================
 # Load Environment Variables
-# -----------------------------
+# ==============================
 load_dotenv()
 SUPAB_URL = os.getenv("SUPAB_URL")
 SUPAB_SERVICE_KEY = os.getenv("SUPAB_SERVICE_KEY")
@@ -19,14 +19,14 @@ SUPAB_SERVICE_KEY = os.getenv("SUPAB_SERVICE_KEY")
 if not SUPAB_URL or not SUPAB_SERVICE_KEY:
     raise ValueError("SUPAB_URL and SUPAB_SERVICE_KEY must be set")
 
-# -----------------------------
+# ==============================
 # Flask App Initialization
-# -----------------------------
+# ==============================
 app = Flask(__name__)
 
-# -----------------------------
+# ==============================
 # Supabase Client
-# -----------------------------
+# ==============================
 supabase: Client = create_client(SUPAB_URL, SUPAB_SERVICE_KEY)
 
 def get_db():
@@ -46,9 +46,9 @@ def vb6_replace(text):
             .replace("--", "")
     )
 
-# -----------------------------
+# ==============================
 # Routes - Home & Navigation
-# -----------------------------
+# ==============================
 @app.route('/')
 def home():
     return render_template('placeholder_members.html')
@@ -69,16 +69,16 @@ def contact():
 def login():
     return "<h1>Login Page</h1>"
 
-# -----------------------------
+# ==============================
 # Routes - Search Form (HTML)
-# -----------------------------
+# ==============================
 @app.route("/search")
 def search_form():
     return render_template("search_form.html")
 
-# -----------------------------
+# ==============================
 # Bridge Route para sa HTML form action
-# -----------------------------
+# ==============================
 @app.route("/search-members", methods=["POST"])
 def search_members():
     """
@@ -87,9 +87,9 @@ def search_members():
     """
     return api_members()
 
-# -----------------------------
+# ==============================
 # Routes - API Members (Search Logic)
-# -----------------------------
+# ==============================
 @app.route('/api/members', methods=["GET", "POST"])
 def api_members():
     try:
@@ -152,113 +152,102 @@ def api_members():
     except Exception as e:
         return f"Error loading members: {str(e)}", 500
 
-# -----------------------------
-# Routes - ID Generator
-# -----------------------------
-@app.route('/save-id-base', methods=['POST'])
-def save_id_base():
+# ==============================
+# Routes - ID Generator Logic
+# ==============================
+
+@app.route('/get_current_id')
+def get_current_id():
+    """
+    Fetches the latest ID format from 'idgenerate' table.
+    Expected Output JSON: { "idnumber": "Guardians-00000" } or { "idnumber": "" }
+    """
     try:
         db = get_db()
-        data = request.json
-
-        word_part = data.get('word', '').strip()
-        num_part = data.get('number', '').strip()
-        full_format = f"{word_part}-{num_part}"
-
-        db.table('IdGenerate').insert({"idNumber": full_format}).execute()
-
-        return jsonify({"status": "success", "format": full_format})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route('/get-next-id')
-def get_next_id():
-    try:
-        db = get_db()
-
-        last_member = db.table('members') \
-            .select('idnumb') \
-            .order('id', desc=True) \
-            .limit(1).execute()
-
-        source_id = ""
-        if last_member.data and last_member.data[0].get('idnumb'):
-            source_id = last_member.data[0]['idnumb']
+        # Kumuha ng pinakabagong record (order by id desc)
+        response = db.table('idgenerate').select('*').order('id', desc=True).limit(1).execute()
+        
+        if response.data:
+            # May laman ang table, ibalik ang value
+            return jsonify({'idnumber': response.data[0].get('idnumber')})
         else:
-            base_id = db.table('IdGenerate') \
-                .select('idNumber') \
-                .order('id', desc=True) \
-                .limit(1).execute()
-            if base_id.data:
-                source_id = base_id.data[0]['idNumber']
-
-        if not source_id:
-            return jsonify({"status": "error", "message": "No base ID found"})
-
-        match = re.match(r"([a-zA-Z]+)-(\d+)", source_id)
-        if match:
-            word, num_str = match.groups()
-            next_num = int(num_str) + 1
-            new_id = f"{word}-{str(next_num).zfill(len(num_str))}"
-            return jsonify({"status": "success", "next_id": new_id})
-
-        return jsonify({"status": "error", "message": "Invalid ID format"})
+            # Walang laman, ibalik empty string
+            return jsonify({'idnumber': ''})
 
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        print(f"Error getting current ID: {e}")
+        return jsonify({'idnumber': ''}) # Return empty on error to prevent JS crash
 
-# -----------------------------
-# NEW ROUTE FIX FOR TAKE 3 HTML
-# -----------------------------
 @app.route('/save_id_to_db', methods=['POST'])
 def save_id_to_db():
     """
-    Saves the combined ID (Word-Number) directly to Supabase.
-    Target Table: 'idgenerate' (lowercase)
-    Target Field: 'idnumber' (lowercase)
-    Called by JavaScript in add_member_form.html
+    Saves or Updates the ID format in 'idgenerate' table.
+    If a record exists, it UPDATES the latest one (Edit Style).
+    If no record exists, it INSERTS a new one.
     """
     try:
         db = get_db()
-        # Kunin ang data galing sa Fetch Request ng JavaScript
         data = request.json
         
-        # HTML padala niya: { "id_value": "MEMBER-123" }
+        # Kunin ang ID galing sa JavaScript (Word-Number format)
         id_value = data.get('id_value')
 
-        # Simple validation
         if not id_value:
-            return jsonify({'success': False, 'message': 'No ID provided'}), 400
+            return jsonify({'success': False, 'message': 'No ID value provided'}), 400
 
-        # I-save sa Supabase Table 'idgenerate', Column 'idnumber'
-        db.table('idgenerate').insert({"idnumber": id_value}).execute()
+        # 1. Check if may existing record sa table
+        check_response = db.table('idgenerate').select('id').order('id', desc=True).limit(1).execute()
 
-        return jsonify({'success': True, 'message': 'ID saved successfully!'})
+        if check_response.data:
+            # --- MAY LAMAN: UPDATE MODE ---
+            # Kunin ang primary key (id) ng pinakabagong record
+            record_id = check_response.data[0].get('id')
+            
+            # I-update yung record
+            db.table('idgenerate').update({"idnumber": id_value}).eq('id', record_id).execute()
+            action_type = "Updated"
+        else:
+            # --- WALANG LAMAN: INSERT MODE ---
+            db.table('idgenerate').insert({"idnumber": id_value}).execute()
+            action_type = "Saved"
+
+        return jsonify({'success': True, 'message': f'ID {action_type} successfully!', 'id': id_value})
 
     except Exception as e:
-        print(f"Error saving ID: {e}")
+        print(f"Error saving/updating ID: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
-# -----------------------------
-# Routes - Add Member
-# -----------------------------
 @app.route('/add_member', methods=['GET', 'POST'])
 def add_member():
+    """
+    Add Member Route - Includes Camera Action (Base64 Photo)
+    """
     if request.method == 'POST':
+        # Kunin lahat ng data from form
         form_data = {
             'idnumb': request.form.get('id_no'),
             'name': request.form.get('name'),
+            'gender': request.form.get('gender'),
+            'birthdate': request.form.get('birthdate'),
+            'civil_status': request.form.get('civil_status'),
+            'country': request.form.get('country'),
+            'blood_type': request.form.get('blood_type'),
             'designation': request.form.get('designation', ''),
             'chapter': request.form.get('chapter', ''),
-            'birthdate': request.form.get('birthdate'),
-            'blood_type': request.form.get('blood_type', ''),
+            'date_of_membership': request.form.get('date_of_membership'),
+            'membership_type': request.form.get('membership_type'),
             'contact_no': request.form.get('contact_no', ''),
+            'email': request.form.get('email'),
             'home_address': request.form.get('home_address', ''),
             'height': request.form.get('height'),
             'weight': request.form.get('weight'),
-            'emergency_person_address': request.form.get('emergency_person_address'),
+            'occupation': request.form.get('occupation'),
+            'govt_id_presented': request.form.get('govt_id_presented'),
+            'govt_id_no': request.form.get('govt_id_no'),
+            'emergency_person_name': request.form.get('emergency_person_name'),
             'emergency_contact_no': request.form.get('emergency_contact_no'),
-            'photo_data': request.form.get('photo_data'),
+            # Camera Action: Base64 string from HTML canvas
+            'photo_data': request.form.get('photo_data'), 
             'issued_date': datetime.now().strftime('%Y-%m-%d'),
             'valid_until': (datetime.now() + timedelta(days=365*3)).strftime('%Y-%m-%d')
         }
@@ -266,15 +255,16 @@ def add_member():
         try:
             db = get_db()
             db.from_('members').insert(form_data).execute()
+            # Redirect to home or success page after adding
             return redirect(url_for('home'))
         except Exception as e:
             return f"Error adding member: {str(e)}", 500
 
     return render_template('add_member_form.html')
 
-# -----------------------------
+# ==============================
 # Display ID
-# -----------------------------
+# ==============================
 @app.route('/display_id/<int:member_id>')
 def display_id(member_id):
     try:
@@ -287,15 +277,15 @@ def display_id(member_id):
     except Exception as e:
         return f"Database error: {str(e)}", 500
 
-# -----------------------------
+# ==============================
 # Health Check
-# -----------------------------
+# ==============================
 @app.route('/health')
 def health_check():
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
 
-# -----------------------------
+# ==============================
 # Run App
-# -----------------------------
+# ==============================
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
