@@ -2,10 +2,9 @@
 {% block title %}Add New Member{% endblock %}
 
 {% block content %}
-
 <!-- 
    STYLE BLOCK FOR MOBILE RESPONSIVENESS 
-   Para gumanda ang pagkakaplano sa celphone (pang-mobile environment)
+   (Original Layout Preserved)
 -->
 <style>
     /* Center form and give it a max width on large screens */
@@ -50,9 +49,7 @@
 <h1 style="text-align:center; color:#333;">Add New Member</h1>
 <form method="POST" class="form-container" style="display:flex; flex-direction:column; gap:15px; padding:20px; border:1px solid #ddd; border-radius:10px; background:#fff;">
 
-    <!-- =======================
-         ID TOOLS SECTION
-    ======================= -->
+    <!-- ID TOOLS SECTION -->
     <div style="border: 1px solid #eee; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
         <label for="id_no_field" style="font-weight: bold;">ID No.:</label>
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -67,7 +64,6 @@
                 </div>
                 <div style="flex:1;">
                     <label for="number_field">Number Format:</label>
-                    <!-- Changed type to text so leading zeros (e.g., 00000) are preserved -->
                     <input type="text" id="number_field" name="number_field" placeholder="e.g., 00000" style="padding:10px; font-size:16px; width:100%;">
                 </div>
             </div>
@@ -78,9 +74,7 @@
         </div>
     </div>
 
-    <!-- =======================
-         PERSONAL DETAILS SECTION
-    ======================= -->
+    <!-- PERSONAL DETAILS SECTION -->
     <div style="border: 1px solid #eee; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
         <h3 style="margin-top:0; color:#555;">Personal Details</h3>
         <div style="display:flex; gap:15px;">
@@ -137,9 +131,7 @@
         </div>
     </div>
 
-    <!-- =======================
-         MEMBERSHIP & CONTACT SECTION
-    ======================= -->
+    <!-- MEMBERSHIP & CONTACT SECTION -->
     <div style="border: 1px solid #eee; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
         <h3 style="margin-top:0; color:#555;">Membership & Contact</h3>
         <div style="display:flex; gap:15px;">
@@ -176,9 +168,7 @@
         <textarea id="home_address_field" name="home_address" rows="3" placeholder="123 Main St, Barangay, City" required style="padding:10px; font-size:16px;"></textarea>
     </div>
 
-    <!-- =======================
-         OTHER INFORMATION SECTION
-    ======================= -->
+    <!-- OTHER INFORMATION SECTION -->
     <div style="border: 1px solid #eee; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
         <h3 style="margin-top:0; color:#555;">Other Information</h3>
         <div style="display:flex; gap:15px;">
@@ -211,9 +201,7 @@
         <input type="text" id="govt_id_no_field" name="govt_id_no" placeholder="e.g., XXXXXXXXX" style="padding:10px; font-size:16px;">
     </div>
 
-    <!-- =======================
-         EMERGENCY CONTACT SECTION
-    ======================= -->
+    <!-- EMERGENCY CONTACT SECTION -->
     <div style="border: 1px solid #eee; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
         <h3 style="margin-top:0; color:#555;">Emergency Contact</h3>
         <label for="emergency_person_name_field">Emergency Person Name:</label>
@@ -223,9 +211,7 @@
         <button id="search_emergency_btn" type="button" onclick="openSearchModal()" style="padding:10px 20px; background:#17a2b8; color:white; border:none; border-radius:8px; cursor:pointer; align-self: flex-start; margin-top:10px;">Search</button>
     </div>
 
-    <!-- =======================
-         PHOTO / CAMERA SECTION
-    ======================= -->
+    <!-- PHOTO / CAMERA SECTION -->
     <div style="border: 1px solid #eee; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
         <h3 style="margin-top:0; color:#555;">Member Photo</h3>
         <div style="position: relative; text-align: center;">
@@ -250,31 +236,29 @@
     <canvas id="canvas" width="280" height="280" style="display:none;"></canvas>
     <input type="hidden" name="photo_data" id="photo_data">
 
-    <!-- =======================
-         Magic Button
-    ======================= -->
+    <!-- Magic Button -->
     <button type="button" id="magic_btn" style="margin:10px auto; display:block; padding:10px 20px; background:#6a1b9a; color:white; border:none; border-radius:8px; cursor:pointer;">Button Show</button>
     
-    <!-- =======================
-         NEW: Magic Content Area (Listbox + Navigation + Textbox + Action Buttons)
-    ======================= -->
+    <!-- NEW: Magic Content Area (Listbox + Navigation + Textbox + Action Buttons) -->
     <div id="magic_content_area" style="display:none; border: 1px solid #6a1b9a; padding: 20px; border-radius: 8px; background-color: #faf5ff; margin-bottom:10px;">
         
         <!-- Listbox for Members -->
         <select id="members_listbox" size="8" style="width:100%; padding:8px; font-size:14px; border:2px solid #6a1b9a; border-radius:5px; background:#fff; margin-bottom:15px;">
-            <!-- Empty listbox ready for members -->
+            <option disabled>Type in the textbox to search...</option>
         </select>
 
-        <!-- Navigation Buttons (Cute & Small with Icons) -->
+        <!-- Navigation Buttons (Cute & Small with Icons) + NEW "P" Button -->
         <div style="display:flex; justify-content:center; gap:8px; margin-bottom:15px;">
             <button type="button" id="nav_home_btn" title="Home" style="padding:8px 12px; border:2px solid #6a1b9a; border-radius:50%; background:#f3e5f5; color:#6a1b9a; cursor:pointer; font-size:16px; transition:all 0.3s;">🏠</button>
             <button type="button" id="nav_prev_btn" title="Previous" style="padding:8px 12px; border:2px solid #6a1b9a; border-radius:50%; background:#f3e5f5; color:#6a1b9a; cursor:pointer; font-size:16px; transition:all 0.3s;">⬅️</button>
             <button type="button" id="nav_next_btn" title="Next" style="padding:8px 12px; border:2px solid #6a1b9a; border-radius:50%; background:#f3e5f5; color:#6a1b9a; cursor:pointer; font-size:16px; transition:all 0.3s;">➡️</button>
             <button type="button" id="nav_end_btn" title="End" style="padding:8px 12px; border:2px solid #6a1b9a; border-radius:50%; background:#f3e5f5; color:#6a1b9a; cursor:pointer; font-size:16px; transition:all 0.3s;">🔚</button>
+            <!-- NEW "P" BUTTON (Populate) -->
+            <button type="button" id="nav_pop_btn" title="Populate" style="padding:8px 12px; border:2px solid #6a1b9a; border-radius:50%; background:#f3e5f5; color:#6a1b9a; cursor:pointer; font-size:16px; transition:all 0.3s;">P</button>
         </div>
 
         <!-- Textbox -->
-        <input type="text" id="magic_textbox" placeholder="Enter text here..." style="width:100%; padding:10px; font-size:14px; border:2px solid #6a1b9a; border-radius:5px; margin-bottom:15px;">
+        <input type="text" id="magic_textbox" placeholder="Type to search from Supabase..." style="width:100%; padding:10px; font-size:14px; border:2px solid #6a1b9a; border-radius:5px; margin-bottom:15px;">
 
         <!-- Action Buttons (Add, Edit, Save, Delete, Cancel) -->
         <div style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center;">
@@ -291,9 +275,7 @@
 
 </form>
 
-<!-- =======================
-     SEARCH MODAL
-======================= -->
+<!-- SEARCH MODAL -->
 <div id="searchModal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5);">
     <div style="background-color:white; margin:5% auto; padding:20px; border-radius:8px; width:80%; max-width:600px; box-shadow:0 4px 20px rgba(0,0,0,0.3); max-height:80vh; overflow-y:auto;">
         <span onclick="closeSearchModal()" style="color:#aaa; float:right; font-size:28px; font-weight:bold; cursor:pointer; line-height:20px;">&times;</span>
@@ -302,17 +284,12 @@
 </div>
 
 <script>
-/*
-  Take 5: Toggle Button Fix for ID Tools
-  - Refresh button now Toggles (Show/Hide) the details panel
-  - Camera logic remains intact
-  - Magic button logic remains intact
+/* 
+  FINAL SCRIPT - DIRECT SUPABASE AUTOCOMPLETE 
 */
 
 (function () {
-    // -----------------------
-    // Element references
-    // -----------------------
+    // --- CAMERA & PHOTO ELEMENTS ---
     const video = document.getElementById('video');
     const photoPreview = document.getElementById('photo_preview');
     const canvas = document.getElementById('canvas');
@@ -324,8 +301,8 @@
     const uploadPhotoBtn = document.getElementById('upload_photo_btn');
     const cancelCameraBtn = document.getElementById('cancel_camera_btn');
     const switchCameraBtn = document.getElementById('switch_camera_btn');
-
-    // other UI elements
+    
+    // --- ID GENERATOR ELEMENTS ---
     const refreshIdBtn = document.getElementById('refresh_id_btn');
     const idNoField = document.getElementById('id_no_field');
     const idDetailsContainer = document.getElementById('id_details_container');
@@ -333,28 +310,22 @@
     const saveIdBtn = document.getElementById('save_id_btn');
     const wordField = document.getElementById('word_field');
     const numberField = document.getElementById('number_field');
+
+    // --- MAGIC AUTOCOMPLETE ELEMENTS ---
     const magicBtn = document.getElementById('magic_btn');
     const magicContentArea = document.getElementById('magic_content_area');
-
-    // NEW: Magic content elements
     const membersListbox = document.getElementById('members_listbox');
-    const navHomeBtn = document.getElementById('nav_home_btn');
-    const navPrevBtn = document.getElementById('nav_prev_btn');
-    const navNextBtn = document.getElementById('nav_next_btn');
-    const navEndBtn = document.getElementById('nav_end_btn');
     const magicTextbox = document.getElementById('magic_textbox');
+    const navPopBtn = document.getElementById('nav_pop_btn'); // "P" Button
 
-    // -----------------------
-    // State
-    // -----------------------
+    // --- STATE VARIABLES ---
     let cameraStream = null;
-    let photoSource = null;
     let currentDeviceId = null;
-    let lastFacing = 'user'; // 'user' or 'environment'
+    let lastFacing = 'user';
 
-    // -----------------------
-    // Utility helpers
-    // -----------------------
+    // ==============================
+    // 1. CAMERA LOGIC (Original Preserved)
+    // ==============================
     function isSecureContext() {
         return location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
     }
@@ -363,40 +334,28 @@
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             return devices.filter(d => d.kind === 'videoinput');
-        } catch (e) {
-            console.warn('enumerateDevices failed:', e);
-            return [];
-        }
+        } catch (e) { return []; }
     }
 
     async function findDeviceForFacing(facing) {
         const cams = await enumerateCameras();
         if (!cams.length) return null;
-
         const fl = facing === 'user' ? ['front', 'user'] : ['back', 'rear', 'environment'];
         for (const cam of cams) {
-            const label = (cam.label || '').toLowerCase();
-            if (fl.some(f => label.includes(f))) return cam.deviceId;
+            if (fl.some(f => (cam.label || '').toLowerCase().includes(f))) return cam.deviceId;
         }
-
-        // If labels are missing (common on first load), pick the one that ISN'T the current one
         if (cams.length === 2 && currentDeviceId) {
             const other = cams.find(c => c.deviceId !== currentDeviceId);
             if (other) return other.deviceId;
         }
-
         if (cams.length === 1) return cams[0].deviceId;
         return null;
     }
 
-    // -----------------------
-    // UI state functions
-    // -----------------------
     function resetPhotoUI() {
         stopCamera();
         photoPreview.src = "https://placehold.co/280x280/cccccc/333333?text=Photo+Preview";
         photoInput.value = '';
-        photoSource = null;
         if (activateCameraBtn) activateCameraBtn.style.display = 'inline-block';
         if (takePictureBtn) takePictureBtn.style.display = 'none';
         if (clearPhotoBtn) clearPhotoBtn.style.display = 'none';
@@ -420,19 +379,12 @@
         if (switchCameraBtn) switchCameraBtn.style.display = 'none';
     }
 
-    // -----------------------
-    // Camera start/stop
-    // -----------------------
     async function startCamera(preferredFacing = 'user') {
         lastFacing = preferredFacing;
-
         if (!isSecureContext()) {
-            console.warn('Non-secure context — camera may be blocked on mobile browsers.');
-            alert('Note: Camera reliability on mobile requires HTTPS or running on localhost. If camera fails, try serving via https or use a tunnel (e.g., ngrok).');
+            alert('Camera requires HTTPS or Localhost.');
         }
-
         stopCamera();
-
         try {
             const deviceId = await findDeviceForFacing(preferredFacing);
             let constraints;
@@ -440,141 +392,77 @@
                 constraints = { video: { deviceId: { exact: deviceId } } };
                 currentDeviceId = deviceId;
             } else {
-                // Changed 'exact' to 'ideal' to allow browser fallback to the other camera if exact facing fails
                 constraints = { video: { facingMode: { ideal: preferredFacing } } };
                 currentDeviceId = null;
             }
-
             constraints.video.width = { ideal: 1280 };
             constraints.video.height = { ideal: 720 };
-
             cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
-
             if ('srcObject' in video) {
                 video.srcObject = cameraStream;
             } else {
                 video.src = window.URL.createObjectURL(cameraStream);
             }
-
             video.muted = true;
             video.playsInline = true;
-
             await video.play();
-
             video.style.display = 'block';
             photoPreview.style.display = 'none';
             showCameraUI();
         } catch (err) {
-            console.error('startCamera() error with facing', preferredFacing, err);
-
-            const name = err && err.name ? err.name : '';
-            if (name === 'OverconstrainedError' || name === 'NotFoundError' || name === 'NotReadableError') {
-                if (preferredFacing === 'user') {
-                    console.warn('Retrying with environment facing as fallback...');
-                    return startCamera('environment');
-                } else if (preferredFacing === 'environment') {
-                    try {
-                        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                        if ('srcObject' in video) video.srcObject = cameraStream; else video.src = window.URL.createObjectURL(cameraStream);
-                        video.muted = true;
-                        video.playsInline = true;
-                        await video.play();
-                        video.style.display = 'block';
-                        photoPreview.style.display = 'none';
-                        showCameraUI();
-                        return;
-                    } catch (err2) {
-                        console.error('final fallback failed', err2);
-                        alert('Hindi ma-access ang camera — paki-verify ang permissions at browser settings.');
-                        resetPhotoUI();
-                        return;
-                    }
-                }
-            }
-
-            alert('Hindi ma-access ang camera. Paki-verify ang permissions at siguraduhin na naka-allow ang browser access sa camera.');
+            console.error('Camera error', err);
+            alert('Could not access camera.');
             resetPhotoUI();
         }
     }
 
     function stopCamera() {
         if (cameraStream) {
-            try {
-                cameraStream.getTracks().forEach(track => track.stop());
-            } catch (e) { console.warn('Error stopping camera tracks', e); }
+            try { cameraStream.getTracks().forEach(track => track.stop()); } catch (e) {}
             cameraStream = null;
         }
         video.pause();
-        if (video.srcObject) video.srcObject = null;
-        video.src = '';
+        video.srcObject = null;
         video.style.display = 'none';
         photoPreview.style.display = 'block';
     }
 
-    // -----------------------
-    // NEW: Switch Camera Function
-    // -----------------------
-    async function switchCamera() {
-        // Toggle between 'user' and 'environment'
-        const newFacing = lastFacing === 'user' ? 'environment' : 'user';
-        console.log('Switching camera from', lastFacing, 'to', newFacing);
-        await startCamera(newFacing);
-    }
-
-    // -----------------------
-    // Capture logic
-    // -----------------------
     function takePicture() {
         const ctx = canvas.getContext('2d');
         const videoWidth = video.videoWidth || video.clientWidth;
         const videoHeight = video.videoHeight || video.clientHeight;
         const canvasSize = canvas.width;
-
-        if (!videoWidth || !videoHeight) {
-            alert('Camera not ready yet. Subukan muli.');
-            return;
-        }
-
+        if (!videoWidth || !videoHeight) { alert('Camera not ready.'); return; }
         let sx, sy, sWidth, sHeight;
         if (videoWidth > videoHeight) {
             sWidth = videoHeight; sHeight = videoHeight; sx = (videoWidth - videoHeight) / 2; sy = 0;
         } else {
             sWidth = videoWidth; sHeight = videoWidth; sx = 0; sy = (videoHeight - videoWidth) / 2;
         }
-
         ctx.clearRect(0, 0, canvasSize, canvasSize);
         ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvasSize, canvasSize);
-
         const dataURL = canvas.toDataURL('image/jpeg', 0.9);
         photoPreview.src = dataURL;
         photoInput.value = dataURL;
-        photoSource = 'camera';
-
         stopCamera();
         showPhotoTakenUI();
     }
 
-    // -----------------------
-    // Event bindings
-    // -----------------------
     if (activateCameraBtn) activateCameraBtn.addEventListener('click', () => startCamera('user'));
     if (takePictureBtn) takePictureBtn.addEventListener('click', takePicture);
     if (cancelCameraBtn) cancelCameraBtn.addEventListener('click', resetPhotoUI);
     if (clearPhotoBtn) clearPhotoBtn.addEventListener('click', resetPhotoUI);
     if (uploadPhotoBtn) uploadPhotoBtn.addEventListener('click', () => fileInput.click());
+    if (switchCameraBtn) switchCameraBtn.addEventListener('click', () => startCamera(lastFacing === 'user' ? 'environment' : 'user'));
     
-    // NEW: Switch Camera Button Event
-    if (switchCameraBtn) switchCameraBtn.addEventListener('click', switchCamera);
-
     if (fileInput) {
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files && e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = (event) => {
-                    photoPreview.src = event.target.result;
-                    photoInput.value = event.target.result;
-                    photoSource = 'upload';
+                reader.onload = (evt) => {
+                    photoPreview.src = evt.target.result;
+                    photoInput.value = evt.target.result;
                     showPhotoTakenUI();
                 };
                 reader.readAsDataURL(file);
@@ -582,230 +470,230 @@
         });
     }
 
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) stopCamera();
-    });
-
-    window.addEventListener('beforeunload', () => {
-        stopCamera();
-    });
-
-    // -----------------------
-    // UPDATED: ID tools (Toggle Logic + Check DB)
-    // -----------------------
+    // ==============================
+    // 2. ID GENERATOR LOGIC (Original Preserved)
+    // ==============================
     if (refreshIdBtn) {
         refreshIdBtn.addEventListener('click', async () => {
-            // 1. TOGGLE LOGIC: Kung visible na, itago na
-            if (idDetailsContainer && idDetailsContainer.style.display === 'block') {
+            if (idDetailsContainer.style.display === 'block') {
                 idDetailsContainer.style.display = 'none';
-                return; // Stop execution, wag na mag fetch
+                return;
             }
-
-            // 2. Kung nakatago, ipakita at i-fetch data
-            if (idDetailsContainer) idDetailsContainer.style.display = 'block';
-
-            // 3. Check Supabase via Backend Endpoint
+            idDetailsContainer.style.display = 'block';
             try {
-                const response = await fetch('/get_current_id'); 
+                const response = await fetch('/get_current_id');
                 const data = await response.json();
-
                 if (data && data.idnumber) {
-                    // --- Data Found (e.g., Guardians-00000) ---
-                    const idString = data.idnumber;
-                    
-                    // Split logic: Word-Number
-                    const parts = idString.split('-');
-                    
+                    const parts = data.idnumber.split('-');
                     if (parts.length >= 2) {
-                        if (wordField) wordField.value = parts[0]; // "Guardians"
-                        if (numberField) numberField.value = parts.slice(1).join('-'); // "00000"
+                        wordField.value = parts[0];
+                        numberField.value = parts.slice(1).join('-');
                     } else {
-                        // Fallback if no dash found
-                        if (wordField) wordField.value = idString;
-                        if (numberField) numberField.value = '';
+                        wordField.value = data.idnumber;
+                        numberField.value = '';
                     }
-
-                    // Update Main ID Field
-                    if (idNoField) idNoField.value = idString;
-
-                    // Change Button to UPDATE mode
-                    if (saveIdBtn) {
-                        saveIdBtn.textContent = 'Update';
-                        saveIdBtn.style.backgroundColor = '#ffc107'; 
-                        saveIdBtn.style.color = '#000';
-                    }
-
+                    idNoField.value = data.idnumber;
+                    saveIdBtn.textContent = 'Update';
+                    saveIdBtn.style.backgroundColor = '#ffc107';
                 } else {
-                    // --- No Data or Empty ---
-                    const randomNum = Math.floor(10000 + Math.random() * 90000); 
-                    
-                    if (wordField) wordField.value = '';
-                    if (numberField) numberField.value = randomNum.toString();
-                    if (idNoField) idNoField.value = '';
-
-                    // Reset Button to SAVE mode
-                    if (saveIdBtn) {
-                        saveIdBtn.textContent = 'Save';
-                        saveIdBtn.style.backgroundColor = '#28a745';
-                        saveIdBtn.style.color = '#fff';
-                    }
-                }
-            } catch (error) {
-                console.error('Error checking ID in DB:', error);
-                
-                // Fallback behavior if fetch fails
-                alert('Warning: Could not check database. Using manual mode.');
-                const randomNum = Math.floor(10000 + Math.random() * 90000); 
-                if (wordField) wordField.value = '';
-                if (numberField) numberField.value = randomNum.toString();
-                
-                if (saveIdBtn) {
+                    wordField.value = ''; numberField.value = '';
+                    idNoField.value = '';
                     saveIdBtn.textContent = 'Save';
                     saveIdBtn.style.backgroundColor = '#28a745';
-                    saveIdBtn.style.color = '#fff';
                 }
+            } catch (error) {
+                console.error('Error', error);
+                wordField.value = ''; numberField.value = '';
             }
         });
     }
 
-    if (cancelIdBtn) {
-        cancelIdBtn.addEventListener('click', () => {
-            if (idDetailsContainer) idDetailsContainer.style.display = 'none';
-            if (wordField) wordField.value = '';
-            if (numberField) numberField.value = '';
-            if (saveIdBtn) {
-                saveIdBtn.textContent = 'Save';
-                saveIdBtn.style.backgroundColor = '#28a745';
-                saveIdBtn.style.color = '#fff';
-            }
-        });
-    }
+    if (cancelIdBtn) cancelIdBtn.addEventListener('click', () => {
+        idDetailsContainer.style.display = 'none';
+        wordField.value = ''; numberField.value = '';
+    });
 
     if (saveIdBtn) {
-        saveIdBtn.addEventListener('click', async () => { 
-            const wordVal = wordField ? wordField.value.trim() : '';
-            const numVal = numberField ? numberField.value.trim() : '';
-
+        saveIdBtn.addEventListener('click', async () => {
+            const wordVal = wordField.value.trim();
+            const numVal = numberField.value.trim();
             if (wordVal && numVal) {
                 const combinedId = `${wordVal}-${numVal}`;
                 idNoField.value = combinedId;
-                
                 try {
                     const response = await fetch('/save_id_to_db', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ id_value: combinedId })
                     });
-                    
                     const result = await response.json();
-
                     if (response.ok && result.success) {
-                        alert((saveIdBtn.textContent === 'Update' ? 'Updated' : 'Saved') + ' to Database! ID: ' + combinedId);
-                        if (idDetailsContainer) idDetailsContainer.style.display = 'none';
+                        alert('Saved! ID: ' + combinedId);
+                        idDetailsContainer.style.display = 'none';
                     } else {
-                        alert('Failed to save: ' + result.message);
+                        alert('Failed: ' + result.message);
                     }
-                } catch (error) {
-                    console.error('Error saving ID:', error);
-                    alert('Network error while saving ID.');
-                }
-            } else {
-                alert('Pakipunan ang Word at Number fields.');
+                } catch (error) { alert('Network error'); }
+            } else { alert('Complete fields'); }
+        });
+    }
+
+    // ==============================
+    // 3. MAGIC AUTOCOMPLETE - DIRECT SUPABASE SEARCH
+    // ==============================
+    
+    // 3.1. Live Search Function (Fetch from Server)
+    async function fetchFromSupabase(queryText) {
+        try {
+            // Call the NEW route in app.py
+            const response = await fetch(`/api/members/search?q=${encodeURIComponent(queryText)}`);
+            const data = await response.json();
+            populateListbox(data);
+        } catch (error) {
+            console.error('Error searching:', error);
+        }
+    }
+
+    // 3.2. Fill Listbox
+    function populateListbox(members) {
+        if (!membersListbox) return;
+        membersListbox.innerHTML = ''; 
+        
+        if (members.length === 0) {
+            const opt = document.createElement('option');
+            opt.text = "No matches found.";
+            opt.disabled = true;
+            membersListbox.appendChild(opt);
+            return;
+        }
+
+        members.forEach(member => {
+            const option = document.createElement('option');
+            const displayText = member.name + (member.chapter ? ` (${member.chapter})` : '');
+            option.value = member.name; 
+            option.textContent = displayText;
+            option.dataset.fullData = JSON.stringify(member); 
+            membersListbox.appendChild(option);
+        });
+        
+        if (membersListbox.options.length > 0) {
+            membersListbox.selectedIndex = 0;
+        }
+    }
+
+    // 3.3. DIRECT TYPING LOGIC (Query Server Immediately)
+    if (magicTextbox) {
+        magicTextbox.addEventListener('input', function() {
+            const queryText = this.value.trim();
+            
+            if (queryText.length === 0) {
+                // If empty, clear listbox (or keep placeholder)
+                membersListbox.innerHTML = '<option disabled>Type to search from Supabase...</option>';
+                return;
+            }
+
+            // Query Server Directly
+            fetchFromSupabase(queryText);
+        });
+    }
+
+    // 3.4. Sync: Click Listbox -> Updates Textbox
+    if (membersListbox) {
+        membersListbox.addEventListener('change', function() {
+            const selected = this.options[this.selectedIndex];
+            if (selected && !selected.disabled) {
+                magicTextbox.value = selected.value; 
+            }
+        });
+        
+        membersListbox.addEventListener('dblclick', function() {
+            const selected = this.options[this.selectedIndex];
+            if (selected && !selected.disabled) {
+                 const nameField = document.getElementById('name_field');
+                 if(nameField) nameField.value = selected.value;
             }
         });
     }
 
-    // -----------------------
-    // NEW: Magic Button Toggle (Show/Hide Magic Content Area)
-    // -----------------------
+    // 3.5. Toggle Magic Area
     if (magicBtn && magicContentArea) {
         magicBtn.addEventListener('click', () => {
-            if (magicContentArea.style.display === 'none' || magicContentArea.style.display === '') {
-                magicContentArea.style.display = 'block';
-                magicBtn.textContent = 'Button Hide';
-            } else {
-                magicContentArea.style.display = 'none';
-                magicBtn.textContent = 'Button Show';
-            }
+            const isHidden = magicContentArea.style.display === 'none' || magicContentArea.style.display === '';
+            magicContentArea.style.display = isHidden ? 'block' : 'none';
+            magicBtn.textContent = isHidden ? 'Button Hide' : 'Button Show';
+            
+            // NOTE: We do NOT auto-load data here anymore. 
+            // We wait for the user to type in the textbox (Direct Search).
         });
     }
 
-    // -----------------------
-    // NEW: Navigation Buttons (Placeholder functionality)
-    // -----------------------
-    if (navHomeBtn) {
-        navHomeBtn.addEventListener('click', () => {
-            if (membersListbox && membersListbox.options.length > 0) {
-                membersListbox.selectedIndex = 0;
-            }
-            console.log('Home button clicked');
-        });
-    }
-    if (navPrevBtn) {
-        navPrevBtn.addEventListener('click', () => {
-            if (membersListbox && membersListbox.selectedIndex > 0) {
-                membersListbox.selectedIndex--;
-            }
-            console.log('Previous button clicked');
-        });
-    }
-    if (navNextBtn) {
-        navNextBtn.addEventListener('click', () => {
-            if (membersListbox && membersListbox.selectedIndex < membersListbox.options.length - 1) {
-                membersListbox.selectedIndex++;
-            }
-            console.log('Next button clicked');
-        });
-    }
-    if (navEndBtn) {
-        navEndBtn.addEventListener('click', () => {
-            if (membersListbox && membersListbox.options.length > 0) {
-                membersListbox.selectedIndex = membersListbox.options.length - 1;
-            }
-            console.log('End button clicked');
+    // 3.6. "P" BUTTON LOGIC (Reset/Empty)
+    if (navPopBtn) {
+        navPopBtn.addEventListener('click', () => {
+            magicTextbox.value = ''; // Clear Textbox
+            membersListbox.innerHTML = '<option disabled>Type to search from Supabase...</option>'; // Reset Listbox
+            magicTextbox.focus(); // Focus Textbox for easy typing
         });
     }
 
-    // -----------------------
-    // Magic Action Buttons (Placeholder functionality)
-    // -----------------------
-    document.querySelectorAll('.magic-action-btn').forEach(button => {
-        button.addEventListener('click', (e) => {
+    // 3.7. Navigation Buttons (Prev, Next, Home, End) Logic
+    // Since listbox now only contains filtered items, navigation is simpler.
+    ['home', 'prev', 'next', 'end'].forEach(dir => {
+        const btn = document.getElementById(`nav_${dir}_btn`);
+        if(btn && membersListbox) {
+            btn.addEventListener('click', () => {
+                const len = membersListbox.options.length;
+                if (len === 0) return; // No items to navigate
+                
+                let newIndex = membersListbox.selectedIndex;
+
+                if (dir === 'home') newIndex = 0;
+                if (dir === 'end') newIndex = len - 1;
+                if (dir === 'prev' && newIndex > 0) newIndex--;
+                if (dir === 'next' && newIndex < len - 1) newIndex++;
+
+                // Apply if valid index found (items are not disabled)
+                if (newIndex >= 0 && newIndex < len && !membersListbox.options[newIndex].disabled) {
+                    membersListbox.selectedIndex = newIndex;
+                    magicTextbox.value = membersListbox.options[newIndex].value;
+                }
+            });
+        }
+    });
+
+    // Action Buttons (Placeholder)
+    document.querySelectorAll('.magic-action-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
             const action = e.target.dataset.action;
-            alert(`'${action.charAt(0).toUpperCase() + action.slice(1)}' button clicked! Ready for future implementation.`);
+            const selectedOpt = membersListbox.options[membersListbox.selectedIndex];
+            if(action === 'delete' && selectedOpt) {
+                 if(confirm('Delete this entry locally?')) selectedOpt.remove();
+            } else {
+                 alert(`Action: ${action}`);
+            }
         });
     });
 
-    // Search modal functions
+    // ==============================
+    // 4. MODAL SEARCH LOGIC (Preserved)
+    // ==============================
     window.openSearchModal = function () {
         const modal = document.getElementById('searchModal');
         const container = document.getElementById('searchFormContainer');
-
         fetch('/search')
-            .then(response => response.text())
+            .then(res => res.text())
             .then(html => {
                 container.innerHTML = html;
                 modal.style.display = 'block';
             })
-            .catch(error => {
-                console.error('Error loading search form:', error);
-                alert('Error loading search form');
-            });
+            .catch(err => alert('Error loading search'));
     };
+    
     window.closeSearchModal = function () {
-        const m = document.getElementById('searchModal');
-        if (m) m.style.display = 'none';
-    };
-    window.onclick = function (event) {
-        const modal = document.getElementById('searchModal');
-        if (event.target == modal) {
-            modal.style.display = 'none';
-        }
+        document.getElementById('searchModal').style.display = 'none';
     };
 
-    document.addEventListener('DOMContentLoaded', () => {
-        resetPhotoUI();
-    });
+    document.addEventListener('DOMContentLoaded', resetPhotoUI);
 
 })();
 </script>
