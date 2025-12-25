@@ -82,20 +82,13 @@ def search_form():
 @app.route("/search-members", methods=["POST"])
 def search_members():
     """
-    Temporary bridge para gumana ang:
-    action="{{ url_for('search_members') }}" sa HTML
+    Ito ay nag-handle kapag nag-submit yung user ng form (Non-JS fallback).
+    Pero ngayon, pinapasa natin yung data sa template gamit ang tamang variable name.
     """
-    return api_members()
-
-# ==============================
-# Routes - API Members (Search Logic)
-# ==============================
-@app.route('/api/members', methods=["GET", "POST"])
-def api_members():
     try:
         db = get_db()
-        raw_search = request.form.get("search_term") or request.args.get("q", "")
-        search_type = request.form.get("search_type") or request.args.get("search_type") or "all"
+        raw_search = request.form.get("search_term")
+        search_type = request.form.get("search_type") or "all"
         search_term = vb6_replace(raw_search).lower()
 
         if search_term:
@@ -118,7 +111,7 @@ def api_members():
             elif search_type == "contact":
                 or_logic = f"contact_no.ilike.%{search_term}%"
             else:
-                or_logic = f"name.ilike.%{search_term}%"  # default fallback
+                or_logic = f"name.ilike.%{search_term}%"
 
             response = db.from_('members').select('*').or_(or_logic).order('name', desc=False).execute()
         else:
@@ -126,13 +119,12 @@ def api_members():
 
         members = response.data if response.data else []
 
-        # Highlight sa backend
+        # Highlight sa backend (For Server-Side Result Page)
         def highlight(text):
             if not text: return ""
             regex = re.compile(re.escape(search_term), re.IGNORECASE)
             return regex.sub(lambda m: f'<span class="highlight">{m.group(0)}</span>', text)
 
-        # I-highlight lahat ng fields
         for m in members:
             m['name'] = highlight(m.get('name', ''))
             m['chapter'] = highlight(m.get('chapter', ''))
@@ -141,16 +133,61 @@ def api_members():
             m['blood_type'] = highlight(m.get('blood_type', ''))
             m['home_address'] = highlight(m.get('home_address', ''))
 
+        # FIX: Binago ko 'results_count' to 'total_results' para tugma sa Code 4
         return render_template(
             "search_results.html",
             members=members,
             search_term=search_term,
             search_type=search_type,
-            results_count=len(members)
+            total_results=len(members)
         )
 
     except Exception as e:
         return f"Error loading members: {str(e)}", 500
+
+# ==============================
+# ROUTE: API Members (JSON Only) - Get All
+# ==============================
+@app.route('/api/members/json', methods=["GET"])
+def api_members_json():
+    """
+    NEW ROUTE: Ito ay purely JSON API para kay Code #3 (Real-time Search).
+    Hindi nag-rerender ng HTML. Ibalik lang ang raw data list.
+    """
+    try:
+        db = get_db()
+        response = db.from_('members').select('*').order('name', desc=False).execute()
+        return jsonify(response.data)
+    except Exception as e:
+        print(f"Error fetching JSON members: {e}")
+        return jsonify([]), 500
+
+# ==============================
+# NEW ROUTE: LIVE AUTOCOMPLETE SEARCH (Direct from Supabase)
+# ==============================
+@app.route('/api/members/search', methods=["GET"])
+def api_members_search():
+    """
+    Ito ay nagha-handle ng live search habang nagta-type sa Add Member Form.
+    Hinahanap sa Supabase (Name OR Chapter).
+    Limit to 20 results for performance.
+    """
+    try:
+        db = get_db()
+        q = request.args.get('q', '')
+        
+        # Kung empty, return empty array
+        if not q:
+            return jsonify([])
+            
+        # Logic: Search Name OR Chapter using Supabase syntax
+        or_logic = f"name.ilike.%{q}%,chapter.ilike.%{q}%"
+        response = db.from_('members').select('*').or_(or_logic).limit(20).execute()
+        
+        return jsonify(response.data)
+    except Exception as e:
+        print(f"Error searching autocomplete: {e}")
+        return jsonify([]), 500
 
 # ==============================
 # Routes - ID Generator Logic
@@ -158,61 +195,38 @@ def api_members():
 
 @app.route('/get_current_id')
 def get_current_id():
-    """
-    Fetches the latest ID format from 'idgenerate' table.
-    Expected Output JSON: { "idnumber": "Guardians-00000" } or { "idnumber": "" }
-    """
+    """Fetches the latest ID format from 'idgenerate' table."""
     try:
         db = get_db()
-        # Kumuha ng pinakabagong record (order by id desc)
         response = db.table('idgenerate').select('*').order('id', desc=True).limit(1).execute()
-        
         if response.data:
-            # May laman ang table, ibalik ang value
             return jsonify({'idnumber': response.data[0].get('idnumber')})
         else:
-            # Walang laman, ibalik empty string
             return jsonify({'idnumber': ''})
-
     except Exception as e:
         print(f"Error getting current ID: {e}")
-        return jsonify({'idnumber': ''}) # Return empty on error to prevent JS crash
+        return jsonify({'idnumber': ''})
 
 @app.route('/save_id_to_db', methods=['POST'])
 def save_id_to_db():
-    """
-    Saves or Updates the ID format in 'idgenerate' table.
-    If a record exists, it UPDATES the latest one (Edit Style).
-    If no record exists, it INSERTS a new one.
-    """
+    """Saves or Updates the ID format."""
     try:
         db = get_db()
         data = request.json
-        
-        # Kunin ang ID galing sa JavaScript (Word-Number format)
         id_value = data.get('id_value')
-
         if not id_value:
             return jsonify({'success': False, 'message': 'No ID value provided'}), 400
 
-        # 1. Check if may existing record sa table
         check_response = db.table('idgenerate').select('id').order('id', desc=True).limit(1).execute()
-
         if check_response.data:
-            # --- MAY LAMAN: UPDATE MODE ---
-            # Kunin ang primary key (id) ng pinakabagong record
             record_id = check_response.data[0].get('id')
-            
-            # I-update yung record
             db.table('idgenerate').update({"idnumber": id_value}).eq('id', record_id).execute()
             action_type = "Updated"
         else:
-            # --- WALANG LAMAN: INSERT MODE ---
             db.table('idgenerate').insert({"idnumber": id_value}).execute()
             action_type = "Saved"
 
         return jsonify({'success': True, 'message': f'ID {action_type} successfully!', 'id': id_value})
-
     except Exception as e:
         print(f"Error saving/updating ID: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -223,7 +237,6 @@ def add_member():
     Add Member Route - Includes Camera Action (Base64 Photo)
     """
     if request.method == 'POST':
-        # Kunin lahat ng data from form
         form_data = {
             'idnumb': request.form.get('id_no'),
             'name': request.form.get('name'),
@@ -255,7 +268,6 @@ def add_member():
         try:
             db = get_db()
             db.from_('members').insert(form_data).execute()
-            # Redirect to home or success page after adding
             return redirect(url_for('home'))
         except Exception as e:
             return f"Error adding member: {str(e)}", 500
