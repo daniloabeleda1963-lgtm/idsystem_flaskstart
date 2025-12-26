@@ -460,7 +460,7 @@
     let isEditMode = false; 
 
     // ==============================
-    // 1. CAMERA LOGIC
+    //1. CAMERA LOGIC
     // ==============================
     function isSecureContext() {
         return location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
@@ -721,7 +721,7 @@
         magicTextbox.addEventListener('input', function() {
             const queryText = this.value.trim();
             if (queryText.length === 0) {
-                membersListbox.innerHTML = '<option disabled>Type to search from Supabase...</option>';
+                membersListbox.innerHTML = '<option disabled>Type in textbox to search from Supabase...</option>';
                 return;
             }
             fetchFromSupabase(queryText);
@@ -815,7 +815,7 @@
     if (navPopBtn) {
         navPopBtn.addEventListener('click', () => {
             magicTextbox.value = ''; 
-            membersListbox.innerHTML = '<option disabled>Type to search from Supabase...</option>'; 
+            membersListbox.innerHTML = '<option disabled>Type in textbox to search from Supabase...</option>'; 
             magicTextbox.focus(); 
         });
     }
@@ -841,10 +841,10 @@
     });
 
     // ==============================
-    // 4. ACTION BUTTONS LOGIC (FIXED ADD/EDIT/UPDATE)
+    // 4. ACTION BUTTONS LOGIC (UPDATED ADD & CANCEL)
     // ==============================
     document.querySelectorAll('.magic-action-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', async (e) => {
             const action = e.target.dataset.action;
             const selectedOpt = membersListbox.options[membersListbox.selectedIndex];
             const saveBtn = document.querySelector('button[data-action="save"]');
@@ -866,7 +866,46 @@
                     saveBtn.style.backgroundColor = "#f3e5f5";
                     saveBtn.style.color = "#6a1b9a";
                 }
-                
+
+                // --- NEW LOGIC: AUTO ID GENERATION (USING FETCH) ---
+                try {
+                    const response = await fetch('/get_current_id');
+                    const result = await response.json();
+                    
+                    let nextId = 1; // Default start
+                    let lastIdString = result.idnumber || '';
+
+                    if (lastIdString) {
+                        // Logic to extract number (in case it has dashes or text like ID-0001)
+                        const numericPart = lastIdString.replace(/\D/g, ''); 
+                        const lastNum = parseInt(numericPart);
+
+                        if (!isNaN(lastNum)) {
+                            nextId = lastNum + 1;
+                            // Simple formatting (pad with zeros up to 4 digits)
+                            const formattedNum = String(nextId).padStart(4, '0');
+                            
+                            // If original ID had a dash (e.g. ID-0001), keep the format
+                            if (lastIdString.includes('-')) {
+                                const parts = lastIdString.split('-');
+                                parts[parts.length - 1] = formattedNum;
+                                idNoField.value = parts.join('-');
+                            } else {
+                                idNoField.value = formattedNum;
+                            }
+                        } else {
+                            idNoField.value = nextId; // Fallback
+                        }
+                    } else {
+                        // Table is empty, start with 1
+                        idNoField.value = '1';
+                    }
+                } catch (err) {
+                    console.error("ID Gen Error:", err);
+                    alert("Error generating ID via server.");
+                }
+
+                // --- FOCUS TO FULLNAME ---
                 const nameField = document.getElementById('name_field');
                 if(nameField) nameField.focus();
             }
@@ -905,11 +944,12 @@
 
             else if (action === 'cancel') {
                 isEditMode = false;
-                form.reset();
+                form.reset(); // Resets all inputs
                 resetPhotoUI();
                 
                 form_action_field.value = 'add';
                 member_id_field.value = '';
+                idNoField.value = ''; // Clear ID specifically just to be safe
 
                 submitBtn.textContent = "Submit Registration";
                 submitBtn.style.backgroundColor = "#333";
@@ -939,7 +979,32 @@
     });
 
     // ==============================
-    // 5. MODAL SEARCH LOGIC
+    // 5. SEQUENTIAL FOCUS (ENTER KEY)
+    // ==============================
+    const allInputs = Array.from(document.querySelectorAll('input, select, textarea'));
+    
+    allInputs.forEach((input, index) => {
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Prevent form submit
+                
+                // Find next visible input
+                let nextIndex = index + 1;
+                while (nextIndex < allInputs.length) {
+                    const nextInput = allInputs[nextIndex];
+                    // Skip hidden/disabled inputs
+                    if (nextInput.type !== 'hidden' && !nextInput.disabled && nextInput.offsetParent !== null) {
+                        nextInput.focus();
+                        break;
+                    }
+                    nextIndex++;
+                }
+            }
+        });
+    });
+
+    // ==============================
+    // 6. MODAL SEARCH LOGIC
     // ==============================
     window.openSearchModal = function () {
         const modal = document.getElementById('searchModal');
@@ -958,7 +1023,7 @@
     };
 
     // ==============================
-    // 6. SIGNATURE PAD LOGIC (UPDATED FOR SMOOTH FINGER/COTTON BUGS INPUT)
+    // 7. SIGNATURE PAD LOGIC (UPDATED FOR SMOOTH FINGER/COTTON BUGS INPUT)
     // ==============================
     const openSigBtn = document.getElementById('open_sig_btn');
     const signatureModal = document.getElementById('signatureModal');
