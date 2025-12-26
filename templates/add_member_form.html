@@ -4,7 +4,6 @@
 {% block content %}
 <!-- 
    STYLE BLOCK FOR MOBILE RESPONSIVENESS 
-   (Original Layout Preserved)
 -->
 <style>
     /* Center form and give it a max width on large screens */
@@ -49,6 +48,12 @@
 <h1 style="text-align:center; color:#333;">Add New Member</h1>
 <form method="POST" class="form-container" style="display:flex; flex-direction:column; gap:15px; padding:20px; border:1px solid #ddd; border-radius:10px; background:#fff;">
 
+    <!-- IMPORTANT: HIDDEN FIELDS FOR LOGIC -->
+    <!-- 1. Action: Kung 'add' o 'update' -->
+    <input type="hidden" name="form_action" id="form_action_field" value="add">
+    <!-- 2. Member ID: Kung ano ang ID ng ina-update -->
+    <input type="hidden" name="member_id" id="member_id_field" value="">
+
     <!-- ID TOOLS SECTION -->
     <div style="border: 1px solid #eee; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
         <label for="id_no_field" style="font-weight: bold;">ID No.:</label>
@@ -92,6 +97,15 @@
                 </select>
             </div>
         </div>
+        
+        <!-- ADDED: PSEUDO NAME -->
+        <div style="display:flex; gap:15px;">
+            <div style="flex:1;">
+                <label for="pseudo_name_field">Pseudo Name:</label>
+                <input type="text" id="pseudo_name_field" name="pseudo_name" placeholder="e.g., Juaning" style="padding:10px; font-size:16px; width:100%;">
+            </div>
+        </div>
+
         <div style="display:flex; gap:15px;">
             <div style="flex:1;">
                 <label for="birthdate_field">Birthdate:</label>
@@ -154,6 +168,19 @@
                 <input type="text" id="membership_type_field" name="membership_type" placeholder="Regular" style="padding:10px; font-size:16px; width:100%;">
             </div>
         </div>
+
+        <!-- ADDED FIELDS: ISSUED DATE & VALID UNTIL -->
+        <div style="display:flex; gap:15px;">
+            <div style="flex:1;">
+                <label for="issued_date_field">Issued Date:</label>
+                <input type="date" id="issued_date_field" name="issued_date" style="padding:10px; font-size:16px; width:100%;">
+            </div>
+            <div style="flex:1;">
+                <label for="valid_until_field">Valid Until:</label>
+                <input type="date" id="valid_until_field" name="valid_until" style="padding:10px; font-size:16px; width:100%;">
+            </div>
+        </div>
+
         <div style="display:flex; gap:15px;">
             <div style="flex:1;">
                 <label for="contact_no_field">Contact No.:</label>
@@ -199,6 +226,26 @@
         </div>
         <label for="govt_id_no_field">Gov't ID Number:</label>
         <input type="text" id="govt_id_no_field" name="govt_id_no" placeholder="e.g., XXXXXXXXX" style="padding:10px; font-size:16px;">
+        
+        <!-- INSERTED: QR CODE & SIGNATURE SECTION -->
+        <div style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 10px;">
+            <div style="display:flex; gap:15px;">
+                <!-- 1. QR Code Placeholder -->
+                <div style="flex:1;">
+                    <label for="qr_code_field">QR Code:</label>
+                    <input type="text" id="qr_code_field" name="qr_code" placeholder="Generated QR Code..." readonly style="padding:10px; font-size:16px; width:100%; background-color: #e9e9e9;">
+                </div>
+                <!-- 2. Signature Textbox & 3. Small Button (UPDATED WITH ID) -->
+                <div style="flex:1;">
+                    <label for="signature_field">Signature:</label>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <input type="text" id="signature_field" name="signature" placeholder="Type or Sign Here" style="padding:10px; font-size:16px; flex-grow: 1;">
+                        <button type="button" id="open_sig_btn" style="padding:8px 12px; border:none; border-radius:4px; background:#007bff; color:white; cursor:pointer; font-size:12px;">✍️</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- END INSERTION -->
     </div>
 
     <!-- EMERGENCY CONTACT SECTION -->
@@ -219,7 +266,6 @@
                 <video id="video" autoplay playsinline style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; display:none;"></video>
                 <img id="photo_preview" src="https://placehold.co/280x280/cccccc/333333?text=Photo+Preview" alt="Captured Photo Preview" style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0;">
             </div>
-            <!-- Adjusted buttons to be more accessible on mobile via CSS, keeping inline styles for structure -->
             <button id="switch_camera_btn" type="button" style="position: absolute; left: calc(50% + 165px); bottom: 150px; padding:10px 14px; border:none; border-radius:50%; background-color:#FF9800; color:white; cursor:pointer; font-size:18px; display:none;">🔄</button>
             <button id="cancel_camera_btn" type="button" style="position: absolute; left: calc(50% + 165px); bottom: 100px; padding:10px 14px; border:none; border-radius:50%; background-color:#f44336; color:white; cursor:pointer; font-size:18px; display:none;">✖</button>
             <button id="upload_photo_btn" type="button" style="position: absolute; left: calc(50% + 165px); bottom: 50px; padding:10px 14px; border:none; border-radius:50%; background-color:#2196F3; color:white; cursor:pointer; font-size:18px;">📷</button>
@@ -235,32 +281,24 @@
     <input type="file" id="file_input" accept="image/*" style="display:none;">
     <canvas id="canvas" width="280" height="280" style="display:none;"></canvas>
     <input type="hidden" name="photo_data" id="photo_data">
+    <input type="hidden" name="photo_url" id="photo_url_field">
 
     <!-- Magic Button -->
     <button type="button" id="magic_btn" style="margin:10px auto; display:block; padding:10px 20px; background:#6a1b9a; color:white; border:none; border-radius:8px; cursor:pointer;">Button Show</button>
     
-    <!-- NEW: Magic Content Area (Listbox + Navigation + Textbox + Action Buttons) -->
+    <!-- Magic Content Area -->
     <div id="magic_content_area" style="display:none; border: 1px solid #6a1b9a; padding: 20px; border-radius: 8px; background-color: #faf5ff; margin-bottom:10px;">
-        
-        <!-- Listbox for Members -->
         <select id="members_listbox" size="8" style="width:100%; padding:8px; font-size:14px; border:2px solid #6a1b9a; border-radius:5px; background:#fff; margin-bottom:15px;">
             <option disabled>Type in the textbox to search...</option>
         </select>
-
-        <!-- Navigation Buttons (Cute & Small with Icons) + NEW "P" Button -->
         <div style="display:flex; justify-content:center; gap:8px; margin-bottom:15px;">
             <button type="button" id="nav_home_btn" title="Home" style="padding:8px 12px; border:2px solid #6a1b9a; border-radius:50%; background:#f3e5f5; color:#6a1b9a; cursor:pointer; font-size:16px; transition:all 0.3s;">🏠</button>
             <button type="button" id="nav_prev_btn" title="Previous" style="padding:8px 12px; border:2px solid #6a1b9a; border-radius:50%; background:#f3e5f5; color:#6a1b9a; cursor:pointer; font-size:16px; transition:all 0.3s;">⬅️</button>
             <button type="button" id="nav_next_btn" title="Next" style="padding:8px 12px; border:2px solid #6a1b9a; border-radius:50%; background:#f3e5f5; color:#6a1b9a; cursor:pointer; font-size:16px; transition:all 0.3s;">➡️</button>
             <button type="button" id="nav_end_btn" title="End" style="padding:8px 12px; border:2px solid #6a1b9a; border-radius:50%; background:#f3e5f5; color:#6a1b9a; cursor:pointer; font-size:16px; transition:all 0.3s;">🔚</button>
-            <!-- NEW "P" BUTTON (Populate) -->
             <button type="button" id="nav_pop_btn" title="Populate" style="padding:8px 12px; border:2px solid #6a1b9a; border-radius:50%; background:#f3e5f5; color:#6a1b9a; cursor:pointer; font-size:16px; transition:all 0.3s;">P</button>
         </div>
-
-        <!-- Textbox -->
         <input type="text" id="magic_textbox" placeholder="Type to search from Supabase..." style="width:100%; padding:10px; font-size:14px; border:2px solid #6a1b9a; border-radius:5px; margin-bottom:15px;">
-
-        <!-- Action Buttons (Add, Edit, Save, Delete, Cancel) -->
         <div style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center;">
             <button type="button" class="magic-action-btn" data-action="add" style="padding:10px 20px; border:2px solid #6a1b9a; border-radius:8px; background:#f3e5f5; color:#6a1b9a; cursor:pointer;">Add</button>
             <button type="button" class="magic-action-btn" data-action="edit" style="padding:10px 20px; border:2px solid #6a1b9a; border-radius:8px; background:#f3e5f5; color:#6a1b9a; cursor:pointer;">Edit</button>
@@ -275,6 +313,29 @@
 
 </form>
 
+<!-- ADDED: SIGNATURE PAD LIBRARY -->
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+<!-- ADDED: SIGNATURE MODAL -->
+<div id="signatureModal" style="display:none; position:fixed; z-index:2000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6);">
+    <div style="background-color:white; margin:10% auto; padding:20px; border-radius:10px; width:90%; max-width:500px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+        <!-- Updated Caption to Tagalog -->
+        <h3 style="margin-top:0; text-align:center;">Pakilagda Diyan</h3>
+        
+        <!-- Canvas Area -->
+        <div style="border:2px solid #ccc; border-radius:5px; background-color:#fff; touch-action:none; position:relative; height:200px; width:100%;">
+            <canvas id="signature-pad" style="width:100%; height:100%; display:block;"></canvas>
+        </div>
+        
+        <!-- Updated Buttons: Clear, Delete, Save -->
+        <div style="display:flex; justify-content:center; gap:10px; margin-top:20px;">
+            <button id="clear_sig_btn" type="button" style="padding:10px 20px; background:#fd7e14; color:white; border:none; border-radius:5px; cursor:pointer;">Clear</button>
+            <button id="delete_sig_btn" type="button" style="padding:10px 20px; background:#dc3545; color:white; border:none; border-radius:5px; cursor:pointer;">Delete</button>
+            <button id="save_sig_btn" type="button" style="padding:10px 20px; background:#28a745; color:white; border:none; border-radius:5px; cursor:pointer;">Save</button>
+        </div>
+    </div>
+</div>
+
 <!-- SEARCH MODAL -->
 <div id="searchModal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5);">
     <div style="background-color:white; margin:5% auto; padding:20px; border-radius:8px; width:80%; max-width:600px; box-shadow:0 4px 20px rgba(0,0,0,0.3); max-height:80vh; overflow-y:auto;">
@@ -285,16 +346,26 @@
 
 <script>
 /* 
-  FINAL SCRIPT - DIRECT SUPABASE AUTOCOMPLETE 
+  FINAL VERSION: FIXED TOUCH & ADDED DELETE BUTTON
+  UPDATED SIGNATURE PAD FOR SMOOTH TOUCH/FINGER/COTTON BUGS INPUT
 */
 
 (function () {
-    // --- CAMERA & PHOTO ELEMENTS ---
+    // --- ELEMENTS ---
     const video = document.getElementById('video');
     const photoPreview = document.getElementById('photo_preview');
     const canvas = document.getElementById('canvas');
     const photoInput = document.getElementById('photo_data');
+    const photoUrlField = document.getElementById('photo_url_field');
     const fileInput = document.getElementById('file_input');
+    
+    // Logic Fields
+    const form = document.querySelector('form');
+    const member_id_field = document.getElementById('member_id_field');
+    const form_action_field = document.getElementById('form_action_field');
+    const submitBtn = document.getElementById('submit_btn');
+
+    // Buttons
     const activateCameraBtn = document.getElementById('activate_camera_btn');
     const takePictureBtn = document.getElementById('take_picture_btn');
     const clearPhotoBtn = document.getElementById('clear_photo_btn');
@@ -302,7 +373,14 @@
     const cancelCameraBtn = document.getElementById('cancel_camera_btn');
     const switchCameraBtn = document.getElementById('switch_camera_btn');
     
-    // --- ID GENERATOR ELEMENTS ---
+    // Magic Tools
+    const magicBtn = document.getElementById('magic_btn');
+    const magicContentArea = document.getElementById('magic_content_area');
+    const membersListbox = document.getElementById('members_listbox');
+    const magicTextbox = document.getElementById('magic_textbox');
+    const navPopBtn = document.getElementById('nav_pop_btn');
+
+    // ID Tools
     const refreshIdBtn = document.getElementById('refresh_id_btn');
     const idNoField = document.getElementById('id_no_field');
     const idDetailsContainer = document.getElementById('id_details_container');
@@ -311,20 +389,14 @@
     const wordField = document.getElementById('word_field');
     const numberField = document.getElementById('number_field');
 
-    // --- MAGIC AUTOCOMPLETE ELEMENTS ---
-    const magicBtn = document.getElementById('magic_btn');
-    const magicContentArea = document.getElementById('magic_content_area');
-    const membersListbox = document.getElementById('members_listbox');
-    const magicTextbox = document.getElementById('magic_textbox');
-    const navPopBtn = document.getElementById('nav_pop_btn'); // "P" Button
-
-    // --- STATE VARIABLES ---
+    // --- STATE ---
     let cameraStream = null;
     let currentDeviceId = null;
     let lastFacing = 'user';
+    let isEditMode = false; 
 
     // ==============================
-    // 1. CAMERA LOGIC (Original Preserved)
+    // 1. CAMERA LOGIC
     // ==============================
     function isSecureContext() {
         return location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
@@ -356,6 +428,7 @@
         stopCamera();
         photoPreview.src = "https://placehold.co/280x280/cccccc/333333?text=Photo+Preview";
         photoInput.value = '';
+        if(photoUrlField) photoUrlField.value = '';
         if (activateCameraBtn) activateCameraBtn.style.display = 'inline-block';
         if (takePictureBtn) takePictureBtn.style.display = 'none';
         if (clearPhotoBtn) clearPhotoBtn.style.display = 'none';
@@ -444,6 +517,7 @@
         const dataURL = canvas.toDataURL('image/jpeg', 0.9);
         photoPreview.src = dataURL;
         photoInput.value = dataURL;
+        if(photoUrlField) photoUrlField.value = dataURL;
         stopCamera();
         showPhotoTakenUI();
     }
@@ -463,6 +537,7 @@
                 reader.onload = (evt) => {
                     photoPreview.src = evt.target.result;
                     photoInput.value = evt.target.result;
+                    if(photoUrlField) photoUrlField.value = evt.target.result;
                     showPhotoTakenUI();
                 };
                 reader.readAsDataURL(file);
@@ -471,7 +546,7 @@
     }
 
     // ==============================
-    // 2. ID GENERATOR LOGIC (Original Preserved)
+    // 2. ID GENERATOR LOGIC
     // ==============================
     if (refreshIdBtn) {
         refreshIdBtn.addEventListener('click', async () => {
@@ -539,13 +614,10 @@
     }
 
     // ==============================
-    // 3. MAGIC AUTOCOMPLETE - DIRECT SUPABASE SEARCH
+    // 3. MAGIC AUTOCOMPLETE - SEARCH & POPULATE
     // ==============================
-    
-    // 3.1. Live Search Function (Fetch from Server)
     async function fetchFromSupabase(queryText) {
         try {
-            // Call the NEW route in app.py
             const response = await fetch(`/api/members/search?q=${encodeURIComponent(queryText)}`);
             const data = await response.json();
             populateListbox(data);
@@ -554,7 +626,6 @@
         }
     }
 
-    // 3.2. Fill Listbox
     function populateListbox(members) {
         if (!membersListbox) return;
         membersListbox.innerHTML = ''; 
@@ -581,28 +652,71 @@
         }
     }
 
-    // 3.3. DIRECT TYPING LOGIC (Query Server Immediately)
     if (magicTextbox) {
         magicTextbox.addEventListener('input', function() {
             const queryText = this.value.trim();
-            
             if (queryText.length === 0) {
-                // If empty, clear listbox (or keep placeholder)
                 membersListbox.innerHTML = '<option disabled>Type to search from Supabase...</option>';
                 return;
             }
-
-            // Query Server Directly
             fetchFromSupabase(queryText);
         });
     }
 
-    // 3.4. Sync: Click Listbox -> Updates Textbox
     if (membersListbox) {
         membersListbox.addEventListener('change', function() {
             const selected = this.options[this.selectedIndex];
             if (selected && !selected.disabled) {
                 magicTextbox.value = selected.value; 
+                try {
+                    const data = JSON.parse(selected.dataset.fullData);
+                    
+                    if(data.id) {
+                        member_id_field.value = data.id;
+                    } else {
+                        console.warn("No ID found in search result!");
+                    }
+
+                    const manualMapping = { 'idnumb': 'id_no_field' };
+                    for (const key in data) {
+                        let targetId;
+                        if (manualMapping[key]) targetId = manualMapping[key];
+                        else targetId = key + "_field";
+                        
+                        const element = document.getElementById(targetId);
+                        if (element) {
+                            if (element.tagName === 'SELECT') {
+                                const valToMatch = String(data[key] || '').toLowerCase();
+                                let matchFound = false;
+                                
+                                for (let i = 0; i < element.options.length; i++) {
+                                    if (element.options[i].value.toLowerCase() === valToMatch) {
+                                        element.selectedIndex = i;
+                                        matchFound = true;
+                                        break;
+                                    }
+                                }
+                                
+                                if (!matchFound) {
+                                    element.selectedIndex = 0;
+                                }
+                            } else {
+                                element.value = data[key] || '';
+                            }
+                        }
+                    }
+
+                    const existingPhoto = data.photo || data.photo_url || data.photo_data;
+                    if(existingPhoto) {
+                        const imgEl = document.getElementById('photo_preview');
+                        if(imgEl) imgEl.src = existingPhoto;
+                        if(photoInput) photoInput.value = existingPhoto;
+                        if(photoUrlField) photoUrlField.value = existingPhoto;
+                    } else {
+                        resetPhotoUI();
+                    }
+
+                } catch (e) { console.error("Could not populate form", e); }
             }
         });
         
@@ -615,67 +729,142 @@
         });
     }
 
-    // 3.5. Toggle Magic Area
     if (magicBtn && magicContentArea) {
         magicBtn.addEventListener('click', () => {
             const isHidden = magicContentArea.style.display === 'none' || magicContentArea.style.display === '';
             magicContentArea.style.display = isHidden ? 'block' : 'none';
             magicBtn.textContent = isHidden ? 'Button Hide' : 'Button Show';
-            
-            // NOTE: We do NOT auto-load data here anymore. 
-            // We wait for the user to type in the textbox (Direct Search).
         });
     }
 
-    // 3.6. "P" BUTTON LOGIC (Reset/Empty)
     if (navPopBtn) {
         navPopBtn.addEventListener('click', () => {
-            magicTextbox.value = ''; // Clear Textbox
-            membersListbox.innerHTML = '<option disabled>Type to search from Supabase...</option>'; // Reset Listbox
-            magicTextbox.focus(); // Focus Textbox for easy typing
+            magicTextbox.value = ''; 
+            membersListbox.innerHTML = '<option disabled>Type to search from Supabase...</option>'; 
+            magicTextbox.focus(); 
         });
     }
 
-    // 3.7. Navigation Buttons (Prev, Next, Home, End) Logic
-    // Since listbox now only contains filtered items, navigation is simpler.
     ['home', 'prev', 'next', 'end'].forEach(dir => {
         const btn = document.getElementById(`nav_${dir}_btn`);
         if(btn && membersListbox) {
             btn.addEventListener('click', () => {
                 const len = membersListbox.options.length;
-                if (len === 0) return; // No items to navigate
-                
+                if (len === 0) return; 
                 let newIndex = membersListbox.selectedIndex;
-
                 if (dir === 'home') newIndex = 0;
                 if (dir === 'end') newIndex = len - 1;
                 if (dir === 'prev' && newIndex > 0) newIndex--;
                 if (dir === 'next' && newIndex < len - 1) newIndex++;
-
-                // Apply if valid index found (items are not disabled)
                 if (newIndex >= 0 && newIndex < len && !membersListbox.options[newIndex].disabled) {
                     membersListbox.selectedIndex = newIndex;
                     magicTextbox.value = membersListbox.options[newIndex].value;
+                    membersListbox.dispatchEvent(new Event('change'));
                 }
             });
         }
     });
 
-    // Action Buttons (Placeholder)
+    // ==============================
+    // 4. ACTION BUTTONS LOGIC (FIXED ADD/EDIT/UPDATE)
+    // ==============================
     document.querySelectorAll('.magic-action-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const action = e.target.dataset.action;
             const selectedOpt = membersListbox.options[membersListbox.selectedIndex];
-            if(action === 'delete' && selectedOpt) {
-                 if(confirm('Delete this entry locally?')) selectedOpt.remove();
-            } else {
-                 alert(`Action: ${action}`);
+            const saveBtn = document.querySelector('button[data-action="save"]');
+
+            if (action === 'add') {
+                isEditMode = false;
+                form.reset();
+                resetPhotoUI();
+                
+                form_action_field.value = 'add'; 
+                member_id_field.value = '';
+
+                submitBtn.textContent = "Submit Registration";
+                submitBtn.style.backgroundColor = "#333";
+                submitBtn.style.color = "white";
+                
+                if(saveBtn) {
+                    saveBtn.textContent = "Save";
+                    saveBtn.style.backgroundColor = "#f3e5f5";
+                    saveBtn.style.color = "#6a1b9a";
+                }
+                
+                const nameField = document.getElementById('name_field');
+                if(nameField) nameField.focus();
+            }
+
+            else if (action === 'edit') {
+                if (!selectedOpt || selectedOpt.disabled) {
+                    alert("Please select a member from the list first.");
+                    return;
+                }
+
+                isEditMode = true;
+                membersListbox.dispatchEvent(new Event('change'));
+                form_action_field.value = 'update';
+
+                submitBtn.textContent = "Update Registration";
+                submitBtn.style.backgroundColor = "#ffc107";
+                submitBtn.style.color = "#000";
+
+                if(saveBtn) {
+                    saveBtn.textContent = "Update";
+                    saveBtn.style.backgroundColor = "#ffc107";
+                    saveBtn.style.color = "#000";
+                }
+            }
+
+            else if (action === 'save') {
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+
+                if(confirm(isEditMode ? "Are you sure you want to Update this record?" : "Are you sure you want to Save this new record?")) {
+                    form.submit();
+                }
+            }
+
+            else if (action === 'cancel') {
+                isEditMode = false;
+                form.reset();
+                resetPhotoUI();
+                
+                form_action_field.value = 'add';
+                member_id_field.value = '';
+
+                submitBtn.textContent = "Submit Registration";
+                submitBtn.style.backgroundColor = "#333";
+                submitBtn.style.color = "white";
+
+                if(saveBtn) {
+                    saveBtn.textContent = "Save";
+                    saveBtn.style.backgroundColor = "#f3e5f5";
+                    saveBtn.style.color = "#6a1b9a";
+                }
+            }
+
+            else if (action === 'delete') {
+                if(selectedOpt && !selectedOpt.disabled) {
+                     if(confirm('Delete this entry locally?')) {
+                         selectedOpt.remove();
+                         form.reset();
+                         resetPhotoUI();
+                         form_action_field.value = 'add';
+                         member_id_field.value = '';
+                     }
+                } else {
+                    alert("Select a member to delete.");
+                }
             }
         });
     });
 
     // ==============================
-    // 4. MODAL SEARCH LOGIC (Preserved)
+    // 5. MODAL SEARCH LOGIC
     // ==============================
     window.openSearchModal = function () {
         const modal = document.getElementById('searchModal');
@@ -692,6 +881,129 @@
     window.closeSearchModal = function () {
         document.getElementById('searchModal').style.display = 'none';
     };
+
+    // ==============================
+    // 6. SIGNATURE PAD LOGIC (UPDATED FOR SMOOTH FINGER/COTTON BUGS INPUT)
+    // ==============================
+    const openSigBtn = document.getElementById('open_sig_btn');
+    const signatureModal = document.getElementById('signatureModal');
+    const sigCanvas = document.getElementById('signature-pad');
+    const saveSigBtn = document.getElementById('save_sig_btn');
+    const clearSigBtn = document.getElementById('clear_sig_btn');
+    const deleteSigBtn = document.getElementById('delete_sig_btn'); // New Element
+    const signatureField = document.getElementById('signature_field');
+
+    let signaturePad = null;
+
+    // --- IMPROVED RESIZE CANVAS FOR TOUCH ---
+    function resizeCanvas() {
+        if (signatureModal.style.display === 'none') return;
+        
+        // Kunin ang actual size ng canvas sa CSS
+        const rect = sigCanvas.getBoundingClientRect();
+        
+        // Set internal size to match CSS size * pixelRatio
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        
+        sigCanvas.width = rect.width * ratio;
+        sigCanvas.height = rect.height * ratio;
+        
+        const ctx = sigCanvas.getContext("2d");
+        ctx.scale(ratio, ratio);
+    }
+
+    if (openSigBtn && signatureModal) {
+        openSigBtn.addEventListener('click', () => {
+            signatureModal.style.display = 'block';
+            
+            // Wait for modal to render
+            setTimeout(() => {
+                resizeCanvas();
+                
+                if (!signaturePad) {
+                    signaturePad = new SignaturePad(sigCanvas, {
+                        backgroundColor: 'rgba(255, 255, 255, 0)',
+                        penColor: 'rgb(0, 0, 0)',
+                        
+                        // --- CHANGES FOR SMOOTH FINGER/COTTON BUGS SIGNATURE ---
+                        // Mataas ang velocityFilterWeight para hindi sensitive sa mabilisang kurot ng daliri (0.7 -> 0.85)
+                        velocityFilterWeight: 0.85,
+                        
+                        // Maliit ang minDistance para hindi mag-skip points kahit dikit ang touch (default 5 -> 0.5)
+                        minDistance: 0.5,
+                        
+                        // Mataas ang throttle para mas madaming points ang kunin habang gumagalaw (default 8 -> 16)
+                        throttle: 16
+                        // -----------------------------------------------------------
+                    });
+                } else {
+                    signaturePad.clear(); 
+                }
+
+                // Load Existing
+                const currentSigData = signatureField.value;
+                if (currentSigData && currentSigData.length > 20) {
+                    try {
+                        signaturePad.fromDataURL(currentSigData);
+                    } catch (e) {
+                        console.error("Error loading signature data", e);
+                        signaturePad.clear();
+                    }
+                }
+
+            }, 100); // Slightly longer delay to ensure layout stability
+        });
+    }
+
+    if (saveSigBtn) {
+        saveSigBtn.addEventListener('click', (e) => {
+            e.preventDefault(); 
+            if (!signaturePad) { 
+                alert("Signature pad not initialized."); 
+                return; 
+            }
+            
+            if (signaturePad.isEmpty()) {
+                alert("Please sign first before saving.");
+                return;
+            }
+
+            const data = signaturePad.toDataURL('image/png');
+            if (signatureField) {
+                signatureField.value = data;
+            }
+            signatureModal.style.display = 'none';
+        });
+    }
+
+    if (clearSigBtn) {
+        clearSigBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!signaturePad) return;
+            // Clear canvas lang para magsimula ulit
+            signaturePad.clear();
+        });
+    }
+
+    if (deleteSigBtn) {
+        deleteSigBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!signaturePad) return;
+            
+            // Confirm Delete
+            if(confirm("Delete signature? This will remove the saved signature.")) {
+                signaturePad.clear();
+                signatureField.value = ""; // Empty the textbox
+                signatureModal.style.display = 'none'; // Close modal
+            }
+        });
+    }
+
+    window.addEventListener('click', (e) => {
+        if (e.target == signatureModal) {
+            signatureModal.style.display = 'none';
+        }
+    });
 
     document.addEventListener('DOMContentLoaded', resetPhotoUI);
 
