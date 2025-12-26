@@ -261,6 +261,10 @@ def add_member():
             'emergency_contact_no': request.form.get('emergency_contact_no'),
             # Camera Action: Base64 string from HTML canvas
             'photo_data': request.form.get('photo_data'), 
+            # ADDED: QR Code and Signature fields
+            'qr_code': request.form.get('qr_code'),
+            'signature': request.form.get('signature'),
+            # Dates
             'issued_date': datetime.now().strftime('%Y-%m-%d'),
             'valid_until': (datetime.now() + timedelta(days=365*3)).strftime('%Y-%m-%d')
         }
