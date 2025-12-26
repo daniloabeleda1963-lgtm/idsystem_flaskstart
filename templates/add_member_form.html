@@ -14,22 +14,15 @@
         box-sizing: border-box;
     }
 
-    /* --- MOBILE ADJUSTMENTS (Celphone View) --- */
+    /* Mobile Adjustments: If screen is smaller than 700px (Celphone/Tablet) */
     @media (max-width: 700px) {
-        
-        /* 1. AYUSIN ANG FORM FIELDS (Inputs) */
-        /* Sa celpon, pag may display:flex na div sa loob ng form, gawing pababa */
-        .form-container > div[style*="display:flex"] {
+        /* Force side-by-side divs to stack vertically on mobile */
+        .form-container > div > div[style*="display:flex"] {
             flex-direction: column !important;
             gap: 10px !important;
         }
-        
-        /* Pero para sa mga loob-loob na row (personal details), keep them side-by-side pero compact */
-        .form-container > div > div[style*="display:flex"] {
-             flex-wrap: wrap !important; /* Pwede mag-wrap kung sobrang liit */
-             gap: 8px !important;
-        }
 
+        /* Ensure inputs look good stacked */
         .form-container input, 
         .form-container select, 
         .form-container textarea {
@@ -37,48 +30,17 @@
             width: 100% !important;
         }
         
-        /* 2. AYUSIN ANG CAMERA BUTTONS */
-        /* Sa laptop, absolute (floating) sila. Sa celpon, ilipat sa ilalim para hindi sagabal */
+        /* Fix camera buttons on small screens */
         #switch_camera_btn, #cancel_camera_btn, #upload_photo_btn {
             position: static !important;
-            display: inline-flex !important;
-            justify-content: center;
-            align-items: center;
-            width: 48px !important; /* Fixed na maliit na square */
-            height: 48px !important;
-            padding: 0 !important;
-            margin: 5px 2px !important; /* Konting space lang */
-            border-radius: 50% !important;
-        }
-
-        /* I-center ang lahat ng controls sa ibaba ng photo */
-        .camera-controls-wrapper {
-            display: flex !important;
-            justify-content: center !important;
-            gap: 10px !important;
-            margin-top: 15px !important;
-            flex-wrap: wrap !important;
-        }
-
-        /* 3. AYUSIN ANG MAGIC BUTTONS (Add, Edit, Save, etc.) */
-        /* Dito nagkakaproblema usually kasi naging full width. Ibalik natin sa grid pero compact. */
-        #magic_content_area .magic-action-btn {
-            flex: 1 1 40% !important; /* 40% width so 2 buttons fit per row */
-            padding: 10px 5px !important; /* Mas konting padding para maliit */
-            font-size: 14px !important;
-            margin: 2px !important;
-            min-width: auto !important;
-            white-space: nowrap !important; /* Hindi tumatakas yung text */
+            margin-top: 5px;
+            display: inline-block !important;
+            width: auto;
         }
         
-        /* Small buttons for Nav (Home, Prev, Next) */
-        #magic_content_area button[title="Home"], 
-        #magic_content_area button[title="Previous"],
-        #magic_content_area button[title="Next"], 
-        #magic_content_area button[title="End"] {
-            width: 40px !important; 
-            height: 40px !important;
-            padding: 0 !important;
+        /* Magic content area responsiveness */
+        #magic_content_area .magic-action-btn {
+            flex-grow: 1;
         }
     }
 </style>
@@ -159,6 +121,7 @@
                     <option value="Widower">Widower</option>
                     <option value="Separated">Separated</option>
                     <option value="Divorced">Divorced</option>
+                    <option value="None">None</option> <!-- ADDED: None Option -->
                 </select>
             </div>
         </div>
@@ -225,8 +188,8 @@
                 <input type="tel" id="contact_no_field" name="contact_no" placeholder="+639123456789" required style="padding:10px; font-size:16px; width:100%;">
             </div>
             <div style="flex:1;">
-                <label for="email_field">Email Address:</label>
-                <input type="email" id="email_field" name="email" placeholder="juan.delacruz@example.com" style="padding:10px; font-size:16px; width:100%;">
+                <label for="home_address_field">Home Address:</label>
+                <!-- Removed separate label/address for parallel alignment fix request if applicable, but keeping original structure logic unless requested to change. Wait, request was specific about Email. Moving Email below. -->
             </div>
         </div>
         <label for="home_address_field">Home Address:</label>
@@ -252,6 +215,13 @@
                 <input type="text" id="occupation_field" name="occupation" placeholder="e.g., Engineer" style="padding:10px; font-size:16px; width:100%;">
             </div>
             <div style="flex:1;">
+                <!-- Empty placeholder or spacer if needed, but currently this row only has Occupation -->
+            </div>
+        </div>
+        
+        <!-- UPDATED: EMAIL & GOV ID SIDE BY SIDE -->
+        <div style="display:flex; gap:15px;">
+            <div style="flex:1;">
                 <label for="govt_id_presented_field">Gov't ID Presented:</label>
                 <select id="govt_id_presented_field" name="govt_id_presented" style="padding:10px; font-size:16px; width:100%;">
                     <option value="">-- Select ID --</option>
@@ -259,9 +229,15 @@
                     <option value="Driver's License">Driver's License</option>
                     <option value="National ID">National ID</option>
                     <option value="SSS ID">SSS ID</option>
+                    <option value="None">None</option> <!-- ADDED: None Option -->
                 </select>
             </div>
+            <div style="flex:1;">
+                <label for="email_field">Email Address:</label>
+                <input type="email" id="email_field" name="email" placeholder="juan.delacruz@example.com" style="padding:10px; font-size:16px; width:100%;">
+            </div>
         </div>
+
         <label for="govt_id_no_field">Gov't ID Number:</label>
         <input type="text" id="govt_id_no_field" name="govt_id_no" placeholder="e.g., XXXXXXXXX" style="padding:10px; font-size:16px;">
         
@@ -304,11 +280,10 @@
                 <video id="video" autoplay playsinline style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; display:none;"></video>
                 <img id="photo_preview" src="https://placehold.co/280x280/cccccc/333333?text=Photo+Preview" alt="Captured Photo Preview" style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0;">
             </div>
-            <!-- NOTE: Absolute positions for Laptop. Overridden by CSS for Mobile. -->
             <button id="switch_camera_btn" type="button" style="position: absolute; left: calc(50% + 165px); bottom: 150px; padding:10px 14px; border:none; border-radius:50%; background-color:#FF9800; color:white; cursor:pointer; font-size:18px; display:none;">🔄</button>
             <button id="cancel_camera_btn" type="button" style="position: absolute; left: calc(50% + 165px); bottom: 100px; padding:10px 14px; border:none; border-radius:50%; background-color:#f44336; color:white; cursor:pointer; font-size:18px; display:none;">✖</button>
             <button id="upload_photo_btn" type="button" style="position: absolute; left: calc(50% + 165px); bottom: 50px; padding:10px 14px; border:none; border-radius:50%; background-color:#2196F3; color:white; cursor:pointer; font-size:18px;">📷</button>
-            <div id="main_camera_controls" class="camera-controls-wrapper" style="display:flex; justify-content:center; gap:10px; margin-top:10px;">
+            <div id="main_camera_controls" style="display:flex; justify-content:center; gap:10px; margin-top:10px;">
                 <button id="activate_camera_btn" type="button" style="padding:10px 20px; background:#4CAF50; color:white; border:none; cursor:pointer;">Activate Camera</button>
                 <button id="take_picture_btn" type="button" style="display:none; padding:10px 20px; background:#008CBA; color:white; border:none; cursor:pointer;">Take Picture</button>
                 <button id="clear_photo_btn" type="button" style="display:none; padding:10px 20px; background:#ff9800; color:white; border:none; cursor:pointer;">Clear Photo</button>
@@ -386,7 +361,7 @@
 <script>
 /* 
   FINAL VERSION: FIXED TOUCH & ADDED DELETE BUTTON
-  UPDATED SIGNATURE PAD FOR SMOOTH FINGER/COTTON BUGS INPUT
+  UPDATED SIGNATURE PAD FOR SMOOTH TOUCH/FINGER/COTTON BUGS INPUT
 */
 
 (function () {
