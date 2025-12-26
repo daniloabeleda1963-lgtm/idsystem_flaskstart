@@ -376,6 +376,9 @@
 
 </form>
 
+<!-- ADDED: QR CODE LIBRARY -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+
 <!-- ADDED: SIGNATURE PAD LIBRARY -->
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
 
@@ -412,6 +415,9 @@
   FINAL VERSION: FIXED TOUCH & ADDED DELETE BUTTON
   UPDATED SIGNATURE PAD FOR SMOOTH FINGER/COTTON BUGS INPUT
   FIXED LISTBOX: CLICK & ARROW KEYS NOW UPDATE TEXTBOX & FORM
+  FIXED SAVE LOGIC: QR GENERATION & ID REGENERATE TABLE UPDATE
+  FIX: ID INCREMENT LOGIC (Padding Preservation)
+  FIX: POPULATE CLICK BUG (Added click listener)
 */
 
 (function () {
@@ -713,7 +719,6 @@
         
         if (membersListbox.options.length > 0) {
             membersListbox.selectedIndex = 0;
-            // Optional: Auto-select first item? Better to wait for user action to avoid confusion.
         }
     }
 
@@ -747,7 +752,11 @@
                         console.warn("No ID found in search result!");
                     }
 
-                    const manualMapping = { 'idnumb': 'id_no_field' };
+                    const manualMapping = { 
+                        'idnumb': 'id_no_field',
+                        'pseudo_name': 'pseudo_name_field' // Explicitly map pseudo name
+                    };
+                    
                     for (const key in data) {
                         let targetId;
                         if (manualMapping[key]) targetId = manualMapping[key];
@@ -790,8 +799,13 @@
             }
         };
 
-        // --- FIX: CLICK EVENT (One Click Populate) ---
-        membersListbox.addEventListener('change', populateFieldsFromSelection);
+        // --- FIX: CLICK EVENT (Fixes the "Click twice" bug) ---
+        membersListbox.addEventListener('click', function(e) {
+            // Force populate on click even if index doesn't change
+            if (e.target.tagName === 'OPTION' && !e.target.disabled) {
+                populateFieldsFromSelection.call(this);
+            }
+        });
 
         // --- FIX: ARROW KEY EVENT (Highlight Updates Textbox) ---
         membersListbox.addEventListener('keyup', function(e) {
@@ -841,7 +855,7 @@
     });
 
     // ==============================
-    // 4. ACTION BUTTONS LOGIC (UPDATED ADD & CANCEL)
+    // 4. ACTION BUTTONS LOGIC (UPDATED SAVE WITH QR & ID UPDATE)
     // ==============================
     document.querySelectorAll('.magic-action-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
@@ -867,39 +881,43 @@
                     saveBtn.style.color = "#6a1b9a";
                 }
 
-                // --- NEW LOGIC: AUTO ID GENERATION (USING FETCH) ---
+                // --- NEW LOGIC: AUTO ID GENERATION (Fixed Padding) ---
                 try {
                     const response = await fetch('/get_current_id');
                     const result = await response.json();
                     
-                    let nextId = 1; // Default start
+                    let newIdString = ''; 
                     let lastIdString = result.idnumber || '';
 
                     if (lastIdString) {
-                        // Logic to extract number (in case it has dashes or text like ID-0001)
-                        const numericPart = lastIdString.replace(/\D/g, ''); 
-                        const lastNum = parseInt(numericPart);
-
-                        if (!isNaN(lastNum)) {
-                            nextId = lastNum + 1;
-                            // Simple formatting (pad with zeros up to 4 digits)
-                            const formattedNum = String(nextId).padStart(4, '0');
+                        // Split to handle formats like ID-00010
+                        const parts = lastIdString.split('-');
+                        // Assume the number is always the last part
+                        let numPart = parts[parts.length - 1];
+                        
+                        // Extract digits only
+                        const numericOnly = numPart.replace(/\D/g, '');
+                        
+                        if(numericOnly) {
+                            const num = parseInt(numericOnly);
+                            const nextNum = num + 1;
+                            // Pad to the SAME length as the original numeric part
+                            // e.g. 00010 (len 5) -> 11 -> 00011
+                            const paddedNextNum = String(nextNum).padStart(numericOnly.length, '0');
                             
-                            // If original ID had a dash (e.g. ID-0001), keep the format
-                            if (lastIdString.includes('-')) {
-                                const parts = lastIdString.split('-');
-                                parts[parts.length - 1] = formattedNum;
-                                idNoField.value = parts.join('-');
-                            } else {
-                                idNoField.value = formattedNum;
-                            }
+                            parts[parts.length - 1] = paddedNextNum;
+                            newIdString = parts.join('-');
                         } else {
-                            idNoField.value = nextId; // Fallback
+                            newIdString = '1'; // Fallback
                         }
                     } else {
-                        // Table is empty, start with 1
-                        idNoField.value = '1';
+                        // Table is empty, start with 1 (or ID-0001 depending on word)
+                        // We'll default to simple 1 if no format is found
+                        newIdString = '1';
                     }
+                    
+                    idNoField.value = newIdString;
+
                 } catch (err) {
                     console.error("ID Gen Error:", err);
                     alert("Error generating ID via server.");
@@ -937,7 +955,45 @@
                     return;
                 }
 
-                if(confirm(isEditMode ? "Are you sure you want to Update this record?" : "Are you sure you want to Save this new record?")) {
+                const confirmMsg = isEditMode ? "Are you sure you want to Update this record?" : "Are you sure you want to Save this new record?";
+                if(confirm(confirmMsg)) {
+                    
+                    // --- NEW LOGIC: GENERATE QR CODE & UPDATE ID TABLE ---
+                    
+                    // 1. Generate QR Code using the ID Number
+                    const currentId = idNoField.value;
+                    const qrField = document.getElementById('qr_code_field');
+                    
+                    if (currentId && qrField && typeof QRious !== 'undefined') {
+                        try {
+                            const qr = new QRious({
+                                value: currentId,
+                                size: 200,
+                                level: 'H'
+                            });
+                            qrField.value = qr.toDataURL(); // Save Base64 to hidden field
+                        } catch (e) {
+                            console.error("QR Error", e);
+                        }
+                    }
+
+                    // 2. Update ID Regenerate Table (Only if NEW MEMBER)
+                    // We update the database to the ID we just used for this member.
+                    if (!isEditMode && currentId) {
+                        try {
+                            // Send the current ID to the database to update the sequence
+                            await fetch('/save_id_to_db', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id_value: currentId })
+                            });
+                        } catch (err) {
+                            console.error("Failed to update ID sequence:", err);
+                            // We don't block the save if this fails, just log it.
+                        }
+                    }
+
+                    // 3. Finally Submit the Form
                     form.submit();
                 }
             }
@@ -1066,13 +1122,8 @@
                         penColor: 'rgb(0, 0, 0)',
                         
                         // --- CHANGES FOR SMOOTH FINGER/COTTON BUGS SIGNATURE ---
-                        // Mataas ang velocityFilterWeight para hindi sensitive sa mabilisang kurot ng daliri (0.7 -> 0.85)
                         velocityFilterWeight: 0.85,
-                        
-                        // Maliit ang minDistance para hindi mag-skip points kahit dikit ang touch (default 5 -> 0.5)
                         minDistance: 0.5,
-                        
-                        // Mataas ang throttle para mas madaming points ang kunin habang gumagalaw (default 8 -> 16)
                         throttle: 16
                         // -----------------------------------------------------------
                     });
@@ -1091,7 +1142,7 @@
                     }
                 }
 
-            }, 100); // Slightly longer delay to ensure layout stability
+            }, 100); 
         });
     }
 
