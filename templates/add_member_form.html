@@ -1063,13 +1063,37 @@
 
             else if (action === 'delete') {
                 if(selectedOpt && !selectedOpt.disabled) {
-                     if(confirm('Delete this entry locally?')) {
-                         selectedOpt.remove();
-                         form.reset();
-                         resetPhotoUI();
-                         form_action_field.value = 'add';
-                         member_id_field.value = '';
-                     }
+                    if(confirm('Are you sure you want to delete this member?')) {
+                        // Kunin ang ID mula sa hidden field o data attribute
+                        const memberId = member_id_field.value;
+                        
+                        if(!memberId) {
+                            alert("No Member ID found. Please select a member first.");
+                            return;
+                        }
+
+                        try {
+                            // 1. Ipadala ang Delete Request sa Server
+                            const response = await fetch(`/delete_member/${memberId}`, {
+                                method: 'DELETE'
+                            });
+
+                            if (response.ok) {
+                                // 2. Kung successful, tanggalin sa listbox at reset form
+                                selectedOpt.remove();
+                                form.reset();
+                                resetPhotoUI();
+                                form_action_field.value = 'add';
+                                member_id_field.value = '';
+                                alert("Member deleted successfully.");
+                            } else {
+                                alert("Failed to delete member.");
+                            }
+                        } catch (error) {
+                            console.error("Delete Error:", error);
+                            alert("An error occurred while deleting.");
+                        }
+                    }
                 } else {
                     alert("Select a member to delete.");
                 }
