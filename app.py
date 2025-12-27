@@ -331,6 +331,20 @@ def health_check():
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
 
 # ==============================
+# NEW ROUTE: DELETE MEMBER
+# ==============================
+@app.route('/delete_member/<int:member_id>', methods=["DELETE"])
+def delete_member(member_id):
+    """Deletes a member from the database."""
+    try:
+        db = get_db()
+        db.from_('members').delete().eq('id', member_id).execute()
+        return jsonify({'success': True, 'message': 'Member deleted successfully'})
+    except Exception as e:
+        print(f"Error deleting member: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# ==============================
 # Run App
 # ==============================
 if __name__ == '__main__':
