@@ -100,10 +100,13 @@ def search_members():
                     f"designation.ilike.%{search_term}%",
                     f"contact_no.ilike.%{search_term}%",
                     f"blood_type.ilike.%{search_term}%",
-                    f"home_address.ilike.%{search_term}%"
+                    f"home_address.ilike.%{search_term}%",
+                    # --- FIX: NADAGDAG NA ANG PSEUDO NAME ---
+                    f"pseudo_name.ilike.%{search_term}%"
+                    # -----------------------------------------
                 ])
             elif search_type == "name":
-                or_logic = f"name.ilike.%{search_term}%"
+                or_logic = f"name.ilike.%{search_term}%,pseudo_name.ilike.%{search_term}%"
             elif search_type == "chapter":
                 or_logic = f"chapter.ilike.%{search_term}%"
             elif search_type == "designation":
@@ -132,6 +135,9 @@ def search_members():
             m['contact_no'] = highlight(m.get('contact_no', ''))
             m['blood_type'] = highlight(m.get('blood_type', ''))
             m['home_address'] = highlight(m.get('home_address', ''))
+            # --- FIX: HIGHLIGHT PSEUDO NAME ---
+            m['pseudo_name'] = highlight(m.get('pseudo_name', ''))
+            # -------------------------------
 
         # FIX: Binago ko 'results_count' to 'total_results' para tugma sa Code 4
         return render_template(
@@ -180,8 +186,10 @@ def api_members_search():
         if not q:
             return jsonify([])
             
-        # Logic: Search Name OR Chapter using Supabase syntax
-        or_logic = f"name.ilike.%{q}%,chapter.ilike.%{q}%"
+        # Logic: Search Name OR Pseudo Name OR Chapter using Supabase syntax
+        # --- FIX: NADAGDAG NA ANG PSEUDO NAME ---
+        or_logic = f"name.ilike.%{q}%,pseudo_name.ilike.%{q}%,chapter.ilike.%{q}%"
+        # ------------------------------------------------
         response = db.from_('members').select('*').or_(or_logic).limit(20).execute()
         
         return jsonify(response.data)
@@ -235,8 +243,14 @@ def save_id_to_db():
 def add_member():
     """
     Add Member Route - Includes Camera Action (Base64 Photo)
+    FIX: Added Update Logic and Pseudo Name Support
     """
     if request.method == 'POST':
+        # --- DITO: KUNIN ANG FORM ACTION AT MEMBER ID ---
+        form_action = request.form.get('form_action') # 'add' or 'update'
+        record_id = request.form.get('member_id')
+        
+        # 2. BILANGIN ANG DATA (KASAMA NA SI PSEUDO NAME)
         form_data = {
             'idnumb': request.form.get('id_no'),
             'name': request.form.get('name'),
@@ -264,6 +278,11 @@ def add_member():
             # ADDED: QR Code and Signature fields
             'qr_code': request.form.get('qr_code'),
             'signature': request.form.get('signature'),
+            
+            # --- FIX: DITO KASAMA ANG PSEUDO NAME ---
+            'pseudo_name': request.form.get('pseudo_name'),
+            # ----------------------------------------
+            
             # Dates
             'issued_date': datetime.now().strftime('%Y-%m-%d'),
             'valid_until': (datetime.now() + timedelta(days=365*3)).strftime('%Y-%m-%d')
@@ -271,7 +290,18 @@ def add_member():
 
         try:
             db = get_db()
-            db.from_('members').insert(form_data).execute()
+            
+            # --- FIX: DITO ANG LOGIC PARA INSERT O UPDATE ---
+            if form_action == 'update' and record_id:
+                # UPDATE LOGIC (EDIT)
+                db.from_('members').update(form_data).eq('id', record_id).execute()
+                print(f"Updated Member ID: {record_id}")
+            else:
+                # INSERT LOGIC (ADD)
+                db.from_('members').insert(form_data).execute()
+                print("Added New Member")
+            # -------------------------------------
+
             return redirect(url_for('home'))
         except Exception as e:
             return f"Error adding member: {str(e)}", 500
