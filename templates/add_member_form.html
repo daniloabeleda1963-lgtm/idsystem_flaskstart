@@ -420,6 +420,9 @@
   FIX: POPULATE CLICK BUG (Added click listener)
   FIX: PHOTO POPULATE ON MOBILE (Added stopCamera)
   FIX: EDIT BUTTON CAPTION (Save -> Update)
+  FIX: PSEUDO NAME FIELD INCLUDED
+  FIX: SIGNATURE PAD SENSITIVITY (Responsive)
+  FIX: EDIT ID VERIFICATION (Alert Check)
 */
 
 (function () {
@@ -951,13 +954,19 @@
                 if (selectedOpt && selectedOpt.dataset.fullData) {
                     try {
                         const data = JSON.parse(selectedOpt.dataset.fullData);
-                        if (data && data.id) {
-                            member_id_field.value = data.id; // Important: Set the Hidden ID Field
-                        } else {
-                            console.error("Edit Error: No 'id' found in data", data);
-                            alert("Error: Cannot find ID for this member.");
-                            return; 
+                        
+                        // --- CHECKPOINT: Verify ID exists ---
+                        if (!data || !data.id) {
+                            alert("FATAL ERROR: No ID found in selected member data. Cannot Edit.\nData: " + JSON.stringify(data));
+                            return; // Stop edit if no ID
                         }
+                        
+                        member_id_field.value = data.id; 
+                        
+                        // --- TEMPORARY ALERT FOR VERIFICATION ---
+                        // Pindutin mo lang OK to confirm na may ID
+                        alert("EDIT MODE ACTIVATED.\nMember ID Set to: " + data.id);
+
                     } catch(err) {
                         console.error("Edit Error: Parsing JSON failed", err);
                         alert("Error parsing member data.");
@@ -1113,14 +1122,14 @@
     };
 
     // ==============================
-    //7. SIGNATURE PAD LOGIC (UPDATED FOR SMOOTH FINGER/COTTON BUGS INPUT)
+    //7. SIGNATURE PAD LOGIC (RESTORED SENSITIVITY)
     // ==============================
     const openSigBtn = document.getElementById('open_sig_btn');
     const signatureModal = document.getElementById('signatureModal');
     const sigCanvas = document.getElementById('signature-pad');
     const saveSigBtn = document.getElementById('save_sig_btn');
     const clearSigBtn = document.getElementById('clear_sig_btn');
-    const deleteSigBtn = document.getElementById('delete_sig_btn'); // New Element
+    const deleteSigBtn = document.getElementById('delete_sig_btn'); 
     const signatureField = document.getElementById('signature_field');
 
     let signaturePad = null;
@@ -1155,11 +1164,11 @@
                         backgroundColor: 'rgba(255, 255, 255, 0)',
                         penColor: 'rgb(0, 0, 0)',
                         
-                        // --- CHANGES FOR SMOOTH FINGER/COTTON BUGS SIGNATURE ---
-                        velocityFilterWeight: 0.85,
-                        minDistance: 0.5,
-                        throttle: 16
-                        // -----------------------------------------------------------
+                        // --- RESTORED SETTINGS FOR SMOOTH & SENSITIVE ---
+                        // Less filtering to ensure drawing appears
+                        minDistance: 1.5, 
+                        throttle: 0 
+                        // ---------------------------------------------------
                     });
                 } else {
                     signaturePad.clear(); 
