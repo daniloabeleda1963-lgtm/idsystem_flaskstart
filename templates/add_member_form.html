@@ -419,6 +419,7 @@
   FIX: ID INCREMENT LOGIC (Padding Preservation)
   FIX: POPULATE CLICK BUG (Added click listener)
   FIX: PHOTO POPULATE ON MOBILE (Added stopCamera)
+  FIX: EDIT BUTTON CAPTION (Save -> Update)
 */
 
 (function () {
@@ -944,10 +945,28 @@
                 }
 
                 isEditMode = true;
-                // No need to dispatch change here, populateFieldsFromSelection already handles it via listbox listeners
-                // Just trigger the logic manually if needed, but listeners are better.
-                // We can trigger change:
-                membersListbox.dispatchEvent(new Event('change'));
+
+                // --- FIX: EXPLICITLY POPULATE THE ID FOR EDITING ---
+                // Dito tinitiyak na may ID agad kapag pinindot ang Edit
+                if (selectedOpt && selectedOpt.dataset.fullData) {
+                    try {
+                        const data = JSON.parse(selectedOpt.dataset.fullData);
+                        if (data && data.id) {
+                            member_id_field.value = data.id; // Important: Set the Hidden ID Field
+                        } else {
+                            console.error("Edit Error: No 'id' found in data", data);
+                            alert("Error: Cannot find ID for this member.");
+                            return; 
+                        }
+                    } catch(err) {
+                        console.error("Edit Error: Parsing JSON failed", err);
+                        alert("Error parsing member data.");
+                        return;
+                    }
+                }
+                // ---------------------------------------------------
+
+                membersListbox.dispatchEvent(new Event('change')); // Trigger visual population
                 
                 form_action_field.value = 'update';
 
@@ -955,11 +974,13 @@
                 submitBtn.style.backgroundColor = "#ffc107";
                 submitBtn.style.color = "#000";
 
+                // --- FIX: CHANGE CAPTION OF SAVE BUTTON TO "UPDATE" ---
                 if(saveBtn) {
-                    saveBtn.textContent = "Update";
+                    saveBtn.textContent = "Update"; // Caption changes here
                     saveBtn.style.backgroundColor = "#ffc107";
                     saveBtn.style.color = "#000";
                 }
+                // ----------------------------------------------------
             }
 
             else if (action === 'save') {
@@ -1025,7 +1046,7 @@
                 submitBtn.style.color = "white";
 
                 if(saveBtn) {
-                    saveBtn.textContent = "Save";
+                    saveBtn.textContent = "Save"; // Reverts to Save
                     saveBtn.style.backgroundColor = "#f3e5f5";
                     saveBtn.style.color = "#6a1b9a";
                 }
