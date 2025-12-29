@@ -4,7 +4,6 @@
 import os
 import re
 from datetime import datetime, timedelta
-
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from dotenv import load_dotenv
 from supabase import create_client, Client
@@ -17,12 +16,14 @@ SUPAB_URL = os.getenv("SUPAB_URL")
 SUPAB_SERVICE_KEY = os.getenv("SUPAB_SERVICE_KEY")
 
 if not SUPAB_URL or not SUPAB_SERVICE_KEY:
-    raise ValueError("SUPAB_URL and SUPAB_SERVICE_KEY must be set")
+    raise ValueError("SUPAB_URL and SUPAB_SERVICE_KEY must be set in .env file")
 
 # ==============================
 # Flask App Initialization
 # ==============================
 app = Flask(__name__)
+# Optional: Secret key for session management if needed later
+app.secret_key = os.getenv("SECRET_KEY", "supersecretkey") 
 
 # ==============================
 # Supabase Client
@@ -33,9 +34,13 @@ def get_db():
     return supabase
 
 # ================================
-# VB6 STYLE REPLACE (SEARCH CLEAN)
+# UTILITY: VB6 STYLE REPLACE (Sanitization)
 # ================================
 def vb6_replace(text):
+    """
+    Simple sanitization to remove SQL injection chars or HTML symbols.
+    NOTE: This is basic. Ideally, use parameterized queries or ORM sanitization.
+    """
     if not text:
         return ""
     return (
@@ -44,6 +49,8 @@ def vb6_replace(text):
             .replace('"', "")
             .replace(";", "")
             .replace("--", "")
+            .replace("<", "") # Added basic HTML tag prevention
+            .replace(">", "")
     )
 
 # ==============================
@@ -63,14 +70,88 @@ def about():
 
 @app.route('/contact')
 def contact():
-    return "<h1>Contact Page</h1>"
-
-@app.route('/login')
-def login():
-    return "<h1>Login Page</h1>"
+    return "<h1>Contact Page Placeholder</h1>"
 
 # ==============================
-# Routes - Search Form (HTML)
+# Route: Original Login (Clean / Not Done Yet)
+# ==============================
+@app.route('/login')
+def login():
+    # Requirement: "yung login naman ay clean mo lang pag click sabihin lang na hindi pa tapos"
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Login</title>
+        <style>
+            body { font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background-color: #f3f4f6; color: #333; margin: 0; }
+            h1 { color: #ef4444; }
+            p { font-size: 1.2rem; }
+            a { text-decoration: none; color: #2563eb; font-weight: bold; margin-top: 20px; border: 2px solid #2563eb; padding: 10px 20px; border-radius: 5px; }
+            a:hover { background-color: #2563eb; color: white; }
+        </style>
+    </head>
+    <body>
+        <h1>UNDER CONSTRUCTION</h1>
+        <p>Ang feature na ito ay hindi pa tapos.</p>
+        <a href="/"> &larr; Bumalik sa Home</a>
+    </body>
+    </html>
+    """ 
+
+# ==============================
+# NEW ROUTE: ADMIN MENU (Password Protected)
+# ==============================
+@app.route('/admin', methods=['GET', 'POST'])
+def admin_login_route():
+    """
+    Admin Route: Checks for 'admin123' password before showing admin.html
+    Ito ang tatawagin kapag cinlick ang Admin Menu.
+    """
+    error = None
+    if request.method == 'POST':
+        password = request.form.get('password')
+        # TEMPORARY PASSWORD: admin123
+        if password == 'admin123':
+            # Tama ang password, tatawagin ang admin.html
+            return render_template('admin.html')
+        else:
+            error = "Incorrect password! Try 'admin123'"
+
+    # Simple Login Form (Server-side rendered)
+    login_html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Admin Login</title>
+        <style>
+            body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #1f2937; color: white; margin: 0; }
+            .box { background: white; color: #333; padding: 40px; border-radius: 10px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); min-width: 300px; }
+            input { padding: 12px; width: 100%; margin: 15px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; }
+            button { padding: 12px 20px; background: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; }
+            button:hover { background: #1d4ed8; }
+            .error { color: red; font-size: 0.9rem; margin-top: 10px; }
+            .back-link { display: block; margin-top: 20px; font-size: 0.9rem; color: #888; text-decoration: none; }
+        </style>
+    </head>
+    <body>
+        <div class="box">
+            <h2>Admin Access</h2>
+            <p>Restricted Area</p>
+            <form method="POST">
+                <input type="password" name="password" placeholder="Enter Password" required autofocus>
+                <button type="submit">LOGIN</button>
+            </form>
+            <p class="error">""" + (str(error) if error else "") + """</p>
+            <a href="/" class="back-link">Back to Home</a>
+        </div>
+    </body>
+    </html>
+    """
+    return login_html
+
+# ==============================
+# Routes - Search Form (HTML Fallback)
 # ==============================
 @app.route("/search")
 def search_form():
@@ -82,8 +163,8 @@ def search_form():
 @app.route("/search-members", methods=["POST"])
 def search_members():
     """
-    Ito ay nag-handle kapag nag-submit yung user ng form (Non-JS fallback).
-    Pero ngayon, pinapasa natin yung data sa template gamit ang tamang variable name.
+    Handles form submission (Server-side rendering).
+    Highlights search terms.
     """
     try:
         db = get_db()
@@ -91,43 +172,49 @@ def search_members():
         search_type = request.form.get("search_type") or "all"
         search_term = vb6_replace(raw_search).lower()
 
-        if search_term:
-            # Single-line OR logic compatible sa Supabase
-            if search_type == "all":
-                or_logic = ",".join([
-                    f"name.ilike.%{search_term}%",
-                    f"chapter.ilike.%{search_term}%",
-                    f"designation.ilike.%{search_term}%",
-                    f"contact_no.ilike.%{search_term}%",
-                    f"blood_type.ilike.%{search_term}%",
-                    f"home_address.ilike.%{search_term}%",
-                    # --- FIX: NADAGDAG NA ANG PSEUDO NAME ---
-                    f"pseudo_name.ilike.%{search_term}%"
-                    # -----------------------------------------
-                ])
-            elif search_type == "name":
-                or_logic = f"name.ilike.%{search_term}%,pseudo_name.ilike.%{search_term}%"
-            elif search_type == "chapter":
-                or_logic = f"chapter.ilike.%{search_term}%"
-            elif search_type == "designation":
-                or_logic = f"designation.ilike.%{search_term}%"
-            elif search_type == "contact":
-                or_logic = f"contact_no.ilike.%{search_term}%"
-            else:
-                or_logic = f"name.ilike.%{search_term}%"
-
-            response = db.from_('members').select('*').or_(or_logic).order('name', desc=False).execute()
-        else:
+        # Default Logic: Show all if empty
+        if not search_term:
             response = db.from_('members').select('*').order('name', desc=False).execute()
+            members = response.data if response.data else []
+            # Render template w/o highlights if empty
+            return render_template("search_results.html", members=members, total_results=len(members))
 
+        # Construct Supabase OR Logic
+        or_logic = ""
+        
+        if search_type == "all":
+            # --- FIX: NADAGDAG NA ANG PSEUDO NAME ---
+            or_logic = ",".join([
+                f"name.ilike.%{search_term}%",
+                f"chapter.ilike.%{search_term}%",
+                f"designation.ilike.%{search_term}%",
+                f"contact_no.ilike.%{search_term}%",
+                f"blood_type.ilike.%{search_term}%",
+                f"home_address.ilike.%{search_term}%",
+                f"pseudo_name.ilike.%{search_term}%"
+            ])
+        elif search_type == "name":
+            # Search both real name and pseudo name
+            or_logic = f"name.ilike.%{search_term}%,pseudo_name.ilike.%{search_term}%"
+        elif search_type == "chapter":
+            or_logic = f"chapter.ilike.%{search_term}%"
+        elif search_type == "designation":
+            or_logic = f"designation.ilike.%{search_term}%"
+        elif search_type == "contact":
+            or_logic = f"contact_no.ilike.%{search_term}%"
+        else:
+            or_logic = f"name.ilike.%{search_term}%"
+
+        response = db.from_('members').select('*').or_(or_logic).order('name', desc=False).execute()
         members = response.data if response.data else []
 
-        # Highlight sa backend (For Server-Side Result Page)
+        # Highlight Function (Regex)
         def highlight(text):
             if not text: return ""
             regex = re.compile(re.escape(search_term), re.IGNORECASE)
             return regex.sub(lambda m: f'<span class="highlight">{m.group(0)}</span>', text)
 
+        # Apply highlights
         for m in members:
             m['name'] = highlight(m.get('name', ''))
             m['chapter'] = highlight(m.get('chapter', ''))
@@ -135,11 +222,8 @@ def search_members():
             m['contact_no'] = highlight(m.get('contact_no', ''))
             m['blood_type'] = highlight(m.get('blood_type', ''))
             m['home_address'] = highlight(m.get('home_address', ''))
-            # --- FIX: HIGHLIGHT PSEUDO NAME ---
             m['pseudo_name'] = highlight(m.get('pseudo_name', ''))
-            # -------------------------------
 
-        # FIX: Binago ko 'results_count' to 'total_results' para tugma sa Code 4
         return render_template(
             "search_results.html",
             members=members,
@@ -149,44 +233,39 @@ def search_members():
         )
 
     except Exception as e:
+        print(f"Search Error: {e}")
         return f"Error loading members: {str(e)}", 500
 
 # ==============================
-# ROUTE: API Members (JSON Only) - Get All
+# API: Get All Members (JSON)
 # ==============================
 @app.route('/api/members/json', methods=["GET"])
 def api_members_json():
-    """
-    NEW ROUTE: Ito ay purely JSON API para kay Code #3 (Real-time Search).
-    Hindi nag-rerender ng HTML. Ibalik lang ang raw data list.
-    """
+    """Returns raw list of members for DataTables or JS Grid."""
     try:
         db = get_db()
         response = db.from_('members').select('*').order('name', desc=False).execute()
         return jsonify(response.data)
     except Exception as e:
-        print(f"Error fetching JSON members: {e}")
+        print(f"API Error: {e}")
         return jsonify([]), 500
 
 # ==============================
-# NEW ROUTE: LIVE AUTOCOMPLETE SEARCH (Direct from Supabase)
+# API: Live Autocomplete Search
 # ==============================
 @app.route('/api/members/search', methods=["GET"])
 def api_members_search():
     """
-    Ito ay nagha-handle ng live search habang nagta-type sa Add Member Form.
-    Hinahanap sa Supabase (Name OR Chapter).
-    Limit to 20 results for performance.
+    Live search endpoint (Name OR Pseudo Name OR Chapter).
+    Used by Add Member Form 'check existing' logic.
     """
     try:
         db = get_db()
-        q = request.args.get('q', '')
+        q = request.args.get('q', '').strip()
         
-        # Kung empty, return empty array
         if not q:
             return jsonify([])
             
-        # Logic: Search Name OR Pseudo Name OR Chapter using Supabase syntax
         # --- FIX: NADAGDAG NA ANG PSEUDO NAME ---
         or_logic = f"name.ilike.%{q}%,pseudo_name.ilike.%{q}%,chapter.ilike.%{q}%"
         # ------------------------------------------------
@@ -194,30 +273,54 @@ def api_members_search():
         
         return jsonify(response.data)
     except Exception as e:
-        print(f"Error searching autocomplete: {e}")
+        print(f"Autocomplete Error: {e}")
         return jsonify([]), 500
 
 # ==============================
-# Routes - ID Generator Logic
+# API: Filter by Date (For Print/Mobile)
+# ==============================
+@app.route('/api/members/by-date', methods=["GET"])
+def api_members_by_date():
+    """Filter members by date_of_membership."""
+    try:
+        db = get_db()
+        selected_date = request.args.get('date')
+        
+        if not selected_date:
+            return jsonify([]), 400
+
+        response = db.from_('members') \
+                    .select('*') \
+                    .eq('date_of_membership', selected_date) \
+                    .order('name', desc=False) \
+                    .execute()
+
+        return jsonify(response.data)
+
+    except Exception as e:
+        print(f"Filter Date Error: {e}")
+        return jsonify([]), 500
+
+# ==============================
+# ID Generator Logic (Settings)
 # ==============================
 
 @app.route('/get_current_id')
 def get_current_id():
-    """Fetches the latest ID format from 'idgenerate' table."""
+    """Fetches latest ID format."""
     try:
         db = get_db()
         response = db.table('idgenerate').select('*').order('id', desc=True).limit(1).execute()
         if response.data:
             return jsonify({'idnumber': response.data[0].get('idnumber')})
-        else:
-            return jsonify({'idnumber': ''})
+        return jsonify({'idnumber': ''})
     except Exception as e:
-        print(f"Error getting current ID: {e}")
+        print(f"Error getting ID: {e}")
         return jsonify({'idnumber': ''})
 
 @app.route('/save_id_to_db', methods=['POST'])
 def save_id_to_db():
-    """Saves or Updates the ID format."""
+    """Saves or Updates ID format in settings."""
     try:
         db = get_db()
         data = request.json
@@ -226,6 +329,7 @@ def save_id_to_db():
             return jsonify({'success': False, 'message': 'No ID value provided'}), 400
 
         check_response = db.table('idgenerate').select('id').order('id', desc=True).limit(1).execute()
+        
         if check_response.data:
             record_id = check_response.data[0].get('id')
             db.table('idgenerate').update({"idnumber": id_value}).eq('id', record_id).execute()
@@ -236,92 +340,119 @@ def save_id_to_db():
 
         return jsonify({'success': True, 'message': f'ID {action_type} successfully!', 'id': id_value})
     except Exception as e:
-        print(f"Error saving/updating ID: {e}")
+        print(f"Error saving ID: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+# ==============================
+# ADD / UPDATE MEMBER LOGIC
+# ==============================
 @app.route('/add_member', methods=['GET', 'POST'])
 def add_member():
     """
-    Add Member Route - Includes Camera Action (Base64 Photo)
-    FIX: Added Update Logic and Pseudo Name Support
+    Handles creating new members AND updating existing ones.
+    Includes Camera Action (Base64) and Pseudo Name.
     """
     if request.method == 'POST':
-        # --- DITO: KUNIN ANG FORM ACTION AT MEMBER ID ---
-        form_action = request.form.get('form_action') # 'add' or 'update'
-        record_id = request.form.get('member_id')
-        
-        # 2. BILANGIN ANG DATA (KASAMA NA SI PSEUDO NAME)
-        form_data = {
-            'idnumb': request.form.get('id_no'),
-            'name': request.form.get('name'),
-            'gender': request.form.get('gender'),
-            'birthdate': request.form.get('birthdate'),
-            'civil_status': request.form.get('civil_status'),
-            'country': request.form.get('country'),
-            'blood_type': request.form.get('blood_type'),
-            'designation': request.form.get('designation', ''),
-            'chapter': request.form.get('chapter', ''),
-            'date_of_membership': request.form.get('date_of_membership'),
-            'membership_type': request.form.get('membership_type'),
-            'contact_no': request.form.get('contact_no', ''),
-            'email': request.form.get('email'),
-            'home_address': request.form.get('home_address', ''),
-            'height': request.form.get('height'),
-            'weight': request.form.get('weight'),
-            'occupation': request.form.get('occupation'),
-            'govt_id_presented': request.form.get('govt_id_presented'),
-            'govt_id_no': request.form.get('govt_id_no'),
-            'emergency_person_name': request.form.get('emergency_person_name'),
-            'emergency_contact_no': request.form.get('emergency_contact_no'),
-            # Camera Action: Base64 string from HTML canvas
-            'photo_data': request.form.get('photo_data'), 
-            # ADDED: QR Code and Signature fields
-            'qr_code': request.form.get('qr_code'),
-            'signature': request.form.get('signature'),
-            
-            # --- FIX: DITO KASAMA ANG PSEUDO NAME ---
-            'pseudo_name': request.form.get('pseudo_name'),
-            # ----------------------------------------
-            
-            # Dates
-            'issued_date': datetime.now().strftime('%Y-%m-%d'),
-            'valid_until': (datetime.now() + timedelta(days=365*3)).strftime('%Y-%m-%d')
-        }
-
         try:
             db = get_db()
             
-            # --- FIX: DITO ANG LOGIC PARA INSERT O UPDATE ---
+            # Determine Action: Add or Update?
+            form_action = request.form.get('form_action') 
+            record_id = request.form.get('member_id')
+            
+            # Collect Data
+            form_data = {
+                'idnumb': request.form.get('id_no'),
+                'name': request.form.get('name'),
+                'gender': request.form.get('gender'),
+                'birthdate': request.form.get('birthdate'),
+                'civil_status': request.form.get('civil_status'),
+                'country': request.form.get('country'),
+                'blood_type': request.form.get('blood_type'),
+                'designation': request.form.get('designation', ''),
+                'chapter': request.form.get('chapter', ''),
+                'date_of_membership': request.form.get('date_of_membership'),
+                'membership_type': request.form.get('membership_type'),
+                'contact_no': request.form.get('contact_no', ''),
+                'email': request.form.get('email'),
+                'home_address': request.form.get('home_address', ''),
+                'height': request.form.get('height'),
+                'weight': request.form.get('weight'),
+                'occupation': request.form.get('occupation'),
+                'govt_id_presented': request.form.get('govt_id_presented'),
+                'govt_id_no': request.form.get('govt_id_no'),
+                'emergency_person_name': request.form.get('emergency_person_name'),
+                'emergency_contact_no': request.form.get('emergency_contact_no'),
+                # Camera: Base64 String
+                'photo_data': request.form.get('photo_data'), 
+                # ID Extras
+                'qr_code': request.form.get('qr_code'),
+                'signature': request.form.get('signature'),
+                # --- FIX: PSEUDO NAME ---
+                'pseudo_name': request.form.get('pseudo_name'),
+                # -----------------------
+                
+                # Auto Dates
+                'issued_date': datetime.now().strftime('%Y-%m-%d'),
+                'valid_until': (datetime.now() + timedelta(days=365*3)).strftime('%Y-%m-%d')
+            }
+
+            # --- SMART UPDATE LOGIC ---
             if form_action == 'update' and record_id:
-                # UPDATE LOGIC (EDIT)
+                # If updating, check if photo_data is provided.
+                # If user didn't take a new photo, photo_data might be empty string.
+                # If it is empty, do NOT update the photo field (keep old one).
+                # NOTE: This logic assumes photo_data comes as empty string if not retaken.
+                # If your JS sends the OLD base64, this check isn't needed.
+                # If your JS sends "", then we need to remove 'photo_data' from form_data.
+                
+                new_photo = request.form.get('photo_data')
+                if not new_photo or new_photo == "data:,": 
+                    # Remove photo key from update dict to preserve existing photo in DB
+                    form_data.pop('photo_data', None)
+
+                # Execute Update
                 db.from_('members').update(form_data).eq('id', record_id).execute()
                 print(f"Updated Member ID: {record_id}")
             else:
-                # INSERT LOGIC (ADD)
+                # Insert New
                 db.from_('members').insert(form_data).execute()
                 print("Added New Member")
-            # -------------------------------------
-
+            
             return redirect(url_for('home'))
+
         except Exception as e:
-            return f"Error adding member: {str(e)}", 500
+            print(f"Add/Update Error: {e}")
+            return f"Error processing member: {str(e)}", 500
 
     return render_template('add_member_form.html')
 
 # ==============================
-# Display ID
+# ID PDF Generator Redirect
 # ==============================
 @app.route('/display_id/<int:member_id>')
 def display_id(member_id):
+    # Redirects to the master PDF generator page
+    return redirect(url_for('id_pdf_generator'))
+
+@app.route('/id_pdf_generator')
+def id_pdf_generator():
+    """Render the ID Card Generator Layout Page."""
+    return render_template('id_pdf_generator.html')
+
+# ==============================
+# DELETE MEMBER
+# ==============================
+@app.route('/delete_member/<int:member_id>', methods=["DELETE"])
+def delete_member(member_id):
+    """Deletes a member via AJAX/Fetch."""
     try:
         db = get_db()
-        response = db.from_('members').select('*').eq('id', member_id).execute()
-        if not response.data:
-            return "Member not found", 404
-        member = response.data[0]
-        return render_template('id_template.html', id_info=member)
+        db.from_('members').delete().eq('id', member_id).execute()
+        return jsonify({'success': True, 'message': 'Member deleted successfully'})
     except Exception as e:
-        return f"Database error: {str(e)}", 500
+        print(f"Delete Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 # ==============================
 # Health Check
@@ -329,20 +460,6 @@ def display_id(member_id):
 @app.route('/health')
 def health_check():
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
-
-# ==============================
-# NEW ROUTE: DELETE MEMBER
-# ==============================
-@app.route('/delete_member/<int:member_id>', methods=["DELETE"])
-def delete_member(member_id):
-    """Deletes a member from the database."""
-    try:
-        db = get_db()
-        db.from_('members').delete().eq('id', member_id).execute()
-        return jsonify({'success': True, 'message': 'Member deleted successfully'})
-    except Exception as e:
-        print(f"Error deleting member: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
 
 # ==============================
 # Run App
