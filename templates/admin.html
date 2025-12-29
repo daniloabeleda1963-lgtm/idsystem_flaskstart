@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID Layout Editor - Solid Version</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --bg-color: #f3f4f6;
+            --sidebar-bg: #1e293b;
+            --sidebar-text: #e2e8f0;
+            --handle-size: 10px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 250px;
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #334155;
+            flex-shrink: 0;
+            z-index: 200;
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            background: #0f172a;
+            font-weight: bold;
+            border-bottom: 1px solid #334155;
+        }
+
+        .sidebar-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .sidebar-group { margin-bottom: 15px; }
+        .sidebar-group-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .draggable-item {
+            background: #334155;
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            cursor: grab;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #475569;
+        }
+        .draggable-item:hover { background: #475569; border-color: var(--primary-color); }
+        .draggable-item:active { cursor: grabbing; }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* --- TOOLBAR --- */
+        .toolbar {
+            background: white;
+            padding: 10px 20px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .toolbar-left { display: flex; gap: 10px; align-items: center; }
+        .toolbar-right { display: flex; gap: 10px; align-items: center; }
+
+        button {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        button:hover { background: #f9fafb; }
+        button.primary { background: var(--primary-color); color: white; border: none; }
+        button.danger { background: #ef4444; color: white; border: none; }
+
+        .zoom-display { font-size: 12px; color: #666; width: 40px; text-align: center; }
+        input[type="range"] { width: 100px; cursor: pointer; }
+
+        /* --- WORKSPACE --- */
+        .workspace {
+            flex-grow: 1;
+            background: #e5e7eb;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 50px;
+        }
+
+        /* --- CANVAS --- */
+        .canvas-wrapper {
+            position: relative;
+            background-color: #fff;
+            width: 800px;
+            height: 400px;
+            background-repeat: no-repeat;
+            background-size: contain;
+            background-position: top left;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            user-select: none;
+            transform-origin: top center; 
+        }
+
+        /* --- ELEMENTS --- */
+        .canvas-element {
+            position: absolute;
+            cursor: move;
+            background: rgba(37, 99, 235, 0.15);
+            border: 1px dashed var(--primary-color);
+            color: #1e3a8a;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-sizing: border-box;
+            z-index: 100;
+            overflow: hidden;
+            /* Important: Integer coordinates prevent blur */
+            transform: translateZ(0); 
+        }
+
+        .canvas-element:hover {
+            border: 1px solid var(--primary-color);
+            background: rgba(37, 99, 235, 0.25);
+        }
+
+        .canvas-element.selected {
+            border: 2px solid var(--primary-color);
+            background: rgba(37, 99, 235, 0.3);
+            z-index: 101;
+        }
+
+        /* Specific Types */
+        .canvas-element.is-photo {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: red;
+            color: red;
+        }
+        .canvas-element.is-line {
+            background: transparent; 
+            border-bottom: 2px solid black; 
+            height: 0px !important; 
+            cursor: ns-resize; 
+            border-top: none; border-left: none; border-right: none;
+            min-height: 2px;
+        }
+        .canvas-element.is-box {
+            background: transparent;
+            border: 1px solid black;
+        }
+
+        /* --- RESIZE HANDLES --- */
+        .resize-handle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: white;
+            border: 1px solid var(--primary-color);
+            display: none;
+            z-index: 103;
+        }
+        .canvas-element.selected .resize-handle { display: block; }
+        
+        .rh-se { bottom: -4px; right: -4px; cursor: nwse-resize; }
+        .rh-sw { bottom: -4px; left: -4px; cursor: nesw-resize; }
+        .rh-ne { top: -4px; right: -4px; cursor: nesw-resize; }
+        .rh-nw { top: -4px; left: -4px; cursor: nwse-resize; }
+
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="sidebar-header">🧩 Toolbox</div>
+        <div class="sidebar-list">
+            <div class="sidebar-group-title">Standard Fields</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="FULL NAME">📝 FULL NAME</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="PSEUDO NAME">📝 PSEUDO NAME</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="BIRTHDATE">📅 BIRTHDATE</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="ID NUMBER">🆔 ID NUMBER</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="BLOOD TYPE">🩸 BLOOD TYPE</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="CONTACT NO">📞 CONTACT NO</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="ADDRESS">🏠 ADDRESS</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="HEIGHT">📏 HEIGHT</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="WEIGHT">⚖️ WEIGHT</div>
+            
+            <div class="sidebar-group-title">Objects</div>
+            <div class="draggable-item" draggable="true" data-type="photo" data-caption="PHOTO">🖼️ PHOTO</div>
+            <div class="draggable-item" draggable="true" data-type="sig-box" data-caption="SIGNATURE">✍️ SIGNATURE BOX</div>
+
+            <div class="sidebar-group-title">Shapes</div>
+            <div class="draggable-item" draggable="true" data-type="line" data-caption="LINE">📏 LINE</div>
+            <div class="draggable-item" draggable="true" data-type="box" data-caption="BOX">⬜ BOX</div>
+        </div>
+    </div>
+
+    <!-- MAIN AREA -->
+    <div class="main-content">
+        
+        <!-- TOP TOOLBAR -->
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <label class="primary" style="padding: 6px 12px; cursor:pointer; border-radius:4px; background:#6366f1; color:white;">
+                    📁 Upload Template
+                    <input type="file" id="templateUpload" accept="image/*" style="display:none;">
+                </label>
+                <span id="filename" style="font-size:12px; color:#666;">No template loaded</span>
+            </div>
+
+            <div class="toolbar-right">
+                <span style="font-size:12px;">Zoom:</span>
+                <input type="range" id="zoomSlider" min="0.3" max="2.0" step="0.1" value="1.0">
+                <span id="zoomValue" class="zoom-display">100%</span>
+                
+                <button class="danger" onclick="deleteSelected()">🗑️ Delete</button>
+                <button class="primary" onclick="saveLayout()">💾 Save</button>
+            </div>
+        </div>
+
+        <!-- WORKSPACE -->
+        <div class="workspace">
+            <div class="canvas-wrapper" id="editorCanvas">
+                <!-- Dropped items appear here -->
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById('editorCanvas');
+        const uploadInput = document.getElementById('templateUpload');
+        const zoomSlider = document.getElementById('zoomSlider');
+        const zoomValue = document.getElementById('zoomValue');
+        const filenameSpan = document.getElementById('filename');
+
+        let isDragging = false;
+        let isResizing = false;
+        let currentEl = null;
+        let currentHandle = null;
+        let startX, startY, startWidth, startHeight, startLeft, startTop;
+
+        // === 1. SIDEBAR DRAG LOGIC ===
+        const draggables = document.querySelectorAll('.draggable-item');
+        draggables.forEach(d => {
+            d.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('type', d.dataset.type);
+                e.dataTransfer.setData('caption', d.dataset.caption);
+            });
+        });
+
+        // === 2. CANVAS DROP LOGIC ===
+        canvas.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            canvas.style.border = "2px dashed #2563eb";
+        });
+
+        canvas.addEventListener('dragleave', (e) => {
+            canvas.style.border = "none";
+        });
+
+        canvas.addEventListener('drop', (e) => {
+            e.preventDefault();
+            canvas.style.border = "none";
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Apply zoom inverse calculation
+            const zoom = parseFloat(zoomSlider.value);
+            const actualX = x / zoom;
+            const actualY = y / zoom;
+
+            const type = e.dataTransfer.getData('type');
+            const caption = e.dataTransfer.getData('caption');
+
+            createNewElement(type, caption, actualX, actualY);
+        });
+
+        function createNewElement(type, caption, x, y) {
+            const el = document.createElement('div');
+            el.className = 'canvas-element';
+            el.textContent = caption;
+            el.style.left = Math.round(x) + 'px';
+            el.style.top = Math.round(y) + 'px';
+            
+            // Default Sizes (Integer)
+            if (type === 'photo') {
+                el.classList.add('is-photo');
+                el.style.width = '100px';
+                el.style.height = '120px';
+            } else if (type === 'line') {
+                el.classList.add('is-line');
+                el.style.width = '150px';
+                el.textContent = '';
+            } else if (type === 'box' || type === 'sig-box') {
+                el.classList.add('is-box');
+                el.style.width = '100px';
+                el.style.height = '40px';
+            } else {
+                el.style.width = 'auto';
+                el.style.padding = '2px 5px';
+                el.style.whiteSpace = 'nowrap';
+            }
+
+            el.id = 'field_' + Date.now();
+
+            ['nw', 'ne', 'sw', 'se'].forEach(pos => {
+                const handle = document.createElement('div');
+                handle.className = `resize-handle rh-${pos}`;
+                handle.dataset.handle = pos;
+                el.appendChild(handle);
+            });
+
+            canvas.appendChild(el);
+            selectElement(el);
+        }
+
+        // === 3. UPLOAD IMAGE ===
+        uploadInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const img = new Image();
+                    img.onload = function() {
+                        canvas.style.width = img.width + 'px';
+                        canvas.style.height = img.height + 'px';
+                        canvas.style.backgroundImage = `url('${evt.target.result}')`;
+                        filenameSpan.textContent = file.name;
+                    };
+                    img.src = evt.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // === 4. ZOOM ===
+        zoomSlider.addEventListener('input', function() {
+            const scale = this.value;
+            canvas.style.transform = `scale(${scale})`;
+            zoomValue.textContent = Math.round(scale * 100) + '%';
+        });
+
+        // === 5. MOVE / RESIZE / SELECT LOGIC (Fixed Zoom Math) ===
+        document.addEventListener('mousedown', function(e) {
+            // Handle Check
+            if (e.target.classList.contains('resize-handle')) {
+                isResizing = true;
+                currentHandle = e.target.dataset.handle;
+                currentEl = e.target.parentElement;
+                
+                startX = e.clientX;
+                startY = e.clientY;
+                startWidth = parseInt(getComputedStyle(currentEl).width);
+                startHeight = parseInt(getComputedStyle(currentEl).height);
+                startLeft = parseInt(getComputedStyle(currentEl).left);
+                startTop = parseInt(getComputedStyle(currentEl).top);
+                
+                selectElement(currentEl);
+                e.stopPropagation();
+                return;
+            }
+
+            // Element Check
+            if (e.target.classList.contains('canvas-element')) {
+                isDragging = true;
+                currentEl = e.target;
+                startX = e.clientX;
+                startY = e.clientY;
+                startLeft = currentEl.offsetLeft;
+                startTop = currentEl.offsetTop;
+                
+                selectElement(currentEl);
+            } else if (!e.target.closest('.toolbar') && !e.target.closest('.sidebar')) {
+                deselectAll();
+            }
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            const zoom = parseFloat(zoomSlider.value);
+
+            if (isResizing && currentEl) {
+                e.preventDefault();
+                const dx = (e.clientX - startX) / zoom;
+                const dy = (e.clientY - startY) / zoom;
+
+                // Round to nearest integer to prevent blurry edges
+                if (currentHandle.includes('e')) currentEl.style.width = Math.round(startWidth + dx) + 'px';
+                if (currentHandle.includes('s')) currentEl.style.height = Math.round(startHeight + dy) + 'px';
+            }
+            else if (isDragging && currentEl) {
+                e.preventDefault();
+                const dx = (e.clientX - startX) / zoom;
+                const dy = (e.clientY - startY) / zoom;
+                
+                currentEl.style.left = Math.round(startLeft + dx) + 'px';
+                currentEl.style.top = Math.round(startTop + dy) + 'px';
+            }
+        });
+
+        document.addEventListener('mouseup', function() {
+            isDragging = false;
+            isResizing = false;
+            currentEl = null;
+            currentHandle = null;
+        });
+
+        // === 6. SELECT / DESELECT ===
+        function selectElement(el) {
+            deselectAll();
+            el.classList.add('selected');
+        }
+
+        function deselectAll() {
+            document.querySelectorAll('.canvas-element').forEach(el => {
+                el.classList.remove('selected');
+            });
+        }
+
+        // === 7. UTILS ===
+        function deleteSelected() {
+            const selected = document.querySelector('.canvas-element.selected');
+            
+            // FIX: Only try to remove if an element exists
+            if (selected) {
+                selected.remove();
+            }
+            // If selected is null (nothing selected), do nothing (silently fail)
+        }
+
+        function saveLayout() {
+            const layoutData = {
+                canvasWidth: parseInt(canvas.style.width),
+                canvasHeight: parseInt(canvas.style.height),
+                elements: []
+            };
+
+            document.querySelectorAll('.canvas-element').forEach(el => {
+                layoutData.elements.push({
+                    id: el.id,
+                    caption: el.textContent,
+                    type: el.classList.contains('is-photo') ? 'photo' : 
+                          el.classList.contains('is-line') ? 'line' :
+                          el.classList.contains('is-box') ? 'box' : 'text',
+                    left: parseInt(el.style.left),
+                    top: parseInt(el.style.top),
+                    width: parseInt(el.style.width),
+                    height: parseInt(el.style.height)
+                });
+            });
+
+            console.log("Saved Layout:", layoutData);
+            alert("Layout saved! Check Console (F12).");
+        }
+
+    </script>
+</body>
+</html>
