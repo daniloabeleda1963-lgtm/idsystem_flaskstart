@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID Layout Editor - Solid Version</title>
+    <title>ID Layout Editor - Final w/ Save & Load</title>
+    
     <style>
         :root {
             --primary-color: #2563eb;
             --bg-color: #f3f4f6;
             --sidebar-bg: #1e293b;
             --sidebar-text: #e2e8f0;
-            --handle-size: 10px;
         }
-
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: var(--bg-color);
@@ -22,8 +21,6 @@
             height: 100vh;
             overflow: hidden;
         }
-
-        /* --- SIDEBAR --- */
         .sidebar {
             width: 250px;
             background: var(--sidebar-bg);
@@ -34,20 +31,17 @@
             flex-shrink: 0;
             z-index: 200;
         }
-
         .sidebar-header {
             padding: 15px;
             background: #0f172a;
             font-weight: bold;
             border-bottom: 1px solid #334155;
         }
-
         .sidebar-list {
             flex-grow: 1;
             overflow-y: auto;
             padding: 10px;
         }
-
         .sidebar-group { margin-bottom: 15px; }
         .sidebar-group-title {
             font-size: 11px;
@@ -56,7 +50,6 @@
             margin-bottom: 8px;
             font-weight: bold;
         }
-
         .draggable-item {
             background: #334155;
             padding: 8px 12px;
@@ -72,6 +65,54 @@
         .draggable-item:hover { background: #475569; border-color: var(--primary-color); }
         .draggable-item:active { cursor: grabbing; }
 
+        /* --- ADDED: Admin Forms Styles --- */
+        .admin-forms-panel {
+            background: #0f172a;
+            padding: 10px;
+            border-bottom: 1px solid #334155;
+        }
+        .admin-input-group {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+        .admin-input {
+            flex: 1;
+            padding: 4px;
+            border: none;
+            border-radius: 3px;
+            background: #334155;
+            color: white;
+            font-size: 12px;
+        }
+        .admin-select {
+            width: 100%;
+            padding: 6px;
+            border: none;
+            border-radius: 4px;
+            background: #334155;
+            color: white;
+            font-size: 12px;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+        .admin-btn-group {
+            display: flex;
+            gap: 5px;
+        }
+        .admin-btn {
+            flex: 1;
+            padding: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            border: none;
+            border-radius: 3px;
+            color: white;
+        }
+        .btn-add { background: var(--primary-color); }
+        .btn-del { background: var(--danger-color, #ef4444); }
+        .btn-save { background: var(--success-color, #10b981); }
+
         /* --- MAIN CONTENT --- */
         .main-content {
             flex-grow: 1;
@@ -79,21 +120,18 @@
             flex-direction: column;
             position: relative;
         }
-
-        /* --- TOOLBAR --- */
         .toolbar {
             background: white;
-            padding: 10px 20px;
+            padding: 8px 20px;
             border-bottom: 1px solid #ddd;
             display: flex;
-            gap: 15px;
+            gap: 10px;
             align-items: center;
             justify-content: space-between;
+            flex-wrap: wrap;
         }
-
         .toolbar-left { display: flex; gap: 10px; align-items: center; }
-        .toolbar-right { display: flex; gap: 10px; align-items: center; }
-
+        .toolbar-right { display: flex; gap: 8px; align-items: center; }
         button {
             padding: 6px 12px;
             border: 1px solid #ddd;
@@ -105,11 +143,8 @@
         button:hover { background: #f9fafb; }
         button.primary { background: var(--primary-color); color: white; border: none; }
         button.danger { background: #ef4444; color: white; border: none; }
-
         .zoom-display { font-size: 12px; color: #666; width: 40px; text-align: center; }
-        input[type="range"] { width: 100px; cursor: pointer; }
-
-        /* --- WORKSPACE --- */
+        input[type="range"] { width: 80px; cursor: pointer; }
         .workspace {
             flex-grow: 1;
             background: #e5e7eb;
@@ -119,8 +154,6 @@
             align-items: flex-start;
             padding: 50px;
         }
-
-        /* --- CANVAS --- */
         .canvas-wrapper {
             position: relative;
             background-color: #fff;
@@ -133,8 +166,7 @@
             user-select: none;
             transform-origin: top center; 
         }
-
-        /* --- ELEMENTS --- */
+        /* --- 1. ORIGINAL FIELDS (Sidebar Items - SOLID VERSION) --- */
         .canvas-element {
             position: absolute;
             cursor: move;
@@ -150,22 +182,16 @@
             box-sizing: border-box;
             z-index: 100;
             overflow: hidden;
-            /* Important: Integer coordinates prevent blur */
-            transform: translateZ(0); 
         }
-
         .canvas-element:hover {
             border: 1px solid var(--primary-color);
             background: rgba(37, 99, 235, 0.25);
         }
-
         .canvas-element.selected {
             border: 2px solid var(--primary-color);
             background: rgba(37, 99, 235, 0.3);
             z-index: 101;
         }
-
-        /* Specific Types */
         .canvas-element.is-photo {
             background: rgba(239, 68, 68, 0.1);
             border-color: red;
@@ -183,8 +209,51 @@
             background: transparent;
             border: 1px solid black;
         }
-
-        /* --- RESIZE HANDLES --- */
+        .canvas-element.is-frosted {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .canvas-element.is-image {
+            background: transparent;
+            border: 1px dashed #10b981; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .canvas-element.is-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none; 
+        }
+        /* --- 2. MS WORD TEXTBOX STYLE (NEW - FIXED) --- */
+        .custom-textbox {
+            position: absolute;
+            background: transparent;
+            border: 1px dashed #94a3b8; 
+            color: #000;
+            font-size: 14px;
+            font-family: 'Segoe UI', sans-serif;
+            z-index: 200;
+            min-width: 200px; 
+            min-height: 20px;
+            cursor: text; 
+            padding: 4px;
+            outline: none;
+            white-space: pre-wrap;
+            line-height: 1.4;
+            text-align: left;
+        }
+        .custom-textbox.selected {
+            border: 2px solid var(--primary-color);
+            cursor: move; 
+        }
+        .custom-textbox:hover {
+            border: 1px solid var(--primary-color);
+        }
         .resize-handle {
             position: absolute;
             width: 8px;
@@ -192,15 +261,14 @@
             background: white;
             border: 1px solid var(--primary-color);
             display: none;
-            z-index: 103;
+            z-index: 300;
         }
-        .canvas-element.selected .resize-handle { display: block; }
-        
+        .canvas-element.selected .resize-handle, 
+        .custom-textbox.selected .resize-handle { display: block; }
         .rh-se { bottom: -4px; right: -4px; cursor: nwse-resize; }
         .rh-sw { bottom: -4px; left: -4px; cursor: nesw-resize; }
         .rh-ne { top: -4px; right: -4px; cursor: nesw-resize; }
         .rh-nw { top: -4px; left: -4px; cursor: nwse-resize; }
-
     </style>
 </head>
 <body>
@@ -208,8 +276,28 @@
     <!-- SIDEBAR -->
     <div class="sidebar">
         <div class="sidebar-header">🧩 Toolbox</div>
+        
+        <!-- === ADMIN FORMS PANEL === -->
+        <div class="admin-forms-panel">
+            <div class="sidebar-group-title" style="color: #fff;">Admin Forms (Table: admin_forms)</div>
+            
+            <select id="adminFormsSelect" class="admin-select" onchange="checkAdminFormSelection()">
+                <!-- Options loaded via JS -->
+            </select>
+
+            <div class="admin-input-group">
+                <input type="text" id="newFormName" class="admin-input" placeholder="New Form Name...">
+                <button class="admin-btn btn-add" onclick="addAdminForm()">Add</button>
+            </div>
+
+            <div class="admin-btn-group">
+                <button class="admin-btn btn-del" onclick="deleteAdminForm()">Delete</button>
+                <button class="admin-btn btn-save" onclick="saveAdminForms()">Save List</button>
+            </div>
+        </div>
+
         <div class="sidebar-list">
-            <div class="sidebar-group-title">Standard Fields</div>
+            <div class="sidebar-group-title">Front Side</div>
             <div class="draggable-item" draggable="true" data-type="text" data-caption="FULL NAME">📝 FULL NAME</div>
             <div class="draggable-item" draggable="true" data-type="text" data-caption="PSEUDO NAME">📝 PSEUDO NAME</div>
             <div class="draggable-item" draggable="true" data-type="text" data-caption="BIRTHDATE">📅 BIRTHDATE</div>
@@ -222,11 +310,22 @@
             
             <div class="sidebar-group-title">Objects</div>
             <div class="draggable-item" draggable="true" data-type="photo" data-caption="PHOTO">🖼️ PHOTO</div>
+
+            <div class="sidebar-group-title">Back Side / Emergency</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="OR CODES">📄 OR CODES</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="EMERGENCY PERSON NAME">🚑 EMERGENCY NAME</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="EMERGENCY CONTACT NO">📞 EMERGENCY CONTACT</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="EMERGENCY ADDRESS">🏠 EMERGENCY ADDR</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="DATE ISSUED">📅 DATE ISSUED</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="VALID UNTIL">⏳ VALID UNTIL</div>
+            
+            <div class="sidebar-group-title">Signature</div>
             <div class="draggable-item" draggable="true" data-type="sig-box" data-caption="SIGNATURE">✍️ SIGNATURE BOX</div>
 
-            <div class="sidebar-group-title">Shapes</div>
+            <div class="sidebar-group-title">Shapes & Effects</div>
             <div class="draggable-item" draggable="true" data-type="line" data-caption="LINE">📏 LINE</div>
             <div class="draggable-item" draggable="true" data-type="box" data-caption="BOX">⬜ BOX</div>
+            <div class="draggable-item" draggable="true" data-type="frosted-box" data-caption="FROSTED BOX">🧊 FROSTED BOX (Malabo)</div>
         </div>
     </div>
 
@@ -240,6 +339,13 @@
                     📁 Upload Template
                     <input type="file" id="templateUpload" accept="image/*" style="display:none;">
                 </label>
+                <label class="primary" style="padding: 6px 12px; cursor:pointer; border-radius:4px; background:#10b981; color:white;">
+                    🖼️ Upload Logo/Img
+                    <input type="file" id="logoUpload" accept="image/*" style="display:none;">
+                </label>
+                <button class="primary" style="background: #f59e0b; color: white; border:none;" onclick="addCustomTextbox()">
+                    ➕ Add Text (MS Word)
+                </button>
                 <span id="filename" style="font-size:12px; color:#666;">No template loaded</span>
             </div>
 
@@ -248,8 +354,27 @@
                 <input type="range" id="zoomSlider" min="0.3" max="2.0" step="0.1" value="1.0">
                 <span id="zoomValue" class="zoom-display">100%</span>
                 
+                <div style="border-left: 1px solid #ddd; padding-left: 10px; gap: 5px; align-items: center; display:flex;">
+                    <select id="propFontFamily" title="Font Family">
+                        <option value="'Segoe UI', sans-serif">Segoe UI</option>
+                        <option value="Arial, sans-serif">Arial</option>
+                        <option value="'Times New Roman', serif">Times New Roman</option>
+                        <option value="'Courier New', monospace">Courier New</option>
+                        <option value="Impact, sans-serif">Impact</option>
+                        <option value="Georgia, serif">Georgia</option>
+                    </select>
+                    <input type="color" id="propTextColor" value="#1e3a8a" title="Text Color">
+                    <span style="font-size:11px; font-weight:bold; color:#555;">SIZE:</span>
+                    <input type="number" id="propSize" value="12" title="Font Size">
+                    <select id="propFont" title="Font Style">
+                        <option value="normal">Normal</option>
+                        <option value="bold">Bold</option>
+                    </select>
+                </div>
+
                 <button class="danger" onclick="deleteSelected()">🗑️ Delete</button>
                 <button class="primary" onclick="saveLayout()">💾 Save</button>
+                <button class="primary" style="background: #8b5cf6;" onclick="loadLayout()">📂 Load</button>
             </div>
         </div>
 
@@ -263,19 +388,124 @@
     </div>
 
     <script>
+        const API_URL = 'http://127.0.0.1:5000'; 
         const canvas = document.getElementById('editorCanvas');
         const uploadInput = document.getElementById('templateUpload');
+        const logoUploadInput = document.getElementById('logoUpload');
         const zoomSlider = document.getElementById('zoomSlider');
         const zoomValue = document.getElementById('zoomValue');
         const filenameSpan = document.getElementById('filename');
+        const propSize = document.getElementById('propSize');
+        const propFont = document.getElementById('propFont');
+        const propFontFamily = document.getElementById('propFontFamily');
+        const propTextColor = document.getElementById('propTextColor');
 
         let isDragging = false;
         let isResizing = false;
         let currentEl = null;
         let currentHandle = null;
         let startX, startY, startWidth, startHeight, startLeft, startTop;
+        let hasMoved = false;
 
-        // === 1. SIDEBAR DRAG LOGIC ===
+        // ==========================================
+        // ADMIN FORMS LOGIC (The Solution)
+        // ==========================================
+        
+        const adminSelect = document.getElementById('adminFormsSelect');
+        const newFormInput = document.getElementById('newFormName');
+
+        async function initAdminForms() {
+            try {
+                // 1. Fetch from Supabase (Via Python Route)
+                const response = await fetch(`${API_URL}/get_admin_forms`);
+                const data = await response.json();
+                
+                // 2. Check if valid data returned
+                if (data && Array.isArray(data) && data.length > 0) {
+                    renderAdminList(data);
+                    console.log("Loaded from Supabase:", data);
+                } else {
+                    throw new Error("Empty data");
+                }
+            } catch (error) {
+                console.error("Error loading forms:", error);
+                console.warn("Using Fallback Data (Officer Signature)");
+                
+                // 3. FALLBACK: If fetch fails, do NOT clear the box. Just add the fallback.
+                // But since we are initializing, we just render the fallback.
+                renderAdminList([{ id: 1, forms_name: "Officer Signature" }]);
+            }
+        }
+
+        function renderAdminList(data) {
+            adminSelect.innerHTML = ''; // Clear current options
+            data.forEach(form => {
+                const option = document.createElement('option');
+                option.value = form.id; 
+                option.textContent = form.forms_name; 
+                adminSelect.appendChild(option);
+            });
+        }
+
+        async function addAdminForm() {
+            const name = newFormInput.value.trim();
+            if (!name) return alert("Please enter name.");
+
+            try {
+                // FIX: Changed 'form_names' to 'forms_name' to match Supabase column
+                await fetch(`${API_URL}/add_admin_form`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ forms_name: name })
+                });
+                newFormInput.value = "";
+                initAdminForms(); // Refresh
+            } catch (e) { alert("Error adding"); }
+        }
+
+        async function deleteAdminForm() {
+            const selectedId = parseInt(adminSelect.value);
+            if (!selectedId) return alert("Select a form first.");
+            if(confirm("Delete?")) {
+                try {
+                    await fetch(`${API_URL}/delete_admin_form/${selectedId}`, { method: 'DELETE' });
+                    initAdminForms();
+                } catch (e) { alert("Error deleting"); }
+            }
+        }
+
+        function saveAdminForms() {
+            alert("Auto-saved on Add/Delete.");
+        }
+
+        function checkAdminFormSelection() {
+            const selectBox = document.getElementById("adminFormsSelect");
+            const selectedOption = selectBox.options[selectBox.selectedIndex];
+            
+            if (!selectedOption) return;
+            const selectedText = selectedOption.textContent; 
+
+            // Trigger Popup
+            if (selectedText === "Officer Signature") {
+                const win = window.open('', '_blank', 'width=800,height=600');
+                if (win) {
+                    win.location.href = 'signature.html';
+                    win.focus();
+                } else {
+                    alert("Allow pop-ups.");
+                }
+            }
+        }
+
+        // Initialize on Load
+        document.addEventListener('DOMContentLoaded', () => {
+            initAdminForms();
+        });
+
+        // ==========================================
+        // ORIGINAL LOGIC (Sidebar, Canvas, etc)
+        // ==========================================
+
         const draggables = document.querySelectorAll('.draggable-item');
         draggables.forEach(d => {
             d.addEventListener('dragstart', (e) => {
@@ -284,75 +514,92 @@
             });
         });
 
-        // === 2. CANVAS DROP LOGIC ===
         canvas.addEventListener('dragover', (e) => {
             e.preventDefault();
             canvas.style.border = "2px dashed #2563eb";
         });
-
         canvas.addEventListener('dragleave', (e) => {
             canvas.style.border = "none";
         });
-
         canvas.addEventListener('drop', (e) => {
             e.preventDefault();
             canvas.style.border = "none";
-
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-
-            // Apply zoom inverse calculation
             const zoom = parseFloat(zoomSlider.value);
             const actualX = x / zoom;
             const actualY = y / zoom;
-
             const type = e.dataTransfer.getData('type');
             const caption = e.dataTransfer.getData('caption');
-
-            createNewElement(type, caption, actualX, actualY);
+            createSidebarElement(type, caption, actualX, actualY);
         });
 
-        function createNewElement(type, caption, x, y) {
+        function createSidebarElement(type, caption, x, y, imgSrc = null) {
             const el = document.createElement('div');
             el.className = 'canvas-element';
-            el.textContent = caption;
-            el.style.left = Math.round(x) + 'px';
-            el.style.top = Math.round(y) + 'px';
-            
-            // Default Sizes (Integer)
-            if (type === 'photo') {
-                el.classList.add('is-photo');
+            if (imgSrc) {
+                el.classList.add('is-image');
+                const img = document.createElement('img');
+                img.src = imgSrc;
+                el.appendChild(img);
                 el.style.width = '100px';
-                el.style.height = '120px';
-            } else if (type === 'line') {
-                el.classList.add('is-line');
-                el.style.width = '150px';
-                el.textContent = '';
-            } else if (type === 'box' || type === 'sig-box') {
-                el.classList.add('is-box');
-                el.style.width = '100px';
-                el.style.height = '40px';
+                el.style.height = '100px';
             } else {
-                el.style.width = 'auto';
-                el.style.padding = '2px 5px';
-                el.style.whiteSpace = 'nowrap';
+                el.textContent = caption;
+                el.style.left = Math.round(x) + 'px';
+                el.style.top = Math.round(y) + 'px';
+                el.style.fontSize = '12px';
+                el.style.fontWeight = 'normal';
+                el.style.fontFamily = "'Segoe UI', sans-serif";
+                el.style.color = "#1e3a8a"; 
             }
 
-            el.id = 'field_' + Date.now();
+            if(!imgSrc) {
+                el.style.left = Math.round(x) + 'px';
+                el.style.top = Math.round(y) + 'px';
+            }
 
+            if (type === 'photo') { el.classList.add('is-photo'); el.style.width = '100px'; el.style.height = '120px'; }
+            else if (type === 'line') { el.classList.add('is-line'); el.style.width = '150px'; el.textContent = ''; }
+            else if (type === 'box' || type === 'sig-box') { el.classList.add('is-box'); el.style.width = '100px'; el.style.height = '40px'; }
+            else if (type === 'frosted-box') { el.classList.add('is-frosted'); el.textContent = ''; el.style.width = '150px'; el.style.height = '150px'; }
+            else if (!imgSrc) { el.style.width = 'auto'; el.style.padding = '2px 5px'; el.style.whiteSpace = 'nowrap'; }
+
+            el.id = 'field_' + Date.now();
             ['nw', 'ne', 'sw', 'se'].forEach(pos => {
                 const handle = document.createElement('div');
                 handle.className = `resize-handle rh-${pos}`;
                 handle.dataset.handle = pos;
                 el.appendChild(handle);
             });
-
             canvas.appendChild(el);
             selectElement(el);
         }
 
-        // === 3. UPLOAD IMAGE ===
+        function addCustomTextbox() {
+            const el = document.createElement('div');
+            el.className = 'custom-textbox';
+            el.contentEditable = "true";
+            const canvasWidth = canvas.offsetWidth;
+            const canvasHeight = canvas.offsetHeight;
+            el.style.left = (canvasWidth / 2 - 100) + 'px'; 
+            el.style.top = (canvasHeight / 2 - 10) + 'px';
+            el.style.width = '200px'; 
+            el.style.minHeight = '20px';
+            el.innerText = "";
+            el.id = 'custom_' + Date.now();
+            ['nw', 'ne', 'sw', 'se'].forEach(pos => {
+                const handle = document.createElement('div');
+                handle.className = `resize-handle rh-${pos}`;
+                handle.dataset.handle = pos;
+                el.appendChild(handle);
+            });
+            canvas.appendChild(el);
+            selectElement(el);
+            setTimeout(function() { el.focus(); }, 100);
+        }
+
         uploadInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -363,7 +610,7 @@
                         canvas.style.width = img.width + 'px';
                         canvas.style.height = img.height + 'px';
                         canvas.style.backgroundImage = `url('${evt.target.result}')`;
-                        filenameSpan.textContent = file.name;
+                        filenameSpan.textContent = "Template: " + file.name;
                     };
                     img.src = evt.target.result;
                 };
@@ -371,125 +618,253 @@
             }
         });
 
-        // === 4. ZOOM ===
+        logoUploadInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    createSidebarElement('logo-image', 'Logo', 50, 50, evt.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
         zoomSlider.addEventListener('input', function() {
             const scale = this.value;
             canvas.style.transform = `scale(${scale})`;
             zoomValue.textContent = Math.round(scale * 100) + '%';
         });
 
-        // === 5. MOVE / RESIZE / SELECT LOGIC (Fixed Zoom Math) ===
         document.addEventListener('mousedown', function(e) {
-            // Handle Check
+            hasMoved = false;
             if (e.target.classList.contains('resize-handle')) {
                 isResizing = true;
                 currentHandle = e.target.dataset.handle;
                 currentEl = e.target.parentElement;
-                
                 startX = e.clientX;
                 startY = e.clientY;
                 startWidth = parseInt(getComputedStyle(currentEl).width);
                 startHeight = parseInt(getComputedStyle(currentEl).height);
                 startLeft = parseInt(getComputedStyle(currentEl).left);
                 startTop = parseInt(getComputedStyle(currentEl).top);
-                
                 selectElement(currentEl);
                 e.stopPropagation();
                 return;
             }
-
-            // Element Check
-            if (e.target.classList.contains('canvas-element')) {
-                isDragging = true;
-                currentEl = e.target;
+            const targetEl = e.target.closest('.canvas-element') || e.target.closest('.custom-textbox');
+            if (targetEl) {
+                currentEl = targetEl;
                 startX = e.clientX;
                 startY = e.clientY;
                 startLeft = currentEl.offsetLeft;
                 startTop = currentEl.offsetTop;
-                
-                selectElement(currentEl);
-            } else if (!e.target.closest('.toolbar') && !e.target.closest('.sidebar')) {
+                if (currentEl.classList.contains('custom-textbox')) {
+                    const dragTimer = setTimeout(() => {
+                        isDragging = true;
+                        selectElement(currentEl);
+                    }, 150); 
+                    currentEl.dataset.dragTimer = dragTimer;
+                } else {
+                    isDragging = true;
+                    selectElement(currentEl);
+                }
+            } else if (!e.target.closest('.toolbar') && !e.target.closest('.sidebar') && !e.target.closest('.admin-forms-panel')) {
                 deselectAll();
             }
         });
 
         document.addEventListener('mousemove', function(e) {
-            const zoom = parseFloat(zoomSlider.value);
-
             if (isResizing && currentEl) {
                 e.preventDefault();
+                const zoom = parseFloat(zoomSlider.value);
                 const dx = (e.clientX - startX) / zoom;
                 const dy = (e.clientY - startY) / zoom;
-
-                // Round to nearest integer to prevent blurry edges
                 if (currentHandle.includes('e')) currentEl.style.width = Math.round(startWidth + dx) + 'px';
                 if (currentHandle.includes('s')) currentEl.style.height = Math.round(startHeight + dy) + 'px';
             }
             else if (isDragging && currentEl) {
+                hasMoved = true;
                 e.preventDefault();
+                const zoom = parseFloat(zoomSlider.value);
                 const dx = (e.clientX - startX) / zoom;
                 const dy = (e.clientY - startY) / zoom;
-                
                 currentEl.style.left = Math.round(startLeft + dx) + 'px';
                 currentEl.style.top = Math.round(startTop + dy) + 'px';
             }
         });
 
         document.addEventListener('mouseup', function() {
+            if (currentEl && currentEl.dataset.dragTimer) {
+                clearTimeout(currentEl.dataset.dragTimer);
+                delete currentEl.dataset.dragTimer;
+            }
             isDragging = false;
             isResizing = false;
             currentEl = null;
             currentHandle = null;
         });
 
-        // === 6. SELECT / DESELECT ===
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                const selected = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
+                if (selected) {
+                    let left = parseInt(selected.style.left || 0);
+                    let top = parseInt(selected.style.top || 0);
+                    const moveStep = 1; 
+                    if (e.key === 'ArrowUp') { top -= moveStep; e.preventDefault(); }
+                    if (e.key === 'ArrowDown') { top += moveStep; e.preventDefault(); }
+                    if (e.key === 'ArrowLeft') { left -= moveStep; e.preventDefault(); }
+                    if (e.key === 'ArrowRight') { left += moveStep; e.preventDefault(); }
+                    selected.style.left = left + 'px';
+                    selected.style.top = top + 'px';
+                }
+            }
+        });
+
         function selectElement(el) {
             deselectAll();
             el.classList.add('selected');
+            let currentSize = 12;
+            let currentWeight = 'normal';
+            let currentFamily = "'Segoe UI', sans-serif";
+            let currentColor = "#000";
+            const computed = getComputedStyle(el);
+            if(computed.fontSize) currentSize = parseInt(computed.fontSize); 
+            currentColor = el.style.color || "#000"; 
+            propSize.value = currentSize;
+            propFont.value = currentWeight;
+            propFontFamily.value = currentFamily;
+            if(currentColor.startsWith('#')) propTextColor.value = currentColor;
         }
 
         function deselectAll() {
-            document.querySelectorAll('.canvas-element').forEach(el => {
+            document.querySelectorAll('.canvas-element, .custom-textbox').forEach(el => {
                 el.classList.remove('selected');
             });
         }
 
-        // === 7. UTILS ===
+        propSize.addEventListener('input', () => {
+            const sel = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
+            if(sel) sel.style.fontSize = propSize.value + 'px';
+        });
+        propFont.addEventListener('change', () => {
+            const sel = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
+            if(sel) sel.style.fontWeight = propFont.value;
+        });
+        propFontFamily.addEventListener('change', () => {
+            const sel = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
+            if(sel) sel.style.fontFamily = propFontFamily.value;
+        });
+        propTextColor.addEventListener('input', () => {
+            const sel = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
+            if(sel) sel.style.color = propTextColor.value;
+        });
+
         function deleteSelected() {
-            const selected = document.querySelector('.canvas-element.selected');
-            
-            // FIX: Only try to remove if an element exists
-            if (selected) {
-                selected.remove();
-            }
-            // If selected is null (nothing selected), do nothing (silently fail)
+            const selected = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
+            if (selected) selected.remove();
         }
 
-        function saveLayout() {
-            const layoutData = {
-                canvasWidth: parseInt(canvas.style.width),
-                canvasHeight: parseInt(canvas.style.height),
-                elements: []
-            };
-
-            document.querySelectorAll('.canvas-element').forEach(el => {
-                layoutData.elements.push({
-                    id: el.id,
-                    caption: el.textContent,
-                    type: el.classList.contains('is-photo') ? 'photo' : 
-                          el.classList.contains('is-line') ? 'line' :
-                          el.classList.contains('is-box') ? 'box' : 'text',
-                    left: parseInt(el.style.left),
-                    top: parseInt(el.style.top),
-                    width: parseInt(el.style.width),
-                    height: parseInt(el.style.height)
-                });
+        async function saveLayout() {
+            const elements = [];
+            Array.from(canvas.children).forEach(child => {
+                if (child.classList.contains('resize-handle')) return; 
+                const data = {
+                    className: child.className,
+                    id: child.id,
+                    text: child.innerText,
+                    left: child.style.left,
+                    top: child.style.top,
+                    width: child.style.width,
+                    height: child.style.height,
+                    color: child.style.color,
+                    fontSize: child.style.fontSize,
+                    fontFamily: child.style.fontFamily,
+                    fontWeight: child.style.fontWeight,
+                    isContentEditable: child.isContentEditable
+                };
+                const img = child.querySelector('img');
+                if (img) data.imgSrc = img.src;
+                elements.push(data);
             });
-
-            console.log("Saved Layout:", layoutData);
-            alert("Layout saved! Check Console (F12).");
+            const payload = {
+                template: {
+                    backgroundImage: canvas.style.backgroundImage,
+                    width: canvas.style.width,
+                    height: canvas.style.height
+                },
+                fields: elements
+            };
+            try {
+                const response = await fetch(`${API_URL}/save_layout`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (response.ok) alert(result.message || "Layout Saved Successfully!");
+                else alert("Error saving: " + result.message);
+            } catch (error) {
+                console.error("Save error:", error);
+                alert("Failed to connect to server.");
+            }
         }
 
+        async function loadLayout() {
+            try {
+                const response = await fetch(`${API_URL}/load_layout`);
+                const result = await response.json();
+                if (!response.ok) {
+                    alert("Error loading: " + result.message);
+                    return;
+                }
+                const saved = result.data;
+                if (saved && saved.template) {
+                    canvas.style.backgroundImage = saved.template.backgroundImage;
+                    canvas.style.width = saved.template.width;
+                    canvas.style.height = saved.template.height;
+                }
+                Array.from(canvas.children).forEach(child => child.remove());
+                if (saved && saved.fields) {
+                    saved.fields.forEach(fieldData => {
+                        const el = document.createElement('div');
+                        el.className = fieldData.className;
+                        el.id = fieldData.id;
+                        el.style.left = fieldData.left;
+                        el.style.top = fieldData.top;
+                        el.style.width = fieldData.width;
+                        el.style.height = fieldData.height;
+                        el.style.color = fieldData.color;
+                        el.style.fontSize = fieldData.fontSize;
+                        el.style.fontFamily = fieldData.fontFamily;
+                        el.style.fontWeight = fieldData.fontWeight;
+                        el.innerText = fieldData.text;
+                        if (fieldData.isContentEditable) el.contentEditable = "true";
+                        if (fieldData.imgSrc) {
+                            const img = document.createElement('img');
+                            img.src = fieldData.imgSrc;
+                            img.style.width = '100%';
+                            img.style.height = '100%';
+                            img.style.objectFit = 'contain';
+                            img.style.pointerEvents = 'none';
+                            el.innerHTML = '';
+                            el.appendChild(img);
+                        }
+                        ['nw', 'ne', 'sw', 'se'].forEach(pos => {
+                            const handle = document.createElement('div');
+                            handle.className = `resize-handle rh-${pos}`;
+                            handle.dataset.handle = pos;
+                            el.appendChild(handle);
+                        });
+                        canvas.appendChild(el);
+                    });
+                }
+                alert("Layout Loaded Successfully!");
+            } catch (error) {
+                console.error("Load error:", error);
+                alert("Failed to connect to server.");
+            }
+        }
     </script>
 </body>
 </html>
