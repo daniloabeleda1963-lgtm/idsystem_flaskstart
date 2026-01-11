@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID Layout Editor - Final w/ Save & Load</title>
+    <title>ID Layout Editor - Final w/ Modal</title>
     
     <style>
         :root {
@@ -269,6 +269,68 @@
         .rh-sw { bottom: -4px; left: -4px; cursor: nesw-resize; }
         .rh-ne { top: -4px; right: -4px; cursor: nesw-resize; }
         .rh-nw { top: -4px; left: -4px; cursor: nwse-resize; }
+
+        /* --- NEW: SIGNATURE MODAL STYLES --- */
+        .signature-modal-overlay {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .signature-modal-content {
+            background-color: white;
+            width: 100%;
+            max-width: 800px;
+            height: 90%; /* Take up 90% of screen height */
+            border-radius: 8px;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            background-color: #2563eb;
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .close-modal-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0 10px;
+            border-radius: 4px;
+        }
+        .close-modal-btn:hover { background: rgba(255,255,255,0.4); }
+
+        .modal-body {
+            flex-grow: 1;
+            border: none;
+            width: 100%;
+            background-color: #f3f4f6;
+        }
     </style>
 </head>
 <body>
@@ -387,10 +449,21 @@
 
     </div>
 
+    <!-- NEW: SIGNATURE MODAL (Pop-up) -->
+    <div id="signatureModal" class="signature-modal-overlay">
+        <div class="signature-modal-content">
+            <div class="modal-header">
+                <h3>Officer Signature Creator</h3>
+                <button class="close-modal-btn" onclick="closeSignatureModal()">✖</button>
+            </div>
+            <iframe src="/signature.html" class="modal-body" frameborder="0"></iframe>
+        </div>
+    </div>
+
     <script>
-        // FIXED: Changed empty string to window.location.origin for Render compatibility
-        // This ensures it works on both Local (http://localhost:5000) and Render (https://your-app.onrender.com)
-        const API_URL = window.location.origin; 
+        // FIXED: Changed hardcoded localhost to empty string for Relative Path
+        // This ensures it works on both Local and Render.
+        const API_URL = ''; 
         const canvas = document.getElementById('editorCanvas');
         const uploadInput = document.getElementById('templateUpload');
         const logoUploadInput = document.getElementById('logoUpload');
@@ -410,7 +483,20 @@
         let hasMoved = false;
 
         // ==========================================
-        // ADMIN FORMS LOGIC (The Solution)
+        // MODAL LOGIC
+        // ==========================================
+        const sigModal = document.getElementById('signatureModal');
+
+        function openSignatureModal() {
+            sigModal.style.display = 'flex';
+        }
+
+        function closeSignatureModal() {
+            sigModal.style.display = 'none';
+        }
+
+        // ==========================================
+        // ADMIN FORMS LOGIC
         // ==========================================
         
         const adminSelect = document.getElementById('adminFormsSelect');
@@ -487,15 +573,9 @@
             if (!selectedOption) return;
             const selectedText = selectedOption.textContent; 
 
-            // Trigger Popup
+            // Trigger Modal instead of Window.Open (Fixes Mobile Issue)
             if (selectedText === "Officer Signature") {
-                const win = window.open('', '_blank', 'width=800,height=600');
-                if (win) {
-                    win.location.href = 'signature.html';
-                    win.focus();
-                } else {
-                    alert("Allow pop-ups.");
-                }
+                openSignatureModal();
             }
         }
 
@@ -670,7 +750,7 @@
                     isDragging = true;
                     selectElement(currentEl);
                 }
-            } else if (!e.target.closest('.toolbar') && !e.target.closest('.sidebar') && !e.target.closest('.admin-forms-panel')) {
+            } else if (!e.target.closest('.toolbar') && !e.target.closest('.sidebar') && !e.target.closest('.admin-forms-panel') && !e.target.closest('.signature-modal-content')) {
                 deselectAll();
             }
         });
