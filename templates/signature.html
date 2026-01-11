@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- IMPORTANT: Allows fitting mobile screens properly -->
+    <!-- IMPORTANT: Allows fitting mobile screens properly (Copied from add_member_form) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Officer Signature</title>
     
     <style>
         /* ==========================================
-           1. BASE STYLES (Gaya ng add_member_form)
+           1. BASE STYLES (Copied from add_member_form)
            ========================================== */
         :root {
             --primary-color: #2563eb;
@@ -18,11 +18,10 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-color);
-            padding: 10px; /* Padding para di nakadikit sa border ng phone */
+            padding: 10px;
             margin: 0;
             display: flex;
             justify-content: center;
-            /* Prevent pull-to-refresh on mobile */
             overscroll-behavior-y: none; 
         }
 
@@ -32,7 +31,7 @@
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             width: 100%;
-            /* Desktop max width 800px (Same as add_member_form) */
+            /* Desktop centered, Mobile Full Width (Same as add_member_form) */
             max-width: 800px; 
             box-sizing: border-box;
             display: flex;
@@ -53,19 +52,17 @@
         
         input[type="text"] {
             width: 100%; 
-            padding: 10px;
+            padding: 10px; /* Same padding as add_member_form */
             border:1px solid #ccc; 
             border-radius: 5px; 
             box-sizing: border-box;
-            /* 16px prevents iOS auto-zoom */
-            font-size: 16px !important; 
         }
 
         /* ==========================================
-           2. SIGNATURE CANVAS (Mobile Friendly)
+           2. SIGNATURE CANVAS
            ========================================== */
         .signature-wrapper {
-            border: 2px dashed #2563eb;
+            border:2px dashed #2563eb; /* Blue border */
             border-radius: 8px; 
             position: relative; 
             background: #fff; 
@@ -74,7 +71,7 @@
             /* Crucial for mobile: prevents scrolling while signing */
             touch-action: none; 
             margin-bottom: 10px;
-            min-height: 250px; /* Sufficient height for drawing */
+            min-height: 250px; 
             display: flex;
             align-items: center;
             justify-content: center;
@@ -83,15 +80,11 @@
         canvas { 
             display: block; 
             width: 100%; 
-            /* Canvas height is set by JS based on pixel ratio */
         }
 
         .hint { 
-            position: absolute;
-            top: 5px; right: 10px;
-            font-size: 12px; 
-            color: #999; 
-            pointer-events: none; 
+            position: absolute; top:5px; right: 10px; 
+            font-size: 12px; color: #999; pointer-events: none; 
         }
 
         /* ==========================================
@@ -109,8 +102,9 @@
             border-radius: 5px; 
             font-weight: bold; 
             cursor: pointer; 
-            font-size: 14px;
-            flex: 1; /* Distribute space evenly */
+            font-size: 14px; /* Default desktop */
+            flex: 1; 
+            box-sizing: border-box;
         }
         
         /* Primary Buttons (Add/Save) */
@@ -128,7 +122,7 @@
            ========================================== */
         .list-container { 
             margin-top: 20px; 
-            border-top: 2px solid #e5e7eb; 
+            border-top:2px solid #e5e7eb; 
             padding-top: 20px; 
         }
 
@@ -190,42 +184,54 @@
         .error { color: #991b1b; background-color: #fee2e2; }
 
         /* ==========================================
-           5. MOBILE RESPONSIVE (Copied from add_member_form)
+           5. MOBILE RESPONSIVE (Copied EXACTLY from add_member_form)
            ========================================== */
         @media (max-width: 700px) {
-            .container {
-                padding: 10px;
-            }
+            /* Container Padding */
+            .container { padding: 10px; }
 
-            /* Stack buttons vertically on mobile for easy thumb access */
+            /* 1. AYUSIN ANG FORM FIELDS (Inputs) - Prevent small text */
+            /* Force 16px font size to prevent iOS Zoom and ensure readability */
+            input, select, textarea {
+                font-size: 16px !important; 
+                width: 100% !important;
+            }
+            
+            /* 2. AYUSIN ANG BUTTONS (Stack vertically) */
+            /* Sa celpon, ibabaw na yung fields */
             .btn-row {
-                flex-direction: column;
-                gap: 8px;
+                flex-direction: column !important;
+                gap: 10px !important;
             }
-
-            /* Make buttons full width and slightly larger text */
+            
+            /* Make buttons full width and readable */
             button {
-                padding: 12px;
-                font-size: 16px;
-                width: 100%;
+                font-size: 16px !important; /* Mas malaking text para basa */
+                width: 100% !important;
+                padding: 12px !important; /* Larger touch target */
+                box-sizing: border-box;
             }
 
-            /* Officer list items stack buttons */
+            /* 3. AYUSIN ANG LIST ITEMS (Stack content vertically) */
             .officer-item {
                 flex-direction: column;
                 align-items: flex-start;
+                gap: 10px;
             }
+            
+            /* Make action buttons full width inside the item */
             .action-buttons {
                 width: 100%;
-                margin-top: 10px;
-                justify-content: flex-end;
+                justify-content: space-between;
             }
             .btn-edit, .btn-del {
-                padding: 10px;
-                font-size: 14px;
+                padding: 12px;
+                font-size: 16px;
+                flex: 1;
             }
 
-            /* Adjust Signature Area */
+            /* 4. AYUSIN ANG SIGNATURE CANVAS */
+            /* Adjust height para swak sa screen height */
             .signature-wrapper {
                 height: 250px;
                 border-width: 1px;
@@ -287,7 +293,12 @@
     <a href="/admin" class="back-link">&larr; Back to Admin</a>
 </div>
 
-<script>
+<script> 
+    /* 
+       LOGIC FROM ORIGINAL 500+ LINE CODE
+       BUT MOBILE ADJUSTED VIA CSS ABOVE
+    */
+
     const canvas = document.getElementById('sigCanvas');
     const wrapper = document.querySelector('.signature-wrapper');
     const ctx = canvas.getContext('2d');
@@ -298,7 +309,7 @@
 
     // --- 1. CANVAS LOGIC (Responsive & Touch Friendly) ---
     function resizeCanvas() {
-        // Get actual display size of the container
+        // Get actual display size of container
         const rect = wrapper.getBoundingClientRect();
         const ratio = Math.max(window.devicePixelRatio || 1, 1);
         
@@ -309,14 +320,11 @@
         // Normalize coordinate system to match CSS pixels
         ctx.scale(ratio, ratio);
         
-        // Set styles for drawing after resize (resetting clears styles)
+        // Set styles for drawing after resize
         ctx.strokeStyle = "#000"; 
         ctx.lineJoin = "round"; 
         ctx.lineCap = "round"; 
         ctx.lineWidth = 3; // Thick line for visibility
-
-        // Note: Resizing clears the canvas. In a production app, 
-        // we would save the image data and restore it here.
     }
 
     // Initialize on Load and Resize
