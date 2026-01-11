@@ -7,7 +7,9 @@
     <title>Officer Signature</title>
     
     <style>
-        /* Base Styles */
+        /* ==========================================
+           1. BASE STYLES (MATCHING add_member_form)
+           ========================================== */
         :root {
             --primary-color: #6a1b9a;
             --bg-color: #f3f4f6;
@@ -22,12 +24,13 @@
             justify-content: center;
         }
 
+        /* CONTAINER: Match add_member_form Logic */
         .form-container {
             width: 100%;
-            max-width: 800px; /* Desktop limit */
-            margin: 0 auto;
+            max-width: 800px; /* Same as add_member_form */
+            margin: 0 auto; /* Centered on Desktop */
             box-sizing: border-box;
-            padding: 20px;
+            padding: 20px; /* Desktop Padding */
             border: 1px solid #ddd;
             border-radius: 10px;
             background: #fff;
@@ -39,6 +42,7 @@
         h2 { 
             text-align: center; 
             color: #333; 
+            margin-top: 0; 
         }
 
         /* Form Inputs */
@@ -58,7 +62,8 @@
             background: #fff; 
             cursor: crosshair; 
             overflow: hidden; 
-            touch-action: none; /* Crucial for mobile */
+            /* Crucial for mobile: prevents scrolling while signing */
+            touch-action: none; 
             margin-bottom: 10px;
             height: 250px;
         }
@@ -90,7 +95,7 @@
             flex: 1; 
             box-sizing: border-box;
         }
-        
+
         .btn-add { background-color: #2563eb; color: white; }
         .btn-save { background-color: #059669; color: white; }
         .btn-cancel { background-color: #6b7280; color: white; }
@@ -101,7 +106,7 @@
         .list-container { 
             margin-top: 20px; 
             border-top: 2px solid #e5e7eb; 
-            padding-top: 15px; 
+            padding-top: 20px; 
         }
 
         .list-title { 
@@ -161,37 +166,39 @@
         .error { color: #991b1b; background-color: #fee2e2; }
 
         /* ==========================================
-           MOBILE RESPONSIVE - FULL SCREEN AUTO FIT
+           2. MOBILE RESPONSIVE (EXACT COPY OF add_member_form)
            ========================================== */
         @media (max-width: 700px) {
             
-            /* CONTAINER: FULL WIDTH, NO GUTTER */
+            /* 1. CONTAINER: FULL WIDTH, NO GUTTER (Auto Fit) */
             .form-container {
+                /* Pilitin full width at walang margin */
                 width: 100% !important;
-                max-width: 100% !important;
-                margin: 0 !important; /* Remove gutters, touch screen edges */
-                padding: 15px !important; /* Internal padding lang */
+                max-width: 100% !important; /* Override 800px limit */
+                margin: 0 !important; /* Touch screen edges */
+                padding: 10px !important; /* Same padding as add_member_form */
             }
             
-            /* INPUTS & BUTTONS: AUTO FIT WIDTH */
+            /* 2. Font Size Fix */
             input, select, textarea {
                 font-size: 16px !important; /* Prevent iOS zoom */
                 width: 100% !important;
             }
             
+            /* 3. Button Stack */
             .btn-row {
                 flex-direction: column !important;
                 gap: 10px !important;
             }
             
             button {
-                font-size: 16px !important;
+                font-size: 16px !important; /* Mas malaking text para basa */
                 width: 100% !important;
-                padding: 12px !important;
+                padding: 12px !important; /* Larger touch target */
                 box-sizing: border-box;
             }
 
-            /* LIST ITEMS: STACK VERTICALLY */
+            /* 4. List Stack */
             .officer-item {
                 flex-direction: column !important;
                 align-items: flex-start !important;
@@ -207,9 +214,9 @@
                 flex: 1;
             }
 
-            /* CANVAS ADJUST */
+            /* 5. Canvas Adjust */
             .signature-wrapper {
-                height: 220px;
+                height: 250px;
                 border-width: 1px;
             }
         }
@@ -225,7 +232,7 @@
 
     <!-- TOP BUTTONS: ADD & CANCEL -->
     <div class="btn-row">
-        <button class="btn-add" onclick="resetForm()">➕ Add New</button>
+        <button class="btn-add" onclick="resetForm()">➕ Add New Officer</button>
         <button class="btn-cancel" onclick="resetForm()">✖ Cancel / Reset</button>
     </div>
 
@@ -285,7 +292,7 @@
         
         // Set canvas resolution for sharpness
         canvas.width = rect.width * ratio;
-        canvas.height = 220 * ratio; 
+        canvas.height = 250 * ratio; // Fixed logical height
         
         // Normalize coordinate system to match CSS pixels
         ctx.scale(ratio, ratio);
@@ -294,7 +301,7 @@
         ctx.strokeStyle = "#000"; 
         ctx.lineJoin = "round"; 
         ctx.lineCap = "round"; 
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 3; // Thick line for visibility
     }
 
     // Initialize on Load and Resize
@@ -310,7 +317,7 @@
     }
 
     function startDraw(e) { 
-        e.preventDefault(); 
+        e.preventDefault(); // Prevent scrolling/selection
         isDrawing = true; 
         const pos = getPos(e); 
         lastX = pos.x; 
@@ -319,7 +326,7 @@
 
     function draw(e) { 
         if (!isDrawing) return; 
-        e.preventDefault(); 
+        e.preventDefault(); // Prevent scrolling while drawing
 
         const pos = getPos(e); 
         
@@ -372,7 +379,8 @@
             ctx.restore();
 
             // Draw image fitting visual canvas dimensions
-            ctx.drawImage(img, 0, 0, wrapper.offsetWidth, 220);
+            // Canvas is 250px high logically
+            ctx.drawImage(img, 0, 0, wrapper.offsetWidth, 250);
         };
         img.src = base64Image;
     }
@@ -385,7 +393,7 @@
             renderList(data);
         } catch (err) {
             console.error("Error loading list", err);
-            document.getElementById('officerList').innerHTML = '<p style="color:#999; font-size:12px;">No officers saved yet.</p>';
+            document.getElementById('officerList').innerHTML = '<p style="color:#999; font-size:12px;">Error loading list.</p>';
         }
     }
 
