@@ -478,6 +478,7 @@ def save_officer_signature():
         data = request.json
 
         name_officer = data.get('name_officer')
+        designation = data.get('designation')  # ADDED: Designation field
         man_signature = data.get('man_signature') 
         text_signature = data.get('text_signature', '') 
 
@@ -486,6 +487,7 @@ def save_officer_signature():
 
         payload = {
             'name_officer': name_officer,
+            'designation': designation,  # ADDED: Designation field
             'man_signature': man_signature,
             'text_signature': text_signature
         }
@@ -530,6 +532,7 @@ def update_officer_signature(officer_id):
         data = request.json
 
         name_officer = data.get('name_officer')
+        designation = data.get('designation')  # ADDED: Designation field
         man_signature = data.get('man_signature')
         text_signature = data.get('text_signature', '')
 
@@ -538,6 +541,7 @@ def update_officer_signature(officer_id):
 
         payload = {
             'name_officer': name_officer,
+            'designation': designation,  # ADDED: Designation field
             'man_signature': man_signature,
             'text_signature': text_signature
         }
