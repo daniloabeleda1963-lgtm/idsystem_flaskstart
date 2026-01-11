@@ -388,7 +388,9 @@
     </div>
 
     <script>
-        const API_URL = 'http://127.0.0.1:5000'; 
+        // FIXED: Changed hardcoded localhost to empty string for Relative Path
+        // This ensures it works on both Local and Render.
+        const API_URL = ''; 
         const canvas = document.getElementById('editorCanvas');
         const uploadInput = document.getElementById('templateUpload');
         const logoUploadInput = document.getElementById('logoUpload');
