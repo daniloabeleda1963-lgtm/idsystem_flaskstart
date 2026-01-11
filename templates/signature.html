@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- IMPORTANT: Allows fitting mobile screens properly (Copied from add_member_form) -->
+    <!-- IMPORTANT: Allows fitting mobile screens properly -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Officer Signature</title>
     
@@ -12,6 +12,7 @@
             --primary-color: #6a1b9a;
             --bg-color: #f3f4f6;
         }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: var(--bg-color);
@@ -21,34 +22,84 @@
             justify-content: center;
         }
 
+        /* CONTAINER SIZE REDUCED TO 500px (Compact/Mobile Feel) */
         .form-container {
             width: 100%;
-            max-width: 800px; /* Same as add_member_form */
+            max-width: 500px; /* Reduced from 800px to fix "malaki" look */
             margin: 0 auto;
             box-sizing: border-box;
-            padding: 20px; /* Same padding */
-            border: 1px solid #ddd; /* Same border */
+            padding: 20px;
+            border:1px solid #ddd;
             border-radius: 10px;
             background: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
 
         h2 { 
             text-align: center; 
             color: #333; 
             margin-top: 0; 
+            font-size: 22px;
         }
 
-        /* Generic Button Styles (Same as add_member_form) */
-        button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
+        /* Form Inputs */
+        input[type="text"] {
+            width: 100%; 
+            padding: 10px;
+            border:1px solid #ccc; 
+            border-radius: 5px; 
+            box-sizing: border-box;
         }
-        button.primary { background: #28a745; color: white; }
-        button.cancel { background: #6c757d; color: white; }
-        button.danger { background: #dc3545; color: white; }
+
+        /* Canvas Wrapper */
+        .signature-wrapper {
+            border:2px dashed #6a1b9a;
+            border-radius: 8px; 
+            position: relative; 
+            background: #fff; 
+            cursor: crosshair; 
+            overflow: hidden; 
+            /* Crucial for mobile: prevents scrolling while signing */
+            touch-action: none; 
+            margin-bottom: 10px;
+            height: 250px;
+        }
+        
+        canvas { 
+            display: block; 
+            width: 100%; 
+        }
+
+        .hint { 
+            position: absolute; top:5px; right: 10px; 
+            font-size: 12px; color: #999; pointer-events: none; 
+        }
+
+        /* Buttons */
+        .btn-row { 
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 10px; 
+        }
+
+        button {
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            font-size: 14px;
+            flex: 1; 
+            box-sizing: border-box;
+        }
+        
+        .btn-add { background-color: #2563eb; color: white; }
+        .btn-save { background-color: #059669; color: white; }
+        .btn-cancel { background-color: #6b7280; color: white; }
+        .btn-del { background-color: #dc2626; color: white; padding: 5px 10px; font-size:12px;}
+        .btn-edit { background-color: #2563eb; color: white; padding: 5px 10px; font-size:12px;}
 
         /* List Styles */
         .officer-item {
@@ -56,57 +107,94 @@
             justify-content: space-between;
             align-items: center;
             padding: 10px;
-            border-bottom: 1px solid #eee;
+            border-bottom:1px solid #eee;
+            background: #fafafa;
+            border-radius: 6px;
+            margin-bottom: 8px;
         }
         .officer-info { flex: 1; margin-right: 10px; }
+        .officer-name { font-weight: bold; font-size: 14px; color: #1f2937; }
+        .officer-text { font-size: 12px; color: #6b7280; }
         .action-buttons { display: flex; gap: 5px; }
 
+        .back-link { 
+            display: block; 
+            text-align: center; 
+            margin-top: 20px; 
+            color: #2563eb; 
+            text-decoration: none; 
+            font-weight: bold; 
+            padding: 10px; 
+        }
+
+        .edit-mode-badge {
+            background-color: #f59e0b; color: white; 
+            padding: 8px; 
+            text-align: center; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            font-size: 13px; 
+            display: none; 
+        }
+
+        #message { 
+            margin-top: 10px; 
+            text-align: center; 
+            font-weight: bold; 
+            display: none; 
+            padding: 10px; 
+            border-radius: 6px; 
+        }
+        .success { color: #065f46; background-color: #d1fae5; } 
+        .error { color: #991b1b; background-color: #fee2e2; }
+
         /* ==========================================
-           EXACT COPY: MOBILE RESPONSIVENESS FROM add_member_form
+           2. MOBILE RESPONSIVE (Copied from add_member_form)
            ========================================== */
         @media (max-width: 700px) {
-            
-            /* 1. AYUSIN ANG FORM FIELDS (Inputs) */
-            /* Sa celpon, ibabaw na yung fields */
-            .form-container > div[style*="display:flex"] {
-                flex-direction: column !important;
-                gap: 10px !important;
-            }
-            
-            /*pero sa loob ng sections, compact lang */
-            .form-container > div > div[style*="display:flex"] {
-                 flex-wrap: wrap !important;
-                 gap: 8px !important;
-            }
+            /* Container Padding */
+            .form-container { padding: 10px; }
 
-            .form-container input, 
-            .form-container select, 
-            .form-container textarea {
+            /* 1. AYUSIN ANG FORM FIELDS (Inputs) - Prevent small text */
+            input, select, textarea {
                 font-size: 16px !important; /* Prevent iOS zoom */
                 width: 100% !important;
             }
             
-            /* 2. ADJUSTING FOR SIGNATURE PAGE SPECIFICS */
-            /* Force buttons to stack vertically like Magic Buttons in add_member_form */
+            /* 2. AYUSIN ANG BUTTONS (Stack vertically) */
             .btn-row {
                 flex-direction: column !important;
                 gap: 10px !important;
             }
-
-            .form-container button {
-                font-size: 16px !important; /* Bigger text */
-                width: 100% !important;    /* Full width */
+            
+            /* Make buttons full width and readable */
+            button {
+                font-size: 16px !important; /* Mas malaking text para basa */
+                width: 100% !important;
+                padding: 12px !important; /* Larger touch target */
+                box-sizing: border-box;
             }
 
-            /* 3. LIST ITEMS ADJUSTMENTS */
+            /* 3. AYUSIN ANG LIST ITEMS (Stack vertically) */
             .officer-item {
                 flex-direction: column !important;
-                align-items: flex-start;
+                align-items: flex-start !important;
                 gap: 10px;
             }
             .action-buttons {
                 width: 100%;
                 justify-content: flex-end;
+            }
+            .btn-edit, .btn-del {
+                padding: 10px;
+                font-size: 16px;
+                flex: 1;
+            }
+
+            /* 4. AYUSIN ANG SIGNATURE CANVAS */
+            .signature-wrapper {
+                height: 250px;
+                border-width: 1px;
             }
         }
     </style>
@@ -114,53 +202,44 @@
 <body>
 
 <div class="form-container">
-    <h2>Officer Signatures</h2>
+    <h2>✍️ Officer Signatures</h2>
 
     <!-- BADGE: Shows when in Edit Mode -->
-    <div id="editBadge" style="display:none; text-align:center; background:#f59e0b; color:white; padding:5px; border-radius:4px; margin-bottom:10px;">⚠️ EDITING MODE</div>
+    <div id="editBadge" class="edit-mode-badge">⚠️ EDITING MODE</div>
 
-    <!-- TOP BUTTONS: ADD & CANCEL (Wrapped in Flex Div for Auto-Arrange) -->
-    <div style="display:flex; gap:15px; margin-bottom:15px;">
-        <div style="flex:1;">
-            <button style="width:100%;" onclick="resetForm()">➕ Add New</button>
-        </div>
-        <div style="flex:1;">
-            <button style="width:100%;" class="cancel" onclick="resetForm()">✖ Cancel</button>
-        </div>
+    <!-- TOP BUTTONS: ADD & CANCEL -->
+    <div class="btn-row">
+        <button class="btn-add" onclick="resetForm()">➕ Add New</button>
+        <button class="btn-cancel" onclick="resetForm()">✖ Cancel</button>
     </div>
 
     <form id="sigForm">
         <!-- Hidden ID for Editing -->
         <input type="hidden" id="officerId" name="officer_id">
         
-        <!-- STRUCTURE CLONE: Using div[style*="display:flex"] like add_member_form -->
-        <div style="display:flex; gap:15px; margin-bottom:15px;">
-            <div style="flex:1;">
-                <label style="font-weight: bold; display:block; margin-bottom:5px; color:#555;">Full Name</label>
-                <input type="text" id="officerName" name="name_officer" placeholder="Ex: Juan Dela Cruz" autocomplete="off" required style="padding:10px; width:100%;">
-            </div>
+        <div style="margin-bottom:15px;">
+            <label style="font-weight: bold; display:block; margin-bottom:5px; color:#555;">Full Name</label>
+            <input type="text" id="officerName" name="name_officer" placeholder="Ex: Juan Dela Cruz" autocomplete="off" required>
         </div>
 
-        <div style="display:flex; gap:15px; margin-bottom:15px;">
-            <div style="flex:1;">
-                <label style="font-weight: bold; display:block; margin-bottom:5px; color:#555;">Text Signature</label>
-                <input type="text" id="textSig" name="text_signature" placeholder="Ex: Juan DC / President" autocomplete="off" style="padding:10px; width:100%;">
-            </div>
+        <div style="margin-bottom:15px;">
+            <label style="font-weight: bold; display:block; margin-bottom:5px; color:#555;">Text Signature (Optional)</label>
+            <input type="text" id="textSig" name="text_signature" placeholder="Ex: Juan DC / President" autocomplete="off">
         </div>
 
         <div style="margin-bottom:15px;">
             <label style="font-weight: bold; display:block; margin-bottom:5px; color:#555;">Draw Signature</label>
-            <!-- Canvas Wrapper -->
-            <div style="border: 2px dashed #6a1b9a; border-radius: 8px; position: relative; background: #fff; touch-action: none; height: 250px;">
-                <canvas id="sigCanvas" style="width:100%; height:100%;"></canvas>
+            <div class="signature-wrapper">
+                <canvas id="sigCanvas"></canvas>
+                <div class="hint">Sign inside box</div>
             </div>
         </div>
 
         <!-- SAVE BUTTON -->
-        <button type="submit" class="primary" style="width:100%; padding:12px;">💾 Save Signature</button>
+        <button type="submit" class="btn-save">💾 Save Signature</button>
     </form>
 
-    <div id="message" style="margin-top:10px; text-align:center; font-weight:bold; display:none; padding:10px; border-radius:6px;"></div>
+    <div id="message"></div>
 
     <!-- LIST OF OFFICERS -->
     <div style="margin-top: 30px; border-top: 2px solid #e5e7eb; padding-top: 20px;">
@@ -170,13 +249,12 @@
         </div>
     </div>
 
-    <a href="/admin" style="display:block; text-align:center; margin-top:20px; color:#2563eb; text-decoration:none; font-weight:bold; padding:10px;">&larr; Back to Admin</a>
+    <a href="/admin" class="back-link">&larr; Back to Admin</a>
 </div>
 
 <script>
     const canvas = document.getElementById('sigCanvas');
-    const wrapper = document.querySelector('.canvas-wrapper'); // Fallback
-    const wrapperDiv = canvas.parentElement; // Actual wrapper
+    const wrapper = document.querySelector('.signature-wrapper');
     const ctx = canvas.getContext('2d');
     
     let isDrawing = false;
@@ -185,29 +263,22 @@
 
     // --- 1. CANVAS LOGIC (Responsive) ---
     function resizeCanvas() {
-        // Get actual display size of container
-        const rect = wrapperDiv.getBoundingClientRect();
+        const rect = wrapper.getBoundingClientRect();
         const ratio = Math.max(window.devicePixelRatio || 1, 1);
         
-        // Set canvas resolution
         canvas.width = rect.width * ratio;
-        canvas.height = 250 * ratio; // Fixed logical height
+        canvas.height = 250 * ratio; 
         
-        // Normalize coordinate system to match CSS pixels
         ctx.scale(ratio, ratio);
-        
-        // Set styles for drawing after resize
         ctx.strokeStyle = "#000"; 
         ctx.lineJoin = "round"; 
         ctx.lineCap = "round"; 
         ctx.lineWidth = 3;
     }
 
-    // Initialize on Load and Resize
     window.addEventListener('load', resizeCanvas);
     window.addEventListener('resize', resizeCanvas);
 
-    // Helper to get coordinates for Mouse or Touch
     function getPos(e) {
         const rect = canvas.getBoundingClientRect();
         let clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
@@ -216,7 +287,7 @@
     }
 
     function startDraw(e) { 
-        e.preventDefault(); // Prevent scrolling
+        e.preventDefault(); 
         isDrawing = true; 
         const pos = getPos(e); 
         lastX = pos.x; 
@@ -225,10 +296,9 @@
 
     function draw(e) { 
         if (!isDrawing) return; 
-        e.preventDefault(); // Prevent scrolling
+        e.preventDefault(); 
 
         const pos = getPos(e); 
-        
         ctx.beginPath(); 
         ctx.moveTo(lastX, lastY); 
         ctx.lineTo(pos.x, pos.y); 
@@ -240,13 +310,11 @@
 
     function stopDraw() { isDrawing = false; }
 
-    // Mouse Events
     canvas.addEventListener('mousedown', startDraw); 
     canvas.addEventListener('mousemove', draw); 
     canvas.addEventListener('mouseup', stopDraw);
     canvas.addEventListener('mouseleave', stopDraw);
     
-    // Touch Events (Mobile) - Passive: false is CRITICAL
     canvas.addEventListener('touchstart', startDraw, {passive: false}); 
     canvas.addEventListener('touchmove', draw, {passive: false}); 
     canvas.addEventListener('touchend', stopDraw);
@@ -256,7 +324,6 @@
         document.getElementById('sigForm').reset();
         document.getElementById('officerId').value = "";
         
-        // Clear Canvas
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -267,7 +334,6 @@
         editingId = null;
     }
 
-    // --- 3. LOAD IMAGE TO CANVAS (FOR EDITING) ---
     function loadSignatureToCanvas(base64Image) {
         const img = new Image();
         img.onload = function() {
@@ -275,14 +341,11 @@
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.restore();
-
-            // Draw image fitting the visual canvas dimensions
-            ctx.drawImage(img, 0, 0, wrapperDiv.offsetWidth, 250);
+            ctx.drawImage(img, 0, 0, wrapper.offsetWidth, 250);
         };
         img.src = base64Image;
     }
 
-    // --- 4. FETCH OFFICERS LIST ---
     async function loadOfficerList() {
         try {
             const res = await fetch('/get_officers_list');
@@ -290,7 +353,6 @@
             renderList(data);
         } catch (err) {
             console.error("Error loading list", err);
-            document.getElementById('officerList').innerHTML = '<p style="color:#dc2626;">Error loading list.</p>';
         }
     }
 
@@ -308,26 +370,24 @@
             item.className = 'officer-item';
             item.innerHTML = `
                 <div class="officer-info">
-                    <div style="font-weight:bold; color:#1f2937;">${off.name_officer}</div>
-                    <div style="font-size:12px; color:#6b7280;">${off.text_signature || ''}</div>
+                    <div class="officer-name">${off.name_officer}</div>
+                    <div class="officer-text">${off.text_signature || ''}</div>
                 </div>
                 <div class="action-buttons">
-                    <button style="padding:8px 16px; font-size:14px;" onclick="editOfficer(${off.id})">✏️ Edit</button>
-                    <button style="padding:8px 16px; font-size:14px;" class="danger" onclick="deleteOfficer(${off.id})">🗑️ Delete</button>
+                    <button class="btn-edit" onclick="editOfficer(${off.id})">✏️ Edit</button>
+                    <button class="btn-del" onclick="deleteOfficer(${off.id})">🗑️ Delete</button>
                 </div>
             `;
             listDiv.appendChild(item);
         });
     }
 
-    // --- 5. EDIT OFFICER FUNCTION ---
     window.editOfficer = function(id) {
         fetch(`/get_officer/${id}`)
             .then(res => res.json())
             .then(data => {
                 if(data && data.data) {
                     const officer = data.data;
-                    
                     document.getElementById('officerName').value = officer.name_officer;
                     document.getElementById('textSig').value = officer.text_signature || '';
                     document.getElementById('officerId').value = officer.id;
@@ -346,7 +406,6 @@
             .catch(err => alert("Error loading officer data"));
     }
 
-    // --- 6. DELETE OFFICER ---
     window.deleteOfficer = function(id) {
         if(confirm('Are you sure you want to delete this officer?')) {
             fetch(`/delete_officer/${id}`, { method: 'DELETE' })
@@ -364,7 +423,6 @@
         }
     }
 
-    // --- 7. SUBMIT (SAVE / UPDATE) ---
     document.getElementById('sigForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
@@ -396,19 +454,21 @@
 
             if (res.ok) {
                 msgBox.textContent = id ? "Updated Successfully!" : "Saved Successfully!";
-                msgBox.style.backgroundColor = id ? "#d1fae5" : "#d1fae5"; 
-                msgBox.style.color = "#065f46"; 
+                msgBox.className = "success"; 
                 msgBox.style.display = "block";
                 
                 resetForm();
                 loadOfficerList();
+
+                setTimeout(() => {
+                    msgBox.style.display = 'none';
+                }, 2000);
             } else {
                 throw new Error(result.message);
             }
         } catch (err) {
             msgBox.textContent = "Error: " + err.message;
-            msgBox.style.backgroundColor = "#fee2e2";
-            msgBox.style.color = "#991b1b";
+            msgBox.className = "error"; 
             msgBox.style.display = "block";
         }
     });
