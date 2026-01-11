@@ -1,0 +1,590 @@
+{% extends "base.html" %}
+{% block title %}ID Selection & Printing{% endblock %}
+
+{% block content %}
+
+<style>
+    .mobile-list-container { display: flex; flex-direction: column; gap: 10px; }
+    .button-row { display: flex; gap: 5px; justify-content: center; }
+    .move-btn { padding: 10px 5px; font-size: 16px; background: #fff; border: 1px solid #999; border-radius: 5px; color: #333; cursor: pointer; }
+    .sig-hidden-input { background: #eee; border: 1px solid #ddd; }
+
+    /* =========================================
+       PREVIEW UI STYLES (A4 PAPER LOOK)
+       ========================================= */
+    #preview_container {
+        display: none; /* Hidden by default */
+        background: #525659;
+        padding: 20px;
+        min-height: 100vh;
+    }
+
+    .a4-sheet {
+        background: white;
+        width: 210mm;
+        min-height: 297mm;
+        padding: 10mm;
+        margin: 0 auto;
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+
+    /* ID Card Styles for Preview */
+    .id-card-group { display: flex; gap: 5mm; margin-bottom: 5mm; page-break-inside: avoid; }
+    .id-card { width: 85mm; height: 54mm; border: 1px solid #000; padding: 3mm; position: relative; background: white; }
+    .id-card .header { text-align: center; font-weight: bold; border-bottom: 1px solid #000; margin-bottom: 2mm; font-size: 10pt; }
+    .id-card .body { display: flex; gap: 3mm; }
+    .id-card .photo { width: 20mm; height: 20mm; border: 1px solid #000; object-fit: cover; }
+    .id-card .text { font-size: 8pt; line-height: 1.1; }
+    .id-card .qr { width: 12mm; height: 12mm; float: right; }
+    .id-card .back-content { font-size: 7pt; padding-top: 2mm; }
+
+    /* Signatory Styles for Preview */
+    .signatory-print-block { margin-top: 5mm; border-top: 1px solid #000; padding-top: 5mm; text-align: left; }
+    .sig-row { display: flex; gap: 10mm; margin-bottom: 5mm; }
+    .sig-item { display: flex; flex-direction: column; align-items: center; width: 25mm; }
+    .sig-item img { height: 10mm; border-bottom: 1px solid #000; margin-bottom: 1mm; display: block; }
+    .sig-item span { font-size: 7pt; text-align: center; display: block; }
+    .sig-position { font-size: 6pt; color: #555; text-align: center; display: block; }
+
+    /* Actions Buttons in Preview Mode */
+    .preview-actions { 
+        position: fixed; 
+        bottom: 20px; 
+        right: 20px; 
+        display: flex; 
+        gap: 10px; 
+        z-index: 3000;
+    }
+
+    @media print {
+        /* Hide everything except A4 Sheet content */
+        body > *:not(#preview_container) { display: none !important; }
+        
+        /* Show content we generated */
+        #preview_container { display: block !important; background: white; padding: 0; }
+        .a4-sheet { box-shadow: none; margin: 0; width: 100%; }
+        
+        /* Hide Print/Back buttons during actual printing */
+        .preview-actions { display: none !important; }
+        
+        /* Strict A4 Settings */
+        @page { size: A4; margin: 10mm; }
+    }
+</style>
+
+<!-- EDIT MODE (DEFAULT) -->
+<div id="edit_mode_container" style="max-width: 600px; margin: 0 auto; padding: 15px; font-family: Arial, sans-serif;">
+
+    <h2 style="text-align:center; color: #333; font-size: 20px;">📄 Select IDs to Print</h2>
+
+    <!-- DATE FILTER -->
+    <div style="background: #e3f2fd; padding: 15px; border-radius: 10px; margin-bottom: 20px; border:1px solid #90caf9; text-align: center;">
+        <label for="date_filter" style="font-weight: bold; display: block; margin-bottom: 5px;">Select Date:</label>
+        <input type="date" id="date_filter" style="padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; width: 100%; margin-bottom: 10px;">
+        <div id="status_msg" style="margin-top: 5px; font-size: 13px; color: #555;"></div>
+    </div>
+
+    <!-- MEMBER SELECTION -->
+    <div style="background: #f4f4f4; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ccc;">
+        <div style="text-align: center; margin-bottom: 15px;">
+            <button id="populate_btn" style="padding: 12px 20px; background: #28a745; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px;">
+                📅 Load Members
+            </button>
+        </div>
+
+        <div class="mobile-list-container">
+            <div>
+                <strong style="display:block; margin-bottom:5px; font-size:14px;">Available:</strong>
+                <select id="source_listbox" multiple style="width: 100%; height: 150px; padding: 8px; font-size: 14px; border: 1px solid #aaa; border-radius: 5px; background: #fff;">
+                    <option disabled>-- Select date to load --</option>
+                </select>
+            </div>
+
+            <div class="button-row">
+                <button class="move-btn" data-dir="right-single" style="flex:1;">+ Add</button>
+                <button class="move-btn" data-dir="right-all" style="flex:1;">+ All</button>
+                <button class="move-btn" data-dir="left-all" style="flex:1;">- All</button>
+                <button class="move-btn" data-dir="left-single" style="flex:1;">- Remove</button>
+            </div>
+
+            <div>
+                <strong style="display:block; margin-bottom:5px; font-size:14px; color:#0056b3;">To Print:</strong>
+                <select id="target_listbox" multiple style="width: 100%; height: 150px; padding: 8px; font-size: 14px; border: 2px solid #007bff; border-radius: 5px; background: #fff;">
+                    <option disabled>-- Add members here --</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- SIGNATORY SECTION -->
+    <div style="background: #eef2ff; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #a0a0a0;">
+        <h3 style="margin-top: 0; color: #444; font-size: 16px;">✍️ Signatories (Back of ID)</h3>
+        
+        <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+            <input type="text" id="signatory_input" list="signatory_history" placeholder="Name - Position" style="flex-grow: 1; padding: 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 5px;">
+            <button id="signatory_action_btn" style="padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Add</button>
+        </div>
+
+        <datalist id="signatory_history"></datalist>
+
+        <select id="signatory_listbox" multiple size="3" style="width: 100%; height: 80px; padding: 5px; font-size: 13px; border: 1px solid #999; border-radius: 5px;">
+            <option disabled>-- Select name above to Manage --</option>
+        </select>
+        <small style="color: #666; font-size: 11px;">1. Type Name & Add. 2. Select Name. 3. Click 'Sign Selected' to sign.</small>
+
+        <!-- STORAGE TEXTBOX -->
+        <div style="margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 10px;">
+            <small style="font-weight: bold; color: #555;">Internal Signatory Storage:</small>
+            <input type="text" id="sig_storage" class="sig-hidden-input" style="width:100%; font-size: 10px; margin-top:2px;" readonly placeholder="Signatory Data (JSON)...">
+        </div>
+    </div>
+
+    <!-- FINAL PREVIEW BUTTON -->
+    <div style="text-align: center; margin-bottom: 30px;">
+        <button id="preview_btn" style="padding: 15px 30px; background: #333; color: white; font-size: 18px; border: none; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+            👁️ PREVIEW ID CARDS
+        </button>
+    </div>
+
+
+    <!-- MODALS -->
+    <div id="signatureModal" style="display:none; position:fixed; z-index:2000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.7);">
+        <div style="background-color:white; margin:15% auto; padding:20px; border-radius:10px; width:90%; max-width:400px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+            <h3 id="sig_modal_title" style="text-align: center; margin-top: 0;">Sign Here</h3>
+            <div style="border:2px solid #000; border-radius:5px; background-color:#fff; touch-action:none; position:relative; height:200px; width:100%;">
+                <canvas id="signature-pad" style="width:100%; height:100%; display:block; touch-action: none;"></canvas>
+            </div>
+            <div style="display:flex; justify-content:center; gap:10px; margin-top:20px;">
+                <button id="clear_sig_btn" style="padding:10px 20px; background:#fd7e14; color:white; border:none; border-radius:5px; cursor:pointer;">Clear</button>
+                <button id="save_sig_btn" style="padding:10px 20px; background:#28a745; color:white; border:none; border-radius:5px; cursor:pointer;">Save</button>
+                <button id="cancel_sig_btn" style="padding:10px 20px; background:#6c757d; color:white; border:none; border-radius:5px; cursor:pointer;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+</div> <!-- END EDIT MODE -->
+
+
+<!-- PREVIEW MODE (HIDDEN INITIALLY) -->
+<div id="preview_container">
+    <div class="a4-sheet" id="a4_content">
+        <!-- Content will be injected here via JS -->
+    </div>
+
+    <!-- Floating Action Buttons -->
+    <div class="preview-actions">
+        <button onclick="window.print()" style="padding: 15px 30px; background: #28a745; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;">
+            🖨️ PRINT / SAVE PDF
+        </button>
+        <button id="exit_preview_btn" style="padding: 15px 30px; background: #dc3545; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;">
+            ✖ BACK TO EDIT
+        </button>
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+<script>
+    console.log("Script Loaded Successfully");
+
+    // Global Variables
+    let signaturePad, currentEditingSignatory;
+    const sigInput = document.getElementById('signatory_input');
+    const sigList = document.getElementById('signatory_listbox');
+    const sigDataList = document.getElementById('signatory_history');
+    const STORAGE_KEY = 'ugb_signatories';
+
+    // Set Default Date
+    if(document.getElementById('date_filter')) {
+        document.getElementById('date_filter').valueAsDate = new Date();
+    }
+
+    // --- POPULATE MEMBERS ---
+    if(document.getElementById('populate_btn')) {
+        document.getElementById('populate_btn').addEventListener('click', async () => {
+            const dateVal = document.getElementById('date_filter').value;
+            const statusMsg = document.getElementById('status_msg');
+            const sourceBox = document.getElementById('source_listbox');
+            statusMsg.textContent = "Fetching...";
+
+            try {
+                const response = await fetch(`/api/members/by-date?date=${dateVal}`);
+                const data = await response.json();
+                sourceBox.innerHTML = '';
+
+                if(data.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.text = `No members found on ${dateVal}`;
+                    opt.disabled = true;
+                    sourceBox.add(opt);
+                    statusMsg.textContent = `No records.`;
+                } else {
+                    data.forEach(member => {
+                        const option = document.createElement('option');
+                        option.value = member.id; 
+                        option.textContent = `${member.name}`;
+                        option.dataset.json = JSON.stringify(member);
+                        sourceBox.add(option);
+                    });
+                    statusMsg.textContent = `${data.length} members found.`;
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Error fetching.");
+                statusMsg.textContent = "Error.";
+            }
+        });
+    }
+
+    // --- MOVE ITEMS ---
+    const sourceBox = document.getElementById('source_listbox');
+    const targetBox = document.getElementById('target_listbox');
+
+    document.querySelectorAll('.move-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const dir = btn.dataset.dir;
+            if (dir === 'right-single') moveSelected(sourceBox, targetBox);
+            if (dir === 'right-all') moveAll(sourceBox, targetBox);
+            if (dir === 'left-all') moveAll(targetBox, sourceBox);
+            if (dir === 'left-single') moveSelected(targetBox, sourceBox);
+        });
+    });
+
+    function moveSelected(fromBox, toBox) {
+        for (let i = fromBox.options.length - 1; i >= 0; i--) {
+            if (fromBox.options[i].selected) toBox.appendChild(fromBox.options[i]);
+        }
+    }
+    function moveAll(fromBox, toBox) {
+        while (fromBox.options.length > 0) toBox.appendChild(fromBox.options[0]);
+    }
+
+    // --- SMART SIGNATORY LOGIC ---
+    const actionBtn = document.getElementById('signatory_action_btn');
+    const sigStorage = document.getElementById('sig_storage');
+
+    function loadHistory() {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        sigDataList.innerHTML = '';
+        saved.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            sigDataList.appendChild(opt);
+        });
+    }
+    loadHistory();
+
+    function updateButtonState() {
+        const hasSelection = sigList.selectedIndex !== -1;
+        const text = sigInput.value.trim();
+        
+        if (hasSelection) {
+            const item = sigList.options[sigList.selectedIndex];
+            const data = JSON.parse(item.dataset.json || '{"sig":""}');
+            
+            if (data.sig && data.sig.length > 0) {
+                actionBtn.textContent = "Remove Selected";
+                actionBtn.style.backgroundColor = "#dc3545"; // Red
+            } else {
+                actionBtn.textContent = "✍️ Sign Selected";
+                actionBtn.style.backgroundColor = "#fd7e14"; // Orange
+            }
+        } else {
+            actionBtn.textContent = "Add";
+            actionBtn.style.backgroundColor = "#007bff"; // Blue
+        }
+    }
+
+    sigList.addEventListener('change', updateButtonState);
+
+    actionBtn.addEventListener('click', () => {
+        const hasSelection = sigList.selectedIndex !== -1;
+
+        if (hasSelection) {
+            const item = sigList.options[sigList.selectedIndex];
+            const data = JSON.parse(item.dataset.json || '{}');
+            
+            if (data.sig && data.sig.length > 0) {
+                sigList.remove(sigList.selectedIndex);
+                updateButtonState();
+            } else {
+                openSignatureModal(item);
+            }
+        } else {
+            const text = sigInput.value.trim();
+            if(!text) return alert("Please type name.");
+            
+            const opt = document.createElement('option');
+            opt.value = text; 
+            opt.textContent = text;
+            opt.dataset.json = JSON.stringify({ name: text, sig: "" });
+            sigList.appendChild(opt);
+
+            let saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            if(!saved.includes(text)) { saved.push(text); localStorage.setItem(STORAGE_KEY, JSON.stringify(saved)); loadHistory(); }
+            
+            sigInput.value = '';
+            updateButtonState();
+        }
+    });
+
+    function openSignatureModal(optionElement) {
+        currentEditingSignatory = optionElement;
+        const modal = document.getElementById('signatureModal');
+        modal.style.display = 'block';
+        
+        const rawText = optionElement.value;
+        let nameOnly = rawText;
+        let position = "";
+        
+        if(rawText.includes("-")) {
+            const parts = rawText.split("-");
+            nameOnly = parts[0].trim();
+            position = parts.slice(1).join("-").trim();
+        }
+        
+        document.getElementById('sig_modal_title').textContent = `Sign: ${nameOnly}`;
+        
+        // FIXED: Proper canvas initialization with correct timing
+        setTimeout(() => {
+            const canvas = document.getElementById('signature-pad');
+            const container = canvas.parentElement;
+            const ratio = Math.max(window.devicePixelRatio || 1, 1);
+            
+            // Set canvas size based on container
+            canvas.width = container.offsetWidth * ratio;
+            canvas.height = container.offsetHeight * ratio;
+            
+            const ctx = canvas.getContext("2d");
+            ctx.scale(ratio, ratio);
+            
+            // Initialize signature pad
+            signaturePad = new SignaturePad(canvas, { 
+                backgroundColor: 'rgba(255,255,255,0)',
+                penColor: 'rgb(0, 0, 0)'
+            });
+            
+            // Load existing signature if available
+            if(optionElement.dataset.json) {
+                const data = JSON.parse(optionElement.dataset.json);
+                if(data.sig) {
+                    signaturePad.fromDataURL(data.sig);
+                }
+            }
+            
+            console.log("Signature pad initialized:", canvas.width, canvas.height);
+        }, 150);
+    }
+
+    document.getElementById('clear_sig_btn').addEventListener('click', () => {
+        if(signaturePad) {
+            signaturePad.clear();
+        }
+    });
+    
+    document.getElementById('cancel_sig_btn').addEventListener('click', () => {
+        document.getElementById('signatureModal').style.display = 'none';
+        signaturePad = null;
+    });
+    
+    // FIXED: Save button with proper validation and data handling
+    document.getElementById('save_sig_btn').addEventListener('click', () => {
+        console.log("Save button clicked");
+        
+        if (!signaturePad) {
+            alert("Signature pad not ready. Please try again.");
+            return;
+        }
+        
+        if (signaturePad.isEmpty()) {
+            alert("Please sign first before saving.");
+            return;
+        }
+
+        try {
+            // Get signature as data URL
+            const dataURL = signaturePad.toDataURL('image/png');
+            console.log("Signature captured, length:", dataURL.length);
+            
+            if(!currentEditingSignatory) {
+                alert("Error: No signatory selected.");
+                return;
+            }
+            
+            // Parse name and position
+            const rawText = currentEditingSignatory.value;
+            let nameOnly = rawText;
+            let position = "";
+            
+            if(rawText.includes("-")) {
+                const parts = rawText.split("-");
+                nameOnly = parts[0].trim();
+                position = parts.slice(1).join("-").trim();
+            }
+            
+            // Update the option element with signature data
+            const sigData = {
+                name: nameOnly,
+                position: position,
+                sig: dataURL
+            };
+            
+            currentEditingSignatory.dataset.json = JSON.stringify(sigData);
+            currentEditingSignatory.textContent = rawText + ' ✓ (Signed)';
+            
+            console.log("Signature saved for:", nameOnly);
+            
+            // Save to storage
+            saveSignatoryStorage();
+            
+            // Close modal
+            document.getElementById('signatureModal').style.display = 'none';
+            signaturePad = null;
+            
+            // Update button state
+            updateButtonState();
+            
+            // Success feedback
+            alert("✓ Signature saved successfully!");
+            
+        } catch(error) {
+            console.error("Error saving signature:", error);
+            alert("Error saving signature. Please try again.");
+        }
+    });
+
+    function saveSignatoryStorage() {
+        let signatories = [];
+        for(let i=0; i<sigList.options.length; i++) {
+            const opt = sigList.options[i];
+            if(opt.dataset.json) {
+                const data = JSON.parse(opt.dataset.json);
+                if(data.sig && data.sig.length > 0) {
+                    signatories.push(data);
+                }
+            }
+        }
+        sigStorage.value = JSON.stringify(signatories);
+        console.log("Storage updated with", signatories.length, "signatories");
+    }
+
+    // =========================================
+    // NEW: PREVIEW LOGIC (ON SCREEN) - FIXED
+    // =========================================
+    const previewBtn = document.getElementById('preview_btn');
+    
+    if(previewBtn) {
+        console.log("Preview button found!");
+        
+        previewBtn.addEventListener('click', () => {
+            console.log("Preview button clicked!");
+            
+            const targetBox = document.getElementById('target_listbox');
+            
+            if(!targetBox) {
+                console.error("Target listbox not found!");
+                return;
+            }
+
+            if(targetBox.options.length === 0) { 
+                alert("No IDs selected for preview. Please load members and move them to 'To Print'."); 
+                return; 
+            }
+
+            console.log("Starting preview generation...");
+
+            const editMode = document.getElementById('edit_mode_container');
+            const previewMode = document.getElementById('preview_container');
+            const a4Content = document.getElementById('a4_content');
+            
+            // Read signatories from storage
+            const savedSigs = JSON.parse(sigStorage.value || '[]');
+
+            // Clear previous preview
+            if(a4Content) a4Content.innerHTML = '';
+
+            // --- LOOP THROUGH SELECTED MEMBERS ---
+            for (let i = 0; i < targetBox.options.length; i++) {
+                try {
+                    const option = targetBox.options[i];
+                    // Safety check for dataset
+                    if(!option.dataset.json) {
+                        console.warn("Skipping option without data", option.text);
+                        continue;
+                    }
+
+                    const memberData = JSON.parse(option.dataset.json);
+                    
+                    // Build signatory HTML
+                    let sigHTML = '<div class="signatory-print-block">';
+                    if(savedSigs.length === 0) {
+                        sigHTML += '<span style="font-size:8pt; color:#999;">No signatories added.</span>';
+                    } else {
+                        savedSigs.forEach(sig => {
+                            sigHTML += `
+                                <div class="sig-row">
+                                    <div class="sig-item">
+                                        <img src="${sig.sig}" alt="Signature">
+                                        <span>${sig.name}</span>
+                                        ${sig.position ? `<span class="sig-position">${sig.position}</span>` : ''}
+                                    </div>
+                                </div>`;
+                        });
+                    }
+                    sigHTML += '</div>';
+
+                    const cardHTML = `
+                        <div class="id-card-group">
+                            <div class="id-card front">
+                                <div class="header">UGBROMOVE</div>
+                                <div class="body">
+                                    <img src="${memberData.photo_data}" class="photo" alt="Photo">
+                                    <div class="text">
+                                        <strong>${memberData.name}</strong><br>
+                                        ${memberData.designation}<br>
+                                        ID: ${memberData.idnumb}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="id-card back">
+                                <div class="header">UGBROMOVE</div>
+                                <div class="back-content">
+                                    <p>Address: ${memberData.home_address}</p>
+                                    <p>Blood Type: ${memberData.blood_type}</p>
+                                    <img src="${memberData.qr_code}" class="qr" alt="QR Code">
+                                    ${sigHTML}
+                                </div>
+                            </div>
+                        </div>`;
+                    
+                    if(a4Content) a4Content.insertAdjacentHTML('beforeend', cardHTML);
+                } catch(e) {
+                    console.error("Error generating card HTML:", e);
+                }
+            }
+
+            // --- SWITCH MODE ---
+            if(editMode) editMode.style.display = 'none';
+            if(previewMode) previewMode.style.display = 'block';
+            
+            console.log("Preview shown");
+        });
+    } else {
+        console.error("Preview button NOT FOUND on page load!");
+    }
+
+    // --- EXIT PREVIEW LOGIC ---
+    const exitPreviewBtn = document.getElementById('exit_preview_btn');
+    if(exitPreviewBtn) {
+        exitPreviewBtn.addEventListener('click', () => {
+            const previewMode = document.getElementById('preview_container');
+            const editMode = document.getElementById('edit_mode_container');
+            
+            if(previewMode) previewMode.style.display = 'none';
+            if(editMode) editMode.style.display = 'block';
+        });
+    }
+
+</script>
+{% endblock %}
