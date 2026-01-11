@@ -388,9 +388,9 @@
     </div>
 
     <script>
-        // FIXED: Changed hardcoded localhost to empty string for Relative Path
-        // This ensures it works on both Local and Render.
-        const API_URL = ''; 
+        // FIXED: Changed empty string to window.location.origin for Render compatibility
+        // This ensures it works on both Local (http://localhost:5000) and Render (https://your-app.onrender.com)
+        const API_URL = window.location.origin; 
         const canvas = document.getElementById('editorCanvas');
         const uploadInput = document.getElementById('templateUpload');
         const logoUploadInput = document.getElementById('logoUpload');
