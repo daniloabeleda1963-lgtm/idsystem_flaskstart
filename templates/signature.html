@@ -7,313 +7,189 @@
     <title>Officer Signature</title>
     
     <style>
-        /* ==========================================
-           1. BASE STYLES (Copied from add_member_form)
-           ========================================== */
+        /* Base Styles */
         :root {
-            --primary-color: #2563eb;
+            --primary-color: #6a1b9a;
             --bg-color: #f3f4f6;
         }
-
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            padding: 10px;
+            background: var(--bg-color);
             margin: 0;
+            padding: 0;
             display: flex;
             justify-content: center;
-            overscroll-behavior-y: none; 
         }
 
-        .container {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        .form-container {
             width: 100%;
-            /* Desktop centered, Mobile Full Width (Same as add_member_form) */
-            max-width: 800px; 
+            max-width: 800px; /* Same as add_member_form */
+            margin: 0 auto;
             box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
+            padding: 20px; /* Same padding */
+            border: 1px solid #ddd; /* Same border */
+            border-radius: 10px;
+            background: #fff;
         }
 
         h2 { 
             text-align: center; 
             color: #333; 
             margin-top: 0; 
-            font-size: 24px;
         }
 
-        /* Form Inputs */
-        .form-group { margin-bottom: 5px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
-        
-        input[type="text"] {
-            width: 100%; 
-            padding: 10px; /* Same padding as add_member_form */
-            border:1px solid #ccc; 
-            border-radius: 5px; 
-            box-sizing: border-box;
-        }
-
-        /* ==========================================
-           2. SIGNATURE CANVAS
-           ========================================== */
-        .signature-wrapper {
-            border:2px dashed #2563eb; /* Blue border */
-            border-radius: 8px; 
-            position: relative; 
-            background: #fff; 
-            cursor: crosshair; 
-            overflow: hidden; 
-            /* Crucial for mobile: prevents scrolling while signing */
-            touch-action: none; 
-            margin-bottom: 10px;
-            min-height: 250px; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        canvas { 
-            display: block; 
-            width: 100%; 
-        }
-
-        .hint { 
-            position: absolute; top:5px; right: 10px; 
-            font-size: 12px; color: #999; pointer-events: none; 
-        }
-
-        /* ==========================================
-           3. BUTTONS (Responsive Layout)
-           ========================================== */
-        .btn-row { 
-            display: flex; 
-            gap: 10px; 
-            margin-bottom: 10px; 
-        }
-
+        /* Generic Button Styles (Same as add_member_form) */
         button {
-            padding: 10px 20px; 
-            border: none; 
-            border-radius: 5px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            font-size: 14px; /* Default desktop */
-            flex: 1; 
-            box-sizing: border-box;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
         }
-        
-        /* Primary Buttons (Add/Save) */
-        .btn-add { background-color: #2563eb; color: white; }
-        .btn-save { background-color: #059669; color: white; }
-        
-        /* Cancel/Clear Buttons */
-        .btn-cancel { background-color: #6b7280; color: white; }
-        .btn-clear { background-color: #f59e0b; color: white; }
-        .btn-del { background-color: #dc2626; color: white; padding: 5px 10px; font-size:12px;}
-        .btn-edit { background-color: #2563eb; color: white; padding: 5px 10px; font-size:12px;}
+        button.primary { background: #28a745; color: white; }
+        button.cancel { background: #6c757d; color: white; }
+        button.danger { background: #dc3545; color: white; }
 
-        /* ==========================================
-           4. LIST STYLES
-           ========================================== */
-        .list-container { 
-            margin-top: 20px; 
-            border-top:2px solid #e5e7eb; 
-            padding-top: 20px; 
-        }
-
-        .list-title { 
-            font-size: 16px; 
-            font-weight: bold; 
-            margin-bottom: 10px; 
-            color: #333; 
-            border-left: 4px solid var(--primary-color);
-            padding-left: 10px;
-        }
-        
+        /* List Styles */
         .officer-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 10px;
-            border-bottom:1px solid #f3f4f6;
-            background: #fafafa;
-            border-radius: 6px;
-            margin-bottom: 8px;
+            border-bottom: 1px solid #eee;
         }
-
-        .officer-info { flex: 1; min-width: 150px; margin-right: 10px; }
-        .officer-name { font-weight: bold; font-size: 14px; color: #1f2937; }
-        .officer-text { font-size: 12px; color: #6b7280; }
-        
+        .officer-info { flex: 1; margin-right: 10px; }
         .action-buttons { display: flex; gap: 5px; }
 
-        .back-link { 
-            display: block; 
-            text-align: center; 
-            margin-top: 20px; 
-            color: var(--primary-color); 
-            text-decoration: none; 
-            font-weight: bold; 
-            padding: 10px; 
-        }
-
-        .edit-mode-badge {
-            background-color: #f59e0b; color: white; 
-            padding: 8px; 
-            text-align: center; 
-            border-radius: 4px; 
-            font-weight: bold; 
-            font-size: 13px; 
-            display: none; 
-        }
-
-        #message { 
-            margin-top: 10px; 
-            text-align: center; 
-            font-weight: bold; 
-            display: none; 
-            padding: 10px; 
-            border-radius: 6px; 
-        }
-        .success { color: #065f46; background-color: #d1fae5; } 
-        .error { color: #991b1b; background-color: #fee2e2; }
-
         /* ==========================================
-           5. MOBILE RESPONSIVE (Copied EXACTLY from add_member_form)
+           EXACT COPY: MOBILE RESPONSIVENESS FROM add_member_form
            ========================================== */
         @media (max-width: 700px) {
-            /* Container Padding */
-            .container { padding: 10px; }
-
-            /* 1. AYUSIN ANG FORM FIELDS (Inputs) - Prevent small text */
-            /* Force 16px font size to prevent iOS Zoom and ensure readability */
-            input, select, textarea {
-                font-size: 16px !important; 
-                width: 100% !important;
-            }
             
-            /* 2. AYUSIN ANG BUTTONS (Stack vertically) */
+            /* 1. AYUSIN ANG FORM FIELDS (Inputs) */
             /* Sa celpon, ibabaw na yung fields */
-            .btn-row {
+            .form-container > div[style*="display:flex"] {
                 flex-direction: column !important;
                 gap: 10px !important;
             }
             
-            /* Make buttons full width and readable */
-            button {
-                font-size: 16px !important; /* Mas malaking text para basa */
-                width: 100% !important;
-                padding: 12px !important; /* Larger touch target */
-                box-sizing: border-box;
+            /*pero sa loob ng sections, compact lang */
+            .form-container > div > div[style*="display:flex"] {
+                 flex-wrap: wrap !important;
+                 gap: 8px !important;
             }
 
-            /* 3. AYUSIN ANG LIST ITEMS (Stack content vertically) */
+            .form-container input, 
+            .form-container select, 
+            .form-container textarea {
+                font-size: 16px !important; /* Prevent iOS zoom */
+                width: 100% !important;
+            }
+            
+            /* 2. ADJUSTING FOR SIGNATURE PAGE SPECIFICS */
+            /* Force buttons to stack vertically like Magic Buttons in add_member_form */
+            .btn-row {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+
+            .form-container button {
+                font-size: 16px !important; /* Bigger text */
+                width: 100% !important;    /* Full width */
+            }
+
+            /* 3. LIST ITEMS ADJUSTMENTS */
             .officer-item {
-                flex-direction: column;
+                flex-direction: column !important;
                 align-items: flex-start;
                 gap: 10px;
             }
-            
-            /* Make action buttons full width inside the item */
             .action-buttons {
                 width: 100%;
-                justify-content: space-between;
-            }
-            .btn-edit, .btn-del {
-                padding: 12px;
-                font-size: 16px;
-                flex: 1;
-            }
-
-            /* 4. AYUSIN ANG SIGNATURE CANVAS */
-            /* Adjust height para swak sa screen height */
-            .signature-wrapper {
-                height: 250px;
-                border-width: 1px;
+                justify-content: flex-end;
             }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>✍️ Officer Signatures</h2>
+<div class="form-container">
+    <h2>Officer Signatures</h2>
 
     <!-- BADGE: Shows when in Edit Mode -->
-    <div id="editBadge" class="edit-mode-badge">⚠️ EDITING MODE</div>
+    <div id="editBadge" style="display:none; text-align:center; background:#f59e0b; color:white; padding:5px; border-radius:4px; margin-bottom:10px;">⚠️ EDITING MODE</div>
 
-    <!-- TOP BUTTONS: ADD & CANCEL -->
-    <div class="btn-row">
-        <button class="btn-add" onclick="resetForm()">➕ Add New Officer</button>
-        <button class="btn-cancel" onclick="resetForm()">✖ Cancel / Reset</button>
+    <!-- TOP BUTTONS: ADD & CANCEL (Wrapped in Flex Div for Auto-Arrange) -->
+    <div style="display:flex; gap:15px; margin-bottom:15px;">
+        <div style="flex:1;">
+            <button style="width:100%;" onclick="resetForm()">➕ Add New</button>
+        </div>
+        <div style="flex:1;">
+            <button style="width:100%;" class="cancel" onclick="resetForm()">✖ Cancel</button>
+        </div>
     </div>
 
     <form id="sigForm">
         <!-- Hidden ID for Editing -->
         <input type="hidden" id="officerId" name="officer_id">
         
-        <div class="form-group">
-            <label for="officerName">Full Name</label>
-            <input type="text" id="officerName" name="name_officer" placeholder="Ex: Juan Dela Cruz" autocomplete="off" required>
+        <!-- STRUCTURE CLONE: Using div[style*="display:flex"] like add_member_form -->
+        <div style="display:flex; gap:15px; margin-bottom:15px;">
+            <div style="flex:1;">
+                <label style="font-weight: bold; display:block; margin-bottom:5px; color:#555;">Full Name</label>
+                <input type="text" id="officerName" name="name_officer" placeholder="Ex: Juan Dela Cruz" autocomplete="off" required style="padding:10px; width:100%;">
+            </div>
         </div>
 
-        <div class="form-group">
-            <label for="textSig">Text Signature (Optional)</label>
-            <input type="text" id="textSig" name="text_signature" placeholder="Ex: Juan DC / President" autocomplete="off">
+        <div style="display:flex; gap:15px; margin-bottom:15px;">
+            <div style="flex:1;">
+                <label style="font-weight: bold; display:block; margin-bottom:5px; color:#555;">Text Signature</label>
+                <input type="text" id="textSig" name="text_signature" placeholder="Ex: Juan DC / President" autocomplete="off" style="padding:10px; width:100%;">
+            </div>
         </div>
 
-        <div class="form-group">
-            <label>Draw Signature</label>
-            <div class="signature-wrapper">
-                <canvas id="sigCanvas"></canvas>
-                <div class="hint">Sign inside box</div>
+        <div style="margin-bottom:15px;">
+            <label style="font-weight: bold; display:block; margin-bottom:5px; color:#555;">Draw Signature</label>
+            <!-- Canvas Wrapper -->
+            <div style="border: 2px dashed #6a1b9a; border-radius: 8px; position: relative; background: #fff; touch-action: none; height: 250px;">
+                <canvas id="sigCanvas" style="width:100%; height:100%;"></canvas>
             </div>
         </div>
 
         <!-- SAVE BUTTON -->
-        <button type="submit" class="btn-save">💾 Save Signature</button>
+        <button type="submit" class="primary" style="width:100%; padding:12px;">💾 Save Signature</button>
     </form>
 
-    <div id="message"></div>
+    <div id="message" style="margin-top:10px; text-align:center; font-weight:bold; display:none; padding:10px; border-radius:6px;"></div>
 
     <!-- LIST OF OFFICERS -->
-    <div class="list-container">
-        <div class="list-title">Saved Officers List</div>
+    <div style="margin-top: 30px; border-top: 2px solid #e5e7eb; padding-top: 20px;">
+        <h3 style="margin-top:0; color:#555;">Saved Officers List</h3>
         <div id="officerList">
-            <!-- Items will be loaded here by JS -->
             <p style="color:#999; font-size:12px;">Loading list...</p>
         </div>
     </div>
 
-    <a href="/admin" class="back-link">&larr; Back to Admin</a>
+    <a href="/admin" style="display:block; text-align:center; margin-top:20px; color:#2563eb; text-decoration:none; font-weight:bold; padding:10px;">&larr; Back to Admin</a>
 </div>
 
-<script> 
-    /* 
-       LOGIC FROM ORIGINAL 500+ LINE CODE
-       BUT MOBILE ADJUSTED VIA CSS ABOVE
-    */
-
+<script>
     const canvas = document.getElementById('sigCanvas');
-    const wrapper = document.querySelector('.signature-wrapper');
+    const wrapper = document.querySelector('.canvas-wrapper'); // Fallback
+    const wrapperDiv = canvas.parentElement; // Actual wrapper
     const ctx = canvas.getContext('2d');
     
     let isDrawing = false;
     let lastX = 0; let lastY = 0;
     let editingId = null;
 
-    // --- 1. CANVAS LOGIC (Responsive & Touch Friendly) ---
+    // --- 1. CANVAS LOGIC (Responsive) ---
     function resizeCanvas() {
         // Get actual display size of container
-        const rect = wrapper.getBoundingClientRect();
+        const rect = wrapperDiv.getBoundingClientRect();
         const ratio = Math.max(window.devicePixelRatio || 1, 1);
         
-        // Set canvas resolution for sharpness
+        // Set canvas resolution
         canvas.width = rect.width * ratio;
         canvas.height = 250 * ratio; // Fixed logical height
         
@@ -324,7 +200,7 @@
         ctx.strokeStyle = "#000"; 
         ctx.lineJoin = "round"; 
         ctx.lineCap = "round"; 
-        ctx.lineWidth = 3; // Thick line for visibility
+        ctx.lineWidth = 3;
     }
 
     // Initialize on Load and Resize
@@ -340,7 +216,7 @@
     }
 
     function startDraw(e) { 
-        e.preventDefault(); // Prevent scrolling/selection
+        e.preventDefault(); // Prevent scrolling
         isDrawing = true; 
         const pos = getPos(e); 
         lastX = pos.x; 
@@ -349,7 +225,7 @@
 
     function draw(e) { 
         if (!isDrawing) return; 
-        e.preventDefault(); // Prevent scrolling while drawing
+        e.preventDefault(); // Prevent scrolling
 
         const pos = getPos(e); 
         
@@ -370,7 +246,7 @@
     canvas.addEventListener('mouseup', stopDraw);
     canvas.addEventListener('mouseleave', stopDraw);
     
-    // Touch Events (Mobile) - Passive: false is CRITICAL for preventDefault to work
+    // Touch Events (Mobile) - Passive: false is CRITICAL
     canvas.addEventListener('touchstart', startDraw, {passive: false}); 
     canvas.addEventListener('touchmove', draw, {passive: false}); 
     canvas.addEventListener('touchend', stopDraw);
@@ -381,7 +257,6 @@
         document.getElementById('officerId').value = "";
         
         // Clear Canvas
-        // We need to reset transform to clear the entire physical canvas area
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -396,15 +271,13 @@
     function loadSignatureToCanvas(base64Image) {
         const img = new Image();
         img.onload = function() {
-            // Clear first
             ctx.save();
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.restore();
 
             // Draw image fitting the visual canvas dimensions
-            // Canvas is 250px high logically
-            ctx.drawImage(img, 0, 0, wrapper.offsetWidth, 250);
+            ctx.drawImage(img, 0, 0, wrapperDiv.offsetWidth, 250);
         };
         img.src = base64Image;
     }
@@ -417,7 +290,7 @@
             renderList(data);
         } catch (err) {
             console.error("Error loading list", err);
-            document.getElementById('officerList').innerHTML = '<p style="color:#dc2626; font-size:12px;">Error loading list.</p>';
+            document.getElementById('officerList').innerHTML = '<p style="color:#dc2626;">Error loading list.</p>';
         }
     }
 
@@ -435,12 +308,12 @@
             item.className = 'officer-item';
             item.innerHTML = `
                 <div class="officer-info">
-                    <div class="officer-name">${off.name_officer}</div>
-                    <div class="officer-text">${off.text_signature || ''}</div>
+                    <div style="font-weight:bold; color:#1f2937;">${off.name_officer}</div>
+                    <div style="font-size:12px; color:#6b7280;">${off.text_signature || ''}</div>
                 </div>
                 <div class="action-buttons">
-                    <button class="btn-edit" onclick="editOfficer(${off.id})">✏️ Edit</button>
-                    <button class="btn-del" onclick="deleteOfficer(${off.id})">🗑️ Delete</button>
+                    <button style="padding:8px 16px; font-size:14px;" onclick="editOfficer(${off.id})">✏️ Edit</button>
+                    <button style="padding:8px 16px; font-size:14px;" class="danger" onclick="deleteOfficer(${off.id})">🗑️ Delete</button>
                 </div>
             `;
             listDiv.appendChild(item);
@@ -455,22 +328,18 @@
                 if(data && data.data) {
                     const officer = data.data;
                     
-                    // 1. Fill Form
                     document.getElementById('officerName').value = officer.name_officer;
                     document.getElementById('textSig').value = officer.text_signature || '';
                     document.getElementById('officerId').value = officer.id;
                     
-                    // 2. Set Mode
                     editingId = officer.id;
                     document.getElementById('editBadge').style.display = 'block';
                     document.getElementById('editBadge').innerText = "Editing: " + officer.name_officer;
 
-                    // 3. Load Signature Image to Canvas
                     if(officer.man_signature) {
                         loadSignatureToCanvas(officer.man_signature);
                     }
 
-                    // 4. Scroll to top
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
             })
@@ -486,7 +355,6 @@
                     if(data.success) {
                         loadOfficerList();
                         alert('Deleted successfully');
-                        // If we deleted the one we are editing, reset form
                         if(editingId === id) resetForm(); 
                     } else {
                         alert('Error deleting');
@@ -528,27 +396,23 @@
 
             if (res.ok) {
                 msgBox.textContent = id ? "Updated Successfully!" : "Saved Successfully!";
-                msgBox.className = "success"; 
+                msgBox.style.backgroundColor = id ? "#d1fae5" : "#d1fae5"; 
+                msgBox.style.color = "#065f46"; 
                 msgBox.style.display = "block";
                 
                 resetForm();
                 loadOfficerList();
-
-                // Hide message after 2 seconds
-                setTimeout(() => {
-                    msgBox.style.display = 'none';
-                }, 2000);
             } else {
                 throw new Error(result.message);
             }
         } catch (err) {
             msgBox.textContent = "Error: " + err.message;
-            msgBox.className = "error"; 
+            msgBox.style.backgroundColor = "#fee2e2";
+            msgBox.style.color = "#991b1b";
             msgBox.style.display = "block";
         }
     });
 
-    // Load List on Start
     loadOfficerList();
 
 </script>
