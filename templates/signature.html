@@ -2,13 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- IMPORTANT: Allows the page to fit mobile screens properly -->
+    <!-- IMPORTANT: Allows fitting mobile screens properly -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Officer Signature</title>
+    
     <style>
+        /* ==========================================
+           1. BASE STYLES (Gaya ng add_member_form)
+           ========================================== */
+        :root {
+            --primary-color: #2563eb;
+            --bg-color: #f3f4f6;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
+            background-color: var(--bg-color);
             padding: 10px; /* Padding para di nakadikit sa border ng phone */
             margin: 0;
             display: flex;
@@ -23,409 +32,517 @@
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             width: 100%;
-            /* Desktop centered, Mobile Full Width */
-            max-width: 600px; 
+            /* Desktop max width 800px (Same as add_member_form) */
+            max-width: 800px; 
             box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
 
         h2 { 
             text-align: center; 
             color: #333; 
             margin-top: 0; 
-            font-size: 22px;
+            font-size: 24px;
         }
 
-        /* Form Styles */
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 14px; }
+        /* Form Inputs */
+        .form-group { margin-bottom: 5px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
         
         input[type="text"] {
             width: 100%; 
-            padding: 12px; /* Bigger padding for touch */
-            border: 1px solid #d1d5db; 
-            border-radius: 8px; 
-            font-size: 16px; /* 16px prevents iOS auto-zoom */
+            padding: 10px;
+            border:1px solid #ccc; 
+            border-radius: 5px; 
             box-sizing: border-box;
+            /* 16px prevents iOS auto-zoom */
+            font-size: 16px !important; 
         }
 
+        /* ==========================================
+           2. SIGNATURE CANVAS (Mobile Friendly)
+           ========================================== */
         .signature-wrapper {
-            border: 2px dashed #3b82f6; /* Blue border para makita ng maaga */
+            border: 2px dashed #2563eb;
             border-radius: 8px; 
             position: relative; 
             background: #fff; 
             cursor: crosshair; 
             overflow: hidden; 
-            /* Crucial for mobile drawing: prevents scrolling while signing */
+            /* Crucial for mobile: prevents scrolling while signing */
             touch-action: none; 
             margin-bottom: 10px;
+            min-height: 250px; /* Sufficient height for drawing */
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         canvas { 
             display: block; 
             width: 100%; 
-            min-height: 200px; /* Mas mataas para sa phone */
+            /* Canvas height is set by JS based on pixel ratio */
         }
-        
-        .hint { font-size: 12px; color: #6b7280; margin-bottom: 5px; text-align: right; }
 
-        /* BUTTONS STYLES */
-        .btn-row { display: flex; gap: 10px; margin-bottom: 20px; }
+        .hint { 
+            position: absolute;
+            top: 5px; right: 10px;
+            font-size: 12px; 
+            color: #999; 
+            pointer-events: none; 
+        }
+
+        /* ==========================================
+           3. BUTTONS (Responsive Layout)
+           ========================================== */
+        .btn-row { 
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 10px; 
+        }
+
         button {
-            flex: 1; 
-            padding: 14px; /* Thicker buttons for thumbs */
+            padding: 10px 20px; 
             border: none; 
-            border-radius: 8px; 
+            border-radius: 5px; 
             font-weight: bold; 
             cursor: pointer; 
-            font-size: 16px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            font-size: 14px;
+            flex: 1; /* Distribute space evenly */
         }
         
-        /* Top Buttons */
-        .btn-add { background-color: #2563eb; color: white; box-shadow: 0 4px 6px rgba(37,99,235,0.2); }
-        .btn-cancel { background-color: #6b7280; color: white; }
+        /* Primary Buttons (Add/Save) */
+        .btn-add { background-color: #2563eb; color: white; }
+        .btn-save { background-color: #059669; color: white; }
         
-        /* Bottom Save Button */
-        .btn-save { background-color: #059669; color: white; width: 100%; margin-top: 10px; font-size: 18px; padding: 16px; box-shadow: 0 4px 6px rgba(5,150,105,0.2); }
+        /* Cancel/Clear Buttons */
+        .btn-cancel { background-color: #6b7280; color: white; }
+        .btn-clear { background-color: #f59e0b; color: white; }
+        .btn-del { background-color: #dc2626; color: white; padding: 5px 10px; font-size:12px;}
+        .btn-edit { background-color: #2563eb; color: white; padding: 5px 10px; font-size:12px;}
 
-        /* LIST STYLES */
-        .list-container { margin-top: 30px; border-top: 2px solid #e5e7eb; padding-top: 20px; }
-        .list-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #374151; }
+        /* ==========================================
+           4. LIST STYLES
+           ========================================== */
+        .list-container { 
+            margin-top: 20px; 
+            border-top: 2px solid #e5e7eb; 
+            padding-top: 20px; 
+        }
+
+        .list-title { 
+            font-size: 16px; 
+            font-weight: bold; 
+            margin-bottom: 10px; 
+            color: #333; 
+            border-left: 4px solid var(--primary-color);
+            padding-left: 10px;
+        }
         
         .officer-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px;
-            border-bottom: 1px solid #f3f4f6;
-            flex-wrap: wrap;
+            padding: 10px;
+            border-bottom:1px solid #f3f4f6;
             background: #fafafa;
             border-radius: 6px;
             margin-bottom: 8px;
         }
+
         .officer-info { flex: 1; min-width: 150px; margin-right: 10px; }
-        .officer-name { font-weight: bold; font-size: 15px; color: #1f2937; }
+        .officer-name { font-weight: bold; font-size: 14px; color: #1f2937; }
         .officer-text { font-size: 12px; color: #6b7280; }
         
-        .action-buttons { display: flex; gap: 8px; }
-        
-        /* --- ACTION BUTTONS --- */
-        .btn-edit { 
-            background-color: #f59e0b; color: white; padding: 8px 16px; font-size: 14px; border-radius: 6px; cursor: pointer; border: none;
+        .action-buttons { display: flex; gap: 5px; }
+
+        .back-link { 
+            display: block; 
+            text-align: center; 
+            margin-top: 20px; 
+            color: var(--primary-color); 
+            text-decoration: none; 
+            font-weight: bold; 
+            padding: 10px; 
         }
-        .btn-del { 
-            background-color: #dc2626; color: white; padding: 8px 16px; font-size: 14px; border-radius: 6px; cursor: pointer; border: none;
-        }
-        
-        #message { margin-top: 15px; text-align: center; font-weight: bold; display: none; padding: 10px; border-radius: 6px; }
-        .success { color: #065f46; background-color: #d1fae5; } .error { color: #991b1b; background-color: #fee2e2; }
-        
-        .back-link { display: block; text-align: center; margin-top: 20px; color: #2563eb; text-decoration: none; font-weight: bold; padding: 10px; }
 
         .edit-mode-badge {
-            background-color: #f59e0b; color: white; padding: 8px 15px; border-radius: 20px; 
-            font-size: 13px; font-weight: bold; display: none; margin-bottom: 15px; text-align: center;
+            background-color: #f59e0b; color: white; 
+            padding: 8px; 
+            text-align: center; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            font-size: 13px; 
+            display: none; 
+        }
+
+        #message { 
+            margin-top: 10px; 
+            text-align: center; 
+            font-weight: bold; 
+            display: none; 
+            padding: 10px; 
+            border-radius: 6px; 
+        }
+        .success { color: #065f46; background-color: #d1fae5; } 
+        .error { color: #991b1b; background-color: #fee2e2; }
+
+        /* ==========================================
+           5. MOBILE RESPONSIVE (Copied from add_member_form)
+           ========================================== */
+        @media (max-width: 700px) {
+            .container {
+                padding: 10px;
+            }
+
+            /* Stack buttons vertically on mobile for easy thumb access */
+            .btn-row {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            /* Make buttons full width and slightly larger text */
+            button {
+                padding: 12px;
+                font-size: 16px;
+                width: 100%;
+            }
+
+            /* Officer list items stack buttons */
+            .officer-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .action-buttons {
+                width: 100%;
+                margin-top: 10px;
+                justify-content: flex-end;
+            }
+            .btn-edit, .btn-del {
+                padding: 10px;
+                font-size: 14px;
+            }
+
+            /* Adjust Signature Area */
+            .signature-wrapper {
+                height: 250px;
+                border-width: 1px;
+            }
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>✍️ Officer Signatures</h2>
+<div class="container">
+    <h2>✍️ Officer Signatures</h2>
 
-        <!-- BADGE: Shows when in Edit Mode -->
-        <div id="editBadge" class="edit-mode-badge">⚠️ EDITING MODE</div>
+    <!-- BADGE: Shows when in Edit Mode -->
+    <div id="editBadge" class="edit-mode-badge">⚠️ EDITING MODE</div>
 
-        <!-- TOP BUTTONS: ADD & CANCEL -->
-        <div class="btn-row">
-            <button class="btn-add" onclick="resetForm()">➕ Add New</button>
-            <button class="btn-cancel" onclick="resetForm()">✖ Cancel</button>
-        </div>
-
-        <form id="sigForm">
-            <input type="hidden" id="officerId" name="officer_id">
-            
-            <div class="form-group">
-                <label for="officerName">Full Name</label>
-                <input type="text" id="officerName" name="name_officer" placeholder="Ex: Juan Dela Cruz" autocomplete="off" required>
-            </div>
-
-            <div class="form-group">
-                <label for="textSig">Text Signature (Optional)</label>
-                <input type="text" id="textSig" name="text_signature" placeholder="Ex: Juan DC / President" autocomplete="off">
-            </div>
-
-            <div class="form-group">
-                <label>Draw Signature</label>
-                <div class="hint">Sign inside the box</div>
-                <div class="signature-wrapper">
-                    <canvas id="sigCanvas"></canvas>
-                </div>
-            </div>
-
-            <!-- SAVE BUTTON -->
-            <button type="submit" class="btn-save">💾 Save Signature</button>
-        </form>
-
-        <div id="message"></div>
-
-        <!-- LIST OF OFFICERS -->
-        <div class="list-container">
-            <div class="list-title">Saved Officers List</div>
-            <div id="officerList">
-                <!-- Items will be loaded here by JS -->
-                <p style="color:#999; font-size:12px;">Loading list...</p>
-            </div>
-        </div>
-
-        <a href="/admin" class="back-link">&larr; Back to Admin</a>
+    <!-- TOP BUTTONS: ADD & CANCEL -->
+    <div class="btn-row">
+        <button class="btn-add" onclick="resetForm()">➕ Add New Officer</button>
+        <button class="btn-cancel" onclick="resetForm()">✖ Cancel / Reset</button>
     </div>
 
-    <script>
-        const canvas = document.getElementById('sigCanvas');
-        const ctx = canvas.getContext('2d');
-        const wrapper = document.querySelector('.signature-wrapper');
+    <form id="sigForm">
+        <!-- Hidden ID for Editing -->
+        <input type="hidden" id="officerId" name="officer_id">
         
-        let isDrawing = false;
-        let lastX = 0; let lastY = 0;
-        let editingId = null;
+        <div class="form-group">
+            <label for="officerName">Full Name</label>
+            <input type="text" id="officerName" name="name_officer" placeholder="Ex: Juan Dela Cruz" autocomplete="off" required>
+        </div>
 
-        // --- 1. CANVAS LOGIC (Responsive) ---
-        function resizeCanvas() {
-            // Get actual width of the container (responsive)
-            const rect = wrapper.getBoundingClientRect();
-            const ratio = Math.max(window.devicePixelRatio || 1, 1);
-            
-            // Set canvas resolution
-            canvas.width = rect.width * ratio;
-            canvas.height = 200 * ratio; // Fixed height for signature area
-            
-            // Scale context to match
-            ctx.scale(ratio, ratio);
-            
-            // Style width/height to match CSS
-            canvas.style.width = rect.width + 'px';
-            canvas.style.height = '200px';
-            
-            // Re-apply styles after resize
-            ctx.strokeStyle = "#000"; 
-            ctx.lineJoin = "round"; 
-            ctx.lineWidth = 3; // Thicker line for visibility
-        }
+        <div class="form-group">
+            <label for="textSig">Text Signature (Optional)</label>
+            <input type="text" id="textSig" name="text_signature" placeholder="Ex: Juan DC / President" autocomplete="off">
+        </div>
 
-        // Resize on load and window resize
-        window.addEventListener('load', resizeCanvas);
-        window.addEventListener('resize', resizeCanvas);
+        <div class="form-group">
+            <label>Draw Signature</label>
+            <div class="signature-wrapper">
+                <canvas id="sigCanvas"></canvas>
+                <div class="hint">Sign inside box</div>
+            </div>
+        </div>
 
-        function getPos(e) {
-            const rect = canvas.getBoundingClientRect();
-            let clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
-            let clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
-            return { x: clientX - rect.left, y: clientY - rect.top };
-        }
+        <!-- SAVE BUTTON -->
+        <button type="submit" class="btn-save">💾 Save Signature</button>
+    </form>
 
-        function startDraw(e) { 
-            isDrawing = true; 
-            const pos = getPos(e); 
-            lastX = pos.x; 
-            lastY = pos.y; 
-        }
+    <div id="message"></div>
 
-        function draw(e) { 
-            if (!isDrawing) return; 
-            
-            // IMPORTANT: Prevent scrolling on mobile while drawing
-            if(e.type === 'touchmove') e.preventDefault(); 
-            
-            const pos = getPos(e); 
-            ctx.beginPath(); 
-            ctx.moveTo(lastX, lastY); 
-            ctx.lineTo(pos.x, pos.y); 
-            ctx.stroke();
-            
-            lastX = pos.x; 
-            lastY = pos.y;
-        }
+    <!-- LIST OF OFFICERS -->
+    <div class="list-container">
+        <div class="list-title">Saved Officers List</div>
+        <div id="officerList">
+            <!-- Items will be loaded here by JS -->
+            <p style="color:#999; font-size:12px;">Loading list...</p>
+        </div>
+    </div>
 
-        function stopDraw() { isDrawing = false; }
+    <a href="/admin" class="back-link">&larr; Back to Admin</a>
+</div>
 
-        // Mouse Events
-        canvas.addEventListener('mousedown', startDraw); 
-        canvas.addEventListener('mousemove', draw); 
-        canvas.addEventListener('mouseup', stopDraw);
-        canvas.addEventListener('mouseleave', stopDraw);
+<script>
+    const canvas = document.getElementById('sigCanvas');
+    const wrapper = document.querySelector('.signature-wrapper');
+    const ctx = canvas.getContext('2d');
+    
+    let isDrawing = false;
+    let lastX = 0; let lastY = 0;
+    let editingId = null;
+
+    // --- 1. CANVAS LOGIC (Responsive & Touch Friendly) ---
+    function resizeCanvas() {
+        // Get actual display size of the container
+        const rect = wrapper.getBoundingClientRect();
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
         
-        // Touch Events (Mobile)
-        canvas.addEventListener('touchstart', startDraw, {passive: false}); 
-        canvas.addEventListener('touchmove', draw, {passive: false}); 
-        canvas.addEventListener('touchend', stopDraw);
+        // Set canvas resolution for sharpness
+        canvas.width = rect.width * ratio;
+        canvas.height = 250 * ratio; // Fixed logical height
+        
+        // Normalize coordinate system to match CSS pixels
+        ctx.scale(ratio, ratio);
+        
+        // Set styles for drawing after resize (resetting clears styles)
+        ctx.strokeStyle = "#000"; 
+        ctx.lineJoin = "round"; 
+        ctx.lineCap = "round"; 
+        ctx.lineWidth = 3; // Thick line for visibility
 
-        // --- 2. FORM ACTIONS ---
-        function resetForm() {
-            document.getElementById('sigForm').reset();
-            document.getElementById('officerId').value = "";
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Note: using canvas.width which is scaled
-            // To clear correctly with scaling, use resetTransform or just fillRect
+        // Note: Resizing clears the canvas. In a production app, 
+        // we would save the image data and restore it here.
+    }
+
+    // Initialize on Load and Resize
+    window.addEventListener('load', resizeCanvas);
+    window.addEventListener('resize', resizeCanvas);
+
+    // Helper to get coordinates for Mouse or Touch
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        let clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+        let clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+        return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    function startDraw(e) { 
+        e.preventDefault(); // Prevent scrolling/selection
+        isDrawing = true; 
+        const pos = getPos(e); 
+        lastX = pos.x; 
+        lastY = pos.y; 
+    }
+
+    function draw(e) { 
+        if (!isDrawing) return; 
+        e.preventDefault(); // Prevent scrolling while drawing
+
+        const pos = getPos(e); 
+        
+        ctx.beginPath(); 
+        ctx.moveTo(lastX, lastY); 
+        ctx.lineTo(pos.x, pos.y); 
+        ctx.stroke();
+        
+        lastX = pos.x; 
+        lastY = pos.y;
+    }
+
+    function stopDraw() { isDrawing = false; }
+
+    // Mouse Events
+    canvas.addEventListener('mousedown', startDraw); 
+    canvas.addEventListener('mousemove', draw); 
+    canvas.addEventListener('mouseup', stopDraw);
+    canvas.addEventListener('mouseleave', stopDraw);
+    
+    // Touch Events (Mobile) - Passive: false is CRITICAL for preventDefault to work
+    canvas.addEventListener('touchstart', startDraw, {passive: false}); 
+    canvas.addEventListener('touchmove', draw, {passive: false}); 
+    canvas.addEventListener('touchend', stopDraw);
+
+    // --- 2. FORM ACTIONS ---
+    function resetForm() {
+        document.getElementById('sigForm').reset();
+        document.getElementById('officerId').value = "";
+        
+        // Clear Canvas
+        // We need to reset transform to clear the entire physical canvas area
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+        
+        document.getElementById('message').style.display = 'none';
+        document.getElementById('editBadge').style.display = 'none';
+        editingId = null;
+    }
+
+    // --- 3. LOAD IMAGE TO CANVAS (FOR EDITING) ---
+    function loadSignatureToCanvas(base64Image) {
+        const img = new Image();
+        img.onload = function() {
+            // Clear first
             ctx.save();
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.restore();
-            
-            document.getElementById('message').style.display = 'none';
-            document.getElementById('editBadge').style.display = 'none';
-            editingId = null;
+
+            // Draw image fitting the visual canvas dimensions
+            // Canvas is 250px high logically
+            ctx.drawImage(img, 0, 0, wrapper.offsetWidth, 250);
+        };
+        img.src = base64Image;
+    }
+
+    // --- 4. FETCH OFFICERS LIST ---
+    async function loadOfficerList() {
+        try {
+            const res = await fetch('/get_officers_list');
+            const data = await res.json();
+            renderList(data);
+        } catch (err) {
+            console.error("Error loading list", err);
+            document.getElementById('officerList').innerHTML = '<p style="color:#dc2626; font-size:12px;">Error loading list.</p>';
+        }
+    }
+
+    function renderList(officers) {
+        const listDiv = document.getElementById('officerList');
+        listDiv.innerHTML = '';
+
+        if (!officers || officers.length === 0) {
+            listDiv.innerHTML = '<p style="color:#999; font-size:12px; text-align:center;">No officers saved yet.</p>';
+            return;
         }
 
-        // --- 3. LOAD IMAGE TO CANVAS (FOR EDITING) ---
-        function loadSignatureToCanvas(base64Image) {
-            const img = new Image();
-            img.onload = function() {
-                // Clear first
-                ctx.save();
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.restore();
+        officers.forEach(off => {
+            const item = document.createElement('div');
+            item.className = 'officer-item';
+            item.innerHTML = `
+                <div class="officer-info">
+                    <div class="officer-name">${off.name_officer}</div>
+                    <div class="officer-text">${off.text_signature || ''}</div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn-edit" onclick="editOfficer(${off.id})">✏️ Edit</button>
+                    <button class="btn-del" onclick="deleteOfficer(${off.id})">🗑️ Delete</button>
+                </div>
+            `;
+            listDiv.appendChild(item);
+        });
+    }
 
-                // Draw image fitting the canvas
-                // Note: Canvas style width vs actual width
-                const drawWidth = canvas.width / (window.devicePixelRatio || 1);
-                const drawHeight = canvas.height / (window.devicePixelRatio || 1);
-                ctx.drawImage(img, 0, 0, drawWidth, drawHeight);
-            };
-            img.src = base64Image;
-        }
+    // --- 5. EDIT OFFICER FUNCTION ---
+    window.editOfficer = function(id) {
+        fetch(`/get_officer/${id}`)
+            .then(res => res.json())
+            .then(data => {
+                if(data && data.data) {
+                    const officer = data.data;
+                    
+                    // 1. Fill Form
+                    document.getElementById('officerName').value = officer.name_officer;
+                    document.getElementById('textSig').value = officer.text_signature || '';
+                    document.getElementById('officerId').value = officer.id;
+                    
+                    // 2. Set Mode
+                    editingId = officer.id;
+                    document.getElementById('editBadge').style.display = 'block';
+                    document.getElementById('editBadge').innerText = "Editing: " + officer.name_officer;
 
-        // --- 4. FETCH OFFICERS LIST ---
-        async function loadOfficerList() {
-            try {
-                const res = await fetch('/get_officers_list');
-                const data = await res.json();
-                renderList(data);
-            } catch (err) {
-                console.error("Error loading list", err);
-            }
-        }
+                    // 3. Load Signature Image to Canvas
+                    if(officer.man_signature) {
+                        loadSignatureToCanvas(officer.man_signature);
+                    }
 
-        function renderList(officers) {
-            const listDiv = document.getElementById('officerList');
-            listDiv.innerHTML = '';
+                    // 4. Scroll to top
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            })
+            .catch(err => alert("Error loading officer data"));
+    }
 
-            if (!officers || officers.length === 0) {
-                listDiv.innerHTML = '<p style="color:#999; font-size:12px; text-align:center;">No officers saved yet.</p>';
-                return;
-            }
-
-            officers.forEach(off => {
-                const item = document.createElement('div');
-                item.className = 'officer-item';
-                item.innerHTML = `
-                    <div class="officer-info">
-                        <div class="officer-name">${off.name_officer}</div>
-                        <div class="officer-text">${off.text_signature || ''}</div>
-                    </div>
-                    <div class="action-buttons">
-                        <button class="btn-edit" onclick="editOfficer(${off.id})">✏️ Edit</button>
-                        <button class="btn-del" onclick="deleteOfficer(${off.id})">🗑️ Delete</button>
-                    </div>
-                `;
-                listDiv.appendChild(item);
-            });
-        }
-
-        // --- 5. EDIT OFFICER FUNCTION ---
-        window.editOfficer = function(id) {
-            fetch(`/get_officer/${id}`)
-                .then(res => res.json())
+    // --- 6. DELETE OFFICER ---
+    window.deleteOfficer = function(id) {
+        if(confirm('Are you sure you want to delete this officer?')) {
+            fetch(`/delete_officer/${id}`, { method: 'DELETE' })
+                .then(response => response.json())
                 .then(data => {
-                    if(data && data.data) {
-                        const officer = data.data;
-                        
-                        // 1. Fill Form
-                        document.getElementById('officerName').value = officer.name_officer;
-                        document.getElementById('textSig').value = officer.text_signature || '';
-                        document.getElementById('officerId').value = officer.id;
-                        
-                        // 2. Set Mode
-                        editingId = officer.id;
-                        document.getElementById('editBadge').style.display = 'block';
-                        document.getElementById('editBadge').innerText = "Editing: " + officer.name_officer;
-
-                        // 3. Load Signature Image to Canvas
-                        if(officer.man_signature) {
-                            loadSignatureToCanvas(officer.man_signature);
-                        }
-
-                        // 4. Scroll to top
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    if(data.success) {
+                        loadOfficerList();
+                        alert('Deleted successfully');
+                        // If we deleted the one we are editing, reset form
+                        if(editingId === id) resetForm(); 
+                    } else {
+                        alert('Error deleting');
                     }
                 })
-                .catch(err => alert("Error loading officer data"));
+                .catch(err => alert('Error connecting to server'));
+        }
+    }
+
+    // --- 7. SUBMIT (SAVE / UPDATE) ---
+    document.getElementById('sigForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const dataURL = canvas.toDataURL('image/png');
+        const payload = {
+            name_officer: document.getElementById('officerName').value,
+            text_signature: document.getElementById('textSig').value,
+            man_signature: dataURL
+        };
+
+        const msgBox = document.getElementById('message');
+        const id = editingId; 
+        
+        let url = '/save_officer_signature';
+        let method = 'POST';
+
+        if (id) {
+            url = `/update_officer_signature/${id}`;
+            method = 'PUT';
         }
 
-        // --- 6. DELETE OFFICER ---
-        window.deleteOfficer = function(id) {
-            if(confirm('Are you sure you want to delete this officer?')) {
-                fetch(`/delete_officer/${id}`, { method: 'DELETE' })
-                    .then(response => response.json())
-                    .then(data => {
-                        if(data.success) {
-                            loadOfficerList();
-                            alert('Deleted successfully');
-                            if(editingId === id) resetForm(); 
-                        } else {
-                            alert('Error deleting');
-                        }
-                    })
-                    .catch(err => alert('Error connecting to server'));
+        try {
+            const res = await fetch(url, {
+                method: method, 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify(payload)
+            });
+            const result = await res.json();
+
+            if (res.ok) {
+                msgBox.textContent = id ? "Updated Successfully!" : "Saved Successfully!";
+                msgBox.className = "success"; 
+                msgBox.style.display = "block";
+                
+                resetForm();
+                loadOfficerList();
+
+                // Hide message after 2 seconds
+                setTimeout(() => {
+                    msgBox.style.display = 'none';
+                }, 2000);
+            } else {
+                throw new Error(result.message);
             }
+        } catch (err) {
+            msgBox.textContent = "Error: " + err.message;
+            msgBox.className = "error"; 
+            msgBox.style.display = "block";
         }
+    });
 
-        // --- 7. SUBMIT (SAVE / UPDATE) ---
-        document.getElementById('sigForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const dataURL = canvas.toDataURL('image/png');
-            const payload = {
-                name_officer: document.getElementById('officerName').value,
-                text_signature: document.getElementById('textSig').value,
-                man_signature: dataURL
-            };
+    // Load List on Start
+    loadOfficerList();
 
-            const msgBox = document.getElementById('message');
-            const id = editingId; 
-            
-            let url = '/save_officer_signature';
-            let method = 'POST';
-
-            if (id) {
-                url = `/update_officer_signature/${id}`;
-                method = 'PUT';
-            }
-
-            try {
-                const res = await fetch(url, {
-                    method: method, 
-                    headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify(payload)
-                });
-                const result = await res.json();
-
-                if (res.ok) {
-                    msgBox.textContent = id ? "Updated Successfully!" : "Saved Successfully!";
-                    msgBox.className = "success"; msgBox.style.display = "block";
-                    resetForm();
-                    loadOfficerList();
-                } else {
-                    throw new Error(result.message);
-                }
-            } catch (err) {
-                msgBox.textContent = "Error: " + err.message;
-                msgBox.className = "error"; msgBox.style.display = "block";
-            }
-        });
-
-        loadOfficerList();
-    </script>
+</script>
 </body>
 </html>
