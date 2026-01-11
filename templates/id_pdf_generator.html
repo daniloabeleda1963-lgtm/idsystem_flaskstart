@@ -28,11 +28,12 @@
                 </select>
             </div>
             
-            <div style="display: flex; flex-direction: column; justify-content: center; gap: 10px;">
-                <button class="move-btn" data-dir="right-single" style="padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Add →</button>
-                <button class="move-btn" data-dir="right-all" style="padding: 10px 15px; background: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer;">All →</button>
-                <button class="move-btn" data-dir="left-all" style="padding: 10px 15px; background: #ffc107; color: #333; border: none; border-radius: 5px; cursor: pointer;">← All</button>
-                <button class="move-btn" data-dir="left-single" style="padding: 10px 15px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">← Remove</button>
+            <!-- UPDATED COMPACT BUTTONS (Mobile Friendly) -->
+            <div style="display: flex; flex-direction: column; justify-content: center; gap: 5px;">
+                <button class="move-btn" data-dir="right-single" style="padding: 8px 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight:bold; font-size:18px;">&gt;</button>
+                <button class="move-btn" data-dir="right-all" style="padding: 8px 10px; background: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight:bold; font-size:18px;">&gt;&gt;</button>
+                <button class="move-btn" data-dir="left-all" style="padding: 8px 10px; background: #ffc107; color: #333; border: none; border-radius: 5px; cursor: pointer; font-weight:bold; font-size:18px;">&lt;&lt;</button>
+                <button class="move-btn" data-dir="left-single" style="padding: 8px 10px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight:bold; font-size:18px;">&lt;</button>
             </div>
             
             <div style="flex: 1;">
@@ -150,45 +151,81 @@
     const STORAGE_KEY = 'ugb_signatories';
 
     // ==========================================================
-    // ⚙️ CONFIGURATION: LAYOUT DATA (From Admin)
+    // ⚙️ CONFIGURATION: LOAD FROM SUPABASE
     // ==========================================================
-    const TEMPLATE_CONFIG = {
-        imageUrl: "idtemp.jpg", 
-        widthPx: 800, 
-        heightPx: 400,
-        
-        fields: {
-            'f_photo': { left: 20, top: 60, width: 90, height: 110 },
-            'f_name': { left: 130, top: 60, font: 'bold', size: 12 },
-            'f_pseudo': { left: 130, top: 75, font: 'normal', size: 10 },
-            'f_birthdate': { left: 130, top: 90, font: 'normal', size: 10 },
-            'f_height': { left: 130, top: 105, font: 'normal', size: 10 },
-            'f_weight': { left: 200, top: 105, font: 'normal', size: 10 },
-            'f_blood': { left: 130, top: 120, font: 'normal', size: 10 },
-            'f_idno': { left: 130, top: 135, font: 'bold', size: 10 },
-            'f_contact': { left: 130, top: 150, font: 'normal', size: 9 },
-            
-            'b_emer_name': { left: 450, top: 60, font: 'bold', size: 9 },
-            'b_emer_addr': { left: 450, top: 75, font: 'normal', size: 8 },
-            'b_emer_contact': { left: 450, top: 90, font: 'normal', size: 9 },
-            
-            // Adjusted height to 35px for a good fit
-            'b_sig1': { left: 450, top: 140, width: 80, height: 35 },
-            'b_sig1_name': { left: 450, top: 180, font: 'bold', size: 8 },
-            'b_sig1_pos': { left: 450, top: 187, font: 'normal', size: 7 },
-            
-            'b_sig2': { left: 540, top: 140, width: 80, height: 35 },
-            'b_sig2_name': { left: 540, top: 180, font: 'bold', size: 8 },
-            'b_sig2_pos': { left: 540, top: 187, font: 'normal', size: 7 },
-            
-            'b_sig3': { left: 630, top: 140, width: 80, height: 35 },
-            'b_sig3_name': { left: 630, top: 180, font: 'bold', size: 8 },
-            'b_sig3_pos': { left: 630, top: 187, font: 'normal', size: 7 },
+    
+    // 1. Setup ng credentials (Palitan mo ito ng totoo)
+    const SUPABASE_URL = "https://YOUR_PROJECT.supabase.co"; 
+    const SUPABASE_KEY = "YOUR_ANON_KEY"; 
 
-            'b_date_issued': { left: 450, top: 200, font: 'normal', size: 8 },
-            'b_valid_until': { left: 600, top: 200, font: 'normal', size: 8 }
+    let TEMPLATE_CONFIG;
+
+    // 2. Function na kukuha sa table 'layouts'
+    async function loadConfigFromSupabase() {
+        try {
+            console.log("Fetching config from Supabase...");
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/layouts?id=eq.1`, {
+                method: 'GET',
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data && data.length > 0) {
+                // SUCCESS: Kumuha ng config_json mula sa row #1
+                TEMPLATE_CONFIG = data[0].config_json;
+                console.log("✅ Loaded from Cloud:", TEMPLATE_CONFIG);
+            } else {
+                throw new Error("No data found");
+            }
+        } catch (error) {
+            console.warn("⚠️ Error loading from Cloud, using Default Layout.");
+            // FALLBACK: Gamitin ang hardcoded na config (Backup)
+            TEMPLATE_CONFIG = {
+                imageUrl: "idtemp.jpg", 
+                widthPx: 800, 
+                heightPx: 400,
+                
+                fields: {
+                    'f_photo': { left: 20, top: 60, width: 90, height: 110 },
+                    'f_name': { left: 130, top: 60, font: 'bold', size: 12 },
+                    'f_pseudo': { left: 130, top: 75, font: 'normal', size: 10 },
+                    'f_birthdate': { left: 130, top: 90, font: 'normal', size: 10 },
+                    'f_height': { left: 130, top: 105, font: 'normal', size: 10 },
+                    'f_weight': { left: 200, top: 105, font: 'normal', size: 10 },
+                    'f_blood': { left: 130, top: 120, font: 'normal', size: 10 },
+                    'f_idno': { left: 130, top: 135, font: 'bold', size: 10 },
+                    'f_contact': { left: 130, top: 150, font: 'normal', size: 9 },
+                    
+                    'b_emer_name': { left: 450, top: 60, font: 'bold', size: 9 },
+                    'b_emer_addr': { left: 450, top: 75, font: 'normal', size: 8 },
+                    'b_emer_contact': { left: 450, top: 90, font: 'normal', size: 9 },
+                    
+                    'b_sig1': { left: 450, top: 140, width: 80, height: 35 },
+                    'b_sig1_name': { left: 450, top: 180, font: 'bold', size: 8 },
+                    'b_sig1_pos': { left: 450, top: 187, font: 'normal', size: 7 },
+                    
+                    'b_sig2': { left: 540, top: 140, width: 80, height: 35 },
+                    'b_sig2_name': { left: 540, top: 180, font: 'bold', size: 8 },
+                    'b_sig2_pos': { left: 540, top: 187, font: 'normal', size: 7 },
+                    
+                    'b_sig3': { left: 630, top: 140, width: 80, height: 35 },
+                    'b_sig3_name': { left: 630, top: 180, font: 'bold', size: 8 },
+                    'b_sig3_pos': { left: 630, top: 187, font: 'normal', size: 7 },
+
+                    'b_date_issued': { left: 450, top: 200, font: 'normal', size: 8 },
+                    'b_valid_until': { left: 600, top: 200, font: 'normal', size: 8 }
+                }
+            };
         }
-    };
+    }
+
+    // 3. Tawagin agad para ma-load bago mag-generate
+    loadConfigFromSupabase();
 
     // ==========================================================
     // INITIALIZATION & DATA LOADING
@@ -450,6 +487,14 @@
     // ==========================================================
     async function generatePDF(action) {
         if (targetBox.options.length === 0) return alert("❌ Please select at least one member");
+        
+        // WAIT: Siguraduhin na naka-load na ang config bago mag-print
+        if (!TEMPLATE_CONFIG) {
+            alert("⏳ Template is still loading from cloud... please try again in a second.");
+            await loadConfigFromSupabase(); // Try one more time
+            if (!TEMPLATE_CONFIG) return alert("❌ Failed to load template.");
+        }
+
         const layout = document.querySelector('input[name="layout"]:checked').value;
         const members = [];
         for (let i = 0; i < targetBox.options.length; i++) {
