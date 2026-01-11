@@ -100,7 +100,7 @@ def login():
     """ 
 
 # ==============================
-# NEW ROUTE: ADMIN MENU (Password Protected)
+# ADMIN ROUTE (Password Protected)
 # ==============================
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_login_route():
@@ -151,15 +151,21 @@ def admin_login_route():
     return login_html
 
 # ==============================
-# Routes - Search Form (HTML Fallback)
+# ROUTE: SIGNATURE PAGE RENDER (FIXED)
+# ==============================
+# NAGBAGO: Binago ko ang route sa '/signature.html' para tumugma sa tawag ng window.open sa admin.html
+@app.route('/signature.html')
+def officer_signature():
+    """Tawagin ito kapag napili ang 'Officer Signature' sa Admin Forms."""
+    return render_template('signature.html')
+
+# ==============================
+# SEARCH ROUTES
 # ==============================
 @app.route("/search")
 def search_form():
     return render_template("search_form.html")
 
-# ==============================
-# Bridge Route para sa HTML form action
-# ==============================
 @app.route("/search-members", methods=["POST"])
 def search_members():
     """
@@ -176,14 +182,12 @@ def search_members():
         if not search_term:
             response = db.from_('members').select('*').order('name', desc=False).execute()
             members = response.data if response.data else []
-            # Render template w/o highlights if empty
             return render_template("search_results.html", members=members, total_results=len(members))
 
         # Construct Supabase OR Logic
         or_logic = ""
         
         if search_type == "all":
-            # --- FIX: NADAGDAG NA ANG PSEUDO NAME ---
             or_logic = ",".join([
                 f"name.ilike.%{search_term}%",
                 f"chapter.ilike.%{search_term}%",
@@ -194,7 +198,6 @@ def search_members():
                 f"pseudo_name.ilike.%{search_term}%"
             ])
         elif search_type == "name":
-            # Search both real name and pseudo name
             or_logic = f"name.ilike.%{search_term}%,pseudo_name.ilike.%{search_term}%"
         elif search_type == "chapter":
             or_logic = f"chapter.ilike.%{search_term}%"
@@ -237,7 +240,7 @@ def search_members():
         return f"Error loading members: {str(e)}", 500
 
 # ==============================
-# API: Get All Members (JSON)
+# MEMBER API ROUTES
 # ==============================
 @app.route('/api/members/json', methods=["GET"])
 def api_members_json():
@@ -250,117 +253,45 @@ def api_members_json():
         print(f"API Error: {e}")
         return jsonify([]), 500
 
-# ==============================
-# API: Live Autocomplete Search
-# ==============================
 @app.route('/api/members/search', methods=["GET"])
 def api_members_search():
-    """
-    Live search endpoint (Name OR Pseudo Name OR Chapter).
-    Used by Add Member Form 'check existing' logic.
-    """
+    """Live search endpoint (Name OR Pseudo Name OR Chapter)."""
     try:
         db = get_db()
         q = request.args.get('q', '').strip()
-        
-        if not q:
-            return jsonify([])
-            
-        # --- FIX: NADAGDAG NA ANG PSEUDO NAME ---
+        if not q: return jsonify([])
         or_logic = f"name.ilike.%{q}%,pseudo_name.ilike.%{q}%,chapter.ilike.%{q}%"
-        # ------------------------------------------------
         response = db.from_('members').select('*').or_(or_logic).limit(20).execute()
-        
         return jsonify(response.data)
     except Exception as e:
         print(f"Autocomplete Error: {e}")
         return jsonify([]), 500
 
-# ==============================
-# API: Filter by Date (For Print/Mobile)
-# ==============================
 @app.route('/api/members/by-date', methods=["GET"])
 def api_members_by_date():
     """Filter members by date_of_membership."""
     try:
         db = get_db()
         selected_date = request.args.get('date')
-        
-        if not selected_date:
-            return jsonify([]), 400
-
-        response = db.from_('members') \
-                    .select('*') \
-                    .eq('date_of_membership', selected_date) \
-                    .order('name', desc=False) \
-                    .execute()
-
+        if not selected_date: return jsonify([]), 400
+        response = db.from_('members').select('*').eq('date_of_membership', selected_date).order('name', desc=False).execute()
         return jsonify(response.data)
-
     except Exception as e:
         print(f"Filter Date Error: {e}")
         return jsonify([]), 500
 
 # ==============================
-# ID Generator Logic (Settings)
-# ==============================
-
-@app.route('/get_current_id')
-def get_current_id():
-    """Fetches latest ID format."""
-    try:
-        db = get_db()
-        response = db.table('idgenerate').select('*').order('id', desc=True).limit(1).execute()
-        if response.data:
-            return jsonify({'idnumber': response.data[0].get('idnumber')})
-        return jsonify({'idnumber': ''})
-    except Exception as e:
-        print(f"Error getting ID: {e}")
-        return jsonify({'idnumber': ''})
-
-@app.route('/save_id_to_db', methods=['POST'])
-def save_id_to_db():
-    """Saves or Updates ID format in settings."""
-    try:
-        db = get_db()
-        data = request.json
-        id_value = data.get('id_value')
-        if not id_value:
-            return jsonify({'success': False, 'message': 'No ID value provided'}), 400
-
-        check_response = db.table('idgenerate').select('id').order('id', desc=True).limit(1).execute()
-        
-        if check_response.data:
-            record_id = check_response.data[0].get('id')
-            db.table('idgenerate').update({"idnumber": id_value}).eq('id', record_id).execute()
-            action_type = "Updated"
-        else:
-            db.table('idgenerate').insert({"idnumber": id_value}).execute()
-            action_type = "Saved"
-
-        return jsonify({'success': True, 'message': f'ID {action_type} successfully!', 'id': id_value})
-    except Exception as e:
-        print(f"Error saving ID: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-# ==============================
-# ADD / UPDATE MEMBER LOGIC
+# MEMBER CRUD LOGIC
 # ==============================
 @app.route('/add_member', methods=['GET', 'POST'])
 def add_member():
-    """
-    Handles creating new members AND updating existing ones.
-    Includes Camera Action (Base64) and Pseudo Name.
-    """
+    """Handles creating new members AND updating existing ones."""
     if request.method == 'POST':
         try:
             db = get_db()
-            
-            # Determine Action: Add or Update?
             form_action = request.form.get('form_action') 
             record_id = request.form.get('member_id')
             
-            # Collect Data
             form_data = {
                 'idnumb': request.form.get('id_no'),
                 'name': request.form.get('name'),
@@ -383,39 +314,21 @@ def add_member():
                 'govt_id_no': request.form.get('govt_id_no'),
                 'emergency_person_name': request.form.get('emergency_person_name'),
                 'emergency_contact_no': request.form.get('emergency_contact_no'),
-                # Camera: Base64 String
                 'photo_data': request.form.get('photo_data'), 
-                # ID Extras
                 'qr_code': request.form.get('qr_code'),
                 'signature': request.form.get('signature'),
-                # --- FIX: PSEUDO NAME ---
                 'pseudo_name': request.form.get('pseudo_name'),
-                # -----------------------
-                
-                # Auto Dates
                 'issued_date': datetime.now().strftime('%Y-%m-%d'),
                 'valid_until': (datetime.now() + timedelta(days=365*3)).strftime('%Y-%m-%d')
             }
 
-            # --- SMART UPDATE LOGIC ---
             if form_action == 'update' and record_id:
-                # If updating, check if photo_data is provided.
-                # If user didn't take a new photo, photo_data might be empty string.
-                # If it is empty, do NOT update the photo field (keep old one).
-                # NOTE: This logic assumes photo_data comes as empty string if not retaken.
-                # If your JS sends the OLD base64, this check isn't needed.
-                # If your JS sends "", then we need to remove 'photo_data' from form_data.
-                
                 new_photo = request.form.get('photo_data')
-                if not new_photo or new_photo == "data:,": 
-                    # Remove photo key from update dict to preserve existing photo in DB
+                if not new_photo or new_photo == "data,": 
                     form_data.pop('photo_data', None)
-
-                # Execute Update
                 db.from_('members').update(form_data).eq('id', record_id).execute()
                 print(f"Updated Member ID: {record_id}")
             else:
-                # Insert New
                 db.from_('members').insert(form_data).execute()
                 print("Added New Member")
             
@@ -427,22 +340,6 @@ def add_member():
 
     return render_template('add_member_form.html')
 
-# ==============================
-# ID PDF Generator Redirect
-# ==============================
-@app.route('/display_id/<int:member_id>')
-def display_id(member_id):
-    # Redirects to the master PDF generator page
-    return redirect(url_for('id_pdf_generator'))
-
-@app.route('/id_pdf_generator')
-def id_pdf_generator():
-    """Render the ID Card Generator Layout Page."""
-    return render_template('id_pdf_generator.html')
-
-# ==============================
-# DELETE MEMBER
-# ==============================
 @app.route('/delete_member/<int:member_id>', methods=["DELETE"])
 def delete_member(member_id):
     """Deletes a member via AJAX/Fetch."""
@@ -455,11 +352,285 @@ def delete_member(member_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # ==============================
-# Health Check
+# LAYOUT EDITOR LOGIC
+# ==============================
+@app.route('/save_layout', methods=['POST'])
+def save_layout():
+    try:
+        payload = request.json
+        db = get_db()
+        # FIXED: db.table to db.from_
+        response = db.from_('layouts').select("*").limit(1).execute()
+        existing_data = response.data
+        
+        if existing_data and len(existing_data) > 0:
+            record_id = existing_data[0]['id']
+            # FIXED: db.table to db.from_
+            db.from_('layouts').update({"config_json": payload}).eq('id', record_id).execute()
+            print(f"Updated Layout ID: {record_id}")
+        else:
+            # FIXED: db.table to db.from_
+            db.from_('layouts').insert({"config_json": payload}).execute()
+            print("Inserted New Layout")
+
+        return jsonify({"status": "success", "message": "Layout saved successfully!"}), 200
+
+    except Exception as e:
+        print(f"Error saving layout: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/load_layout', methods=['GET'])
+def load_layout():
+    try:
+        db = get_db()
+        # FIXED: db.table to db.from_
+        response = db.from_('layouts').select("*").order('updated_at', desc=True).limit(1).execute()
+        data = response.data
+        if not data:
+            return jsonify({"status": "error", "message": "No saved layout found."}), 404
+        return jsonify({"status": "success", "data": data[0]['config_json']}), 200
+
+    except Exception as e:
+        print(f"Error loading layout: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# ==============================
+# ADMIN FORMS ROUTES (ACTIVE - Connected to Supabase)
+# ==============================
+
+@app.route('/get_admin_forms', methods=['GET'])
+def get_admin_forms():
+    """Fetches all forms from admin_forms table."""
+    try:
+        db = get_db()
+        # FIXED: db.table to db.from_
+        response = db.from_('admin_forms').select("*").order('created_at', desc=True).execute()
+        
+        if response.data:
+            return jsonify(response.data), 200
+        
+        # Fallback kung walang laman
+        return jsonify([]), 200
+    except Exception as e:
+        print(f">>> ERROR CONNECTING TO SUPABASE (get_admin_forms): {e}")
+        return jsonify([]), 500
+
+@app.route('/add_admin_form', methods=['POST'])
+def add_admin_form():
+    """Saves new form name to admin_forms table."""
+    try:
+        db = get_db()
+        data = request.json
+        forms_name = data.get('forms_name')
+
+        if not forms_name:
+            return jsonify({'success': False, 'message': 'Form name is required'}), 400
+
+        # FIXED: db.table to db.from_
+        response = db.from_('admin_forms').insert({"forms_name": forms_name}).execute()
+
+        return jsonify({
+            'success': True, 
+            'message': f'Form "{forms_name}" saved successfully!',
+            'data': response.data
+        }), 200
+    except Exception as e:
+        print(f"Error saving admin form: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/delete_admin_form/<int:id>', methods=['DELETE'])
+def delete_admin_form(id):
+    """Deletes a form from admin_forms table by ID."""
+    try:
+        db = get_db()
+        # FIXED: db.table to db.from_
+        db.from_('admin_forms').delete().eq('id', id).execute()
+        
+        return jsonify({'success': True, 'message': 'Form deleted successfully'}), 200
+    except Exception as e:
+        print(f"Error deleting admin form: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ==============================
+# OFFICER SIGNATURE LOGIC (Complete CRUD)
+# ==============================
+
+# 1. GET LIST (Para sa Table/Listbox sa HTML)
+@app.route('/get_officers_list', methods=['GET'])
+def get_officers_list():
+    """Returns all officers from officer_list table."""
+    try:
+        db = get_db()
+        # FIXED: db.table to db.from_ (To prevent future errors)
+        response = db.from_('officer_list').select("*").order('created_at', desc=True).execute()
+        return jsonify(response.data), 200
+    except Exception as e:
+        print(f"Error fetching officers: {e}")
+        return jsonify([]), 500
+
+# 2. SAVE NEW (POST) - Para sa "Add New" button
+@app.route('/save_officer_signature', methods=['POST'])
+def save_officer_signature():
+    """Saves officer name and signature (Base64) to Supabase."""
+    try:
+        db = get_db()
+        data = request.json
+
+        name_officer = data.get('name_officer')
+        man_signature = data.get('man_signature') 
+        text_signature = data.get('text_signature', '') 
+
+        if not name_officer or not man_signature:
+            return jsonify({'success': False, 'message': 'Name and Signature are required'}), 400
+
+        payload = {
+            'name_officer': name_officer,
+            'man_signature': man_signature,
+            'text_signature': text_signature
+        }
+
+        # FIXED: db.table to db.from_
+        response = db.from_('officer_list').insert(payload).execute()
+
+        return jsonify({
+            'success': True, 
+            'message': f'Signature for {name_officer} saved successfully!',
+            'data': response.data
+        }), 200
+
+    except Exception as e:
+        print(f"Save Signature Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# 3. GET SINGLE (For Edit) - Para i-load sa canvas
+@app.route('/get_officer/<int:officer_id>', methods=['GET'])
+def get_officer(officer_id):
+    """Fetches a single officer's details for editing."""
+    try:
+        db = get_db()
+        # FIXED: db.table to db.from_
+        response = db.from_('officer_list').select("*").eq('id', officer_id).execute()
+        
+        if response.data:
+            return jsonify({'success': True, 'data': response.data[0]}), 200
+        else:
+            return jsonify({'success': False, 'message': 'Officer not found'}), 404
+            
+    except Exception as e:
+        print(f"Error fetching officer: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# 4. UPDATE (PUT) - Para sa Save pag naka-Edit mode
+@app.route('/update_officer_signature/<int:officer_id>', methods=['PUT'])
+def update_officer_signature(officer_id):
+    """Updates an existing officer's signature."""
+    try:
+        db = get_db()
+        data = request.json
+
+        name_officer = data.get('name_officer')
+        man_signature = data.get('man_signature')
+        text_signature = data.get('text_signature', '')
+
+        if not name_officer or not man_signature:
+            return jsonify({'success': False, 'message': 'Name and Signature are required'}), 400
+
+        payload = {
+            'name_officer': name_officer,
+            'man_signature': man_signature,
+            'text_signature': text_signature
+        }
+
+        # FIXED: db.table to db.from_
+        response = db.from_('officer_list').update(payload).eq('id', officer_id).execute()
+
+        return jsonify({
+            'success': True, 
+            'message': f'Officer {name_officer} updated successfully!',
+            'data': response.data
+        }), 200
+
+    except Exception as e:
+        print(f"Update Signature Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# 5. DELETE (DELETE) - Para sa Delete button
+@app.route('/delete_officer/<int:officer_id>', methods=['DELETE'])
+def delete_officer(officer_id):
+    """Deletes an officer by ID."""
+    try:
+        db = get_db()
+        # FIXED: db.table to db.from_
+        db.from_('officer_list').delete().eq('id', officer_id).execute()
+        return jsonify({'success': True, 'message': 'Officer deleted successfully'}), 200
+    except Exception as e:
+        print(f"Error deleting officer: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# ==============================
+# HEALTH CHECK & SETTINGS
 # ==============================
 @app.route('/health')
 def health_check():
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
+
+@app.route('/get_current_id')
+def get_current_id():
+    """Fetches latest ID format."""
+    try:
+        db = get_db()
+        # FIXED: db.table to db.from_ (Making consistent)
+        response = db.from_('idgenerate').select('*').order('id', desc=True).limit(1).execute()
+        if response.data:
+            return jsonify({'idnumber': response.data[0].get('idnumber')})
+        return jsonify({'idnumber': ''})
+    except Exception as e:
+        print(f"Error getting ID: {e}")
+        return jsonify({'idnumber': ''})
+
+@app.route('/save_id_to_db', methods=['POST'])
+def save_id_to_db():
+    """Saves or Updates ID format in settings."""
+    try:
+        db = get_db()
+        data = request.json
+        id_value = data.get('id_value')
+        if not id_value:
+            return jsonify({'success': False, 'message': 'No ID value provided'}), 400
+
+        # FIXED: db.table to db.from_
+        check_response = db.from_('idgenerate').select('id').order('id', desc=True).limit(1).execute()
+        if check_response.data:
+            record_id = check_response.data[0].get('id')
+            # FIXED: db.table to db.from_
+            db.from_('idgenerate').update({"idnumber": id_value}).eq('id', record_id).execute()
+        else:
+            # FIXED: db.table to db.from_
+            db.from_('idgenerate').insert({"idnumber": id_value}).execute()
+
+        return jsonify({'success': True, 'message': 'ID saved successfully!', 'id': id_value})
+    except Exception as e:
+        print(f"Error saving ID: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# ==============================
+# TEST PAGE ROUTE
+# ==============================
+@app.route('/test')
+def test_page():
+    return render_template('test.html')
+
+# ==============================
+# REDIRECTS
+# ==============================
+@app.route('/display_id/<int:member_id>')
+def display_id(member_id):
+    return redirect(url_for('id_pdf_generator'))
+
+@app.route('/id_pdf_generator')
+def id_pdf_generator():
+    return render_template('id_pdf_generator.html')
 
 # ==============================
 # Run App
