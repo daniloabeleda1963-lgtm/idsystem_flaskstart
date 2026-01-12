@@ -161,6 +161,22 @@ def officer_signature():
     return render_template('signature.html')
 
 # ==============================
+# NEW: ROUTE FOR MODE OF PAYMENT
+# ==============================
+@app.route('/mode_payment.html')
+def mode_payment():
+    """Tawagin ito kapag napili ang 'Mode of Payment' sa Admin Forms."""
+    return render_template('mode_payment.html')
+
+# ==============================
+# NEW: ROUTE FOR CAPTION CHANGER
+# ==============================
+@app.route('/caption_changer.html')
+def caption_changer():
+    """Tawagin ito kapag napili ang 'Caption Changer' sa Admin Forms."""
+    return render_template('caption_changer.html')
+
+# ==============================
 # SEARCH ROUTES
 # ==============================
 @app.route("/search")
