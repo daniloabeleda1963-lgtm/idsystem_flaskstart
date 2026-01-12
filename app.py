@@ -116,7 +116,8 @@ def admin_login_route():
             # Tama ang password, tatawagin ang admin.html
             return render_template('admin.html')
         else:
-            error = "Incorrect password! Try 'admin123'"
+            # FIXED: Tagalog error message (Exam Style - no answer given)
+            error = "Mali ang password. Subukan mo ulit."
 
     # Simple Login Form (Server-side rendered)
     login_html = """
@@ -139,7 +140,7 @@ def admin_login_route():
             <h2>Admin Access</h2>
             <p>Restricted Area</p>
             <form method="POST">
-                <input type="password" name="password" placeholder="Enter Password" required autofocus>
+                <input type="password" name="password" placeholder="Ilagay ang Password" required autofocus>
                 <button type="submit">LOGIN</button>
             </form>
             <p class="error">""" + (str(error) if error else "") + """</p>
