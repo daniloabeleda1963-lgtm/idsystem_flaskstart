@@ -27,7 +27,7 @@
             color: var(--sidebar-text);
             display: flex;
             flex-direction: column;
-            border-right: 1px solid #334155;
+            border-right:1px solid #334155;
             flex-shrink: 0;
             z-index: 200;
         }
@@ -35,7 +35,7 @@
             padding: 15px;
             background: #0f172a;
             font-weight: bold;
-            border-bottom: 1px solid #334155;
+            border-bottom:1px solid #334155;
         }
         .sidebar-list {
             flex-grow: 1;
@@ -210,10 +210,10 @@
             border: 1px solid black;
         }
         .canvas-element.is-frosted {
-            background: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255,255, 0.4);
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255,255, 0.6);
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         .canvas-element.is-image {
@@ -270,9 +270,9 @@
         .rh-ne { top: -4px; right: -4px; cursor: nesw-resize; }
         .rh-nw { top: -4px; left: -4px; cursor: nwse-resize; }
 
-        /* --- NEW: SIGNATURE MODAL STYLES --- */
-        .signature-modal-overlay {
-            display: none; /* Hidden by default */
+        /* --- MODAL STYLES (Reusable) --- */
+        .modal-overlay {
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
@@ -286,11 +286,11 @@
             box-sizing: border-box;
         }
 
-        .signature-modal-content {
+        .modal-content {
             background-color: white;
             width: 100%;
             max-width: 800px;
-            height: 90%; /* Take up 90% of screen height */
+            height: 90%;
             border-radius: 8px;
             position: relative;
             box-shadow: 0 4px 20px rgba(0,0,0,0.5);
@@ -339,6 +339,19 @@
     <div class="sidebar">
         <div class="sidebar-header">🧩 Toolbox</div>
         
+        <!-- === OFFICERS PANEL (NEW) === -->
+        <div class="admin-forms-panel" style="border-bottom: 1px solid #334155;">
+            <div class="sidebar-group-title" style="color: #fff;">Officers List (officer_list)</div>
+            
+            <select id="officerSelect" class="admin-select" onchange="updateDraggableOfficer()">
+                <option value="">-- Select Officer --</option>
+            </select>
+
+            <div id="officerDragItem" class="draggable-item" draggable="true" data-type="officer-group" style="opacity: 0.5; pointer-events: none; margin-top: 5px;">
+                👤 Drag Selected Officer
+            </div>
+        </div>
+
         <!-- === ADMIN FORMS PANEL === -->
         <div class="admin-forms-panel">
             <div class="sidebar-group-title" style="color: #fff;">Admin Forms (Table: admin_forms)</div>
@@ -450,13 +463,35 @@
     </div>
 
     <!-- NEW: SIGNATURE MODAL (Pop-up) -->
-    <div id="signatureModal" class="signature-modal-overlay">
-        <div class="signature-modal-content">
+    <div id="signatureModal" class="modal-overlay">
+        <div class="modal-content">
             <div class="modal-header">
                 <h3>Officer Signature Creator</h3>
-                <button class="close-modal-btn" onclick="closeSignatureModal()">✖</button>
+                <button class="close-modal-btn" onclick="closeModal('signatureModal')">✖</button>
             </div>
             <iframe src="/signature.html" class="modal-body" frameborder="0"></iframe>
+        </div>
+    </div>
+
+    <!-- NEW: MODE PAYMENT MODAL -->
+    <div id="paymentModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Mode of Payment</h3>
+                <button class="close-modal-btn" onclick="closeModal('paymentModal')">✖</button>
+            </div>
+            <iframe src="/mode_payment.html" class="modal-body" frameborder="0"></iframe>
+        </div>
+    </div>
+
+    <!-- NEW: CAPTION CHANGER MODAL -->
+    <div id="captionModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Caption Changer</h3>
+                <button class="close-modal-btn" onclick="closeModal('captionModal')">✖</button>
+            </div>
+            <iframe src="/caption_changer.html" class="modal-body" frameborder="0"></iframe>
         </div>
     </div>
 
@@ -483,16 +518,56 @@
         let hasMoved = false;
 
         // ==========================================
-        // MODAL LOGIC
+        // MODAL LOGIC (Unified)
         // ==========================================
-        const sigModal = document.getElementById('signatureModal');
-
-        function openSignatureModal() {
-            sigModal.style.display = 'flex';
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
         }
 
-        function closeSignatureModal() {
-            sigModal.style.display = 'none';
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // ==========================================
+        // OFFICER LIST LOGIC (NEW)
+        // ==========================================
+        const officerSelect = document.getElementById('officerSelect');
+        const officerDragItem = document.getElementById('officerDragItem');
+        let allOfficers = [];
+
+        async function initOfficersList() {
+            try {
+                const response = await fetch(`${API_URL}/get_officers_list`);
+                const data = await response.json();
+                if (data && Array.isArray(data)) {
+                    allOfficers = data;
+                    renderOfficerList(data);
+                }
+            } catch (error) {
+                console.error("Error loading officers:", error);
+            }
+        }
+
+        function renderOfficerList(data) {
+            // Keep the first option
+            officerSelect.innerHTML = '<option value="">-- Select Officer --</option>';
+            data.forEach(off => {
+                const option = document.createElement('option');
+                option.value = off.id;
+                option.textContent = `${off.name_officer} / ${off.designation || 'No Designation'}`;
+                officerSelect.appendChild(option);
+            });
+        }
+
+        function updateDraggableOfficer() {
+            const selectedId = officerSelect.value;
+            if (selectedId) {
+                officerDragItem.style.opacity = '1';
+                officerDragItem.style.pointerEvents = 'auto';
+            } else {
+                officerDragItem.style.opacity = '0.5';
+                officerDragItem.style.pointerEvents = 'none';
+            }
         }
 
         // ==========================================
@@ -504,11 +579,9 @@
 
         async function initAdminForms() {
             try {
-                // 1. Fetch from Supabase (Via Python Route)
                 const response = await fetch(`${API_URL}/get_admin_forms`);
                 const data = await response.json();
                 
-                // 2. Check if valid data returned
                 if (data && Array.isArray(data) && data.length > 0) {
                     renderAdminList(data);
                     console.log("Loaded from Supabase:", data);
@@ -517,16 +590,13 @@
                 }
             } catch (error) {
                 console.error("Error loading forms:", error);
-                console.warn("Using Fallback Data (Officer Signature)");
-                
-                // 3. FALLBACK: If fetch fails, do NOT clear the box. Just add the fallback.
-                // But since we are initializing, we just render the fallback.
+                console.warn("Using Fallback Data");
                 renderAdminList([{ id: 1, forms_name: "Officer Signature" }]);
             }
         }
 
         function renderAdminList(data) {
-            adminSelect.innerHTML = ''; // Clear current options
+            adminSelect.innerHTML = ''; 
             data.forEach(form => {
                 const option = document.createElement('option');
                 option.value = form.id; 
@@ -540,14 +610,13 @@
             if (!name) return alert("Please enter name.");
 
             try {
-                // FIX: Changed 'form_names' to 'forms_name' to match Supabase column
                 await fetch(`${API_URL}/add_admin_form`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ forms_name: name })
                 });
                 newFormInput.value = "";
-                initAdminForms(); // Refresh
+                initAdminForms(); 
             } catch (e) { alert("Error adding"); }
         }
 
@@ -573,15 +642,20 @@
             if (!selectedOption) return;
             const selectedText = selectedOption.textContent; 
 
-            // Trigger Modal instead of Window.Open (Fixes Mobile Issue)
+            // Unified Logic to open Modals based on Name
             if (selectedText === "Officer Signature") {
-                openSignatureModal();
+                openModal('signatureModal');
+            } else if (selectedText === "Mode of Payment") {
+                openModal('paymentModal');
+            } else if (selectedText === "Caption Changer") {
+                openModal('captionModal');
             }
         }
 
         // Initialize on Load
         document.addEventListener('DOMContentLoaded', () => {
             initAdminForms();
+            initOfficersList(); 
         });
 
         // ==========================================
@@ -593,6 +667,9 @@
             d.addEventListener('dragstart', (e) => {
                 e.dataTransfer.setData('type', d.dataset.type);
                 e.dataTransfer.setData('caption', d.dataset.caption);
+                if(d.dataset.type === 'officer-group') {
+                    e.dataTransfer.setData('officerId', officerSelect.value);
+                }
             });
         });
 
@@ -613,8 +690,17 @@
             const actualX = x / zoom;
             const actualY = y / zoom;
             const type = e.dataTransfer.getData('type');
-            const caption = e.dataTransfer.getData('caption');
-            createSidebarElement(type, caption, actualX, actualY);
+            
+            if (type === 'officer-group') {
+                const officerId = e.dataTransfer.getData('officerId');
+                const officer = allOfficers.find(o => o.id == officerId);
+                if (officer) {
+                    createOfficerElements(officer, actualX, actualY);
+                }
+            } else {
+                const caption = e.dataTransfer.getData('caption');
+                createSidebarElement(type, caption, actualX, actualY);
+            }
         });
 
         function createSidebarElement(type, caption, x, y, imgSrc = null) {
@@ -657,6 +743,64 @@
             });
             canvas.appendChild(el);
             selectElement(el);
+        }
+
+        function createOfficerElements(officer, x, y) {
+            const nameEl = document.createElement('div');
+            nameEl.className = 'canvas-element';
+            nameEl.textContent = officer.name_officer;
+            nameEl.style.left = Math.round(x) + 'px';
+            nameEl.style.top = Math.round(y) + 'px';
+            nameEl.style.fontSize = '12px';
+            nameEl.style.fontWeight = 'bold';
+            nameEl.style.color = "#1e3a8a";
+            nameEl.style.width = 'auto';
+            nameEl.style.padding = '2px 5px';
+            nameEl.style.border = '1px solid #2563eb';
+            nameEl.id = 'officer_name_' + officer.id + '_' + Date.now();
+            addResizeHandles(nameEl);
+            canvas.appendChild(nameEl);
+            selectElement(nameEl);
+
+            const desigEl = document.createElement('div');
+            desigEl.className = 'canvas-element';
+            desigEl.textContent = officer.designation || 'No Designation';
+            desigEl.style.left = Math.round(x) + 'px';
+            desigEl.style.top = (Math.round(y) + 20) + 'px';
+            desigEl.style.fontSize = '11px';
+            desigEl.style.color = "#4b5563";
+            desigEl.style.width = 'auto';
+            desigEl.style.padding = '2px 5px';
+            desigEl.style.border = '1px dashed #2563eb';
+            desigEl.id = 'officer_desig_' + officer.id + '_' + Date.now();
+            addResizeHandles(desigEl);
+            canvas.appendChild(desigEl);
+
+            if (officer.man_signature) {
+                const sigEl = document.createElement('div');
+                sigEl.className = 'canvas-element is-image';
+                sigEl.style.left = Math.round(x) + 'px';
+                sigEl.style.top = (Math.round(y) + 45) + 'px';
+                sigEl.style.width = '100px';
+                sigEl.style.height = '40px';
+                sigEl.id = 'officer_sig_' + officer.id + '_' + Date.now();
+                
+                const img = document.createElement('img');
+                img.src = officer.man_signature;
+                sigEl.appendChild(img);
+                
+                addResizeHandles(sigEl);
+                canvas.appendChild(sigEl);
+            }
+        }
+
+        function addResizeHandles(el) {
+            ['nw', 'ne', 'sw', 'se'].forEach(pos => {
+                const handle = document.createElement('div');
+                handle.className = `resize-handle rh-${pos}`;
+                handle.dataset.handle = pos;
+                el.appendChild(handle);
+            });
         }
 
         function addCustomTextbox() {
@@ -750,7 +894,7 @@
                     isDragging = true;
                     selectElement(currentEl);
                 }
-            } else if (!e.target.closest('.toolbar') && !e.target.closest('.sidebar') && !e.target.closest('.admin-forms-panel') && !e.target.closest('.signature-modal-content')) {
+            } else if (!e.target.closest('.toolbar') && !e.target.closest('.sidebar') && !e.target.closest('.admin-forms-panel') && !e.target.closest('.modal-content')) {
                 deselectAll();
             }
         });
