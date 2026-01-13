@@ -1,690 +1,1073 @@
-{% extends "base.html" %}
-{% block title %}ID Card PDF Generator{% endblock %}
-
-{% block content %}
-<div style="max-width: 800px; margin: 0 auto; padding: 15px; font-family: Arial, sans-serif;">
-
-    <h2 style="text-align:center; color: #333; font-size: 22px;">🆔 ID Card PDF Generator (Template Mode)</h2>
-
-    <!-- DATE FILTER -->
-    <div style="background: #e3f2fd; padding: 15px; border-radius: 10px; margin-bottom: 20px; border:1px solid #90caf9;">
-        <label for="date_filter" style="font-weight: bold; display: block; margin-bottom: 5px;">Select Date:</label>
-        <input type="date" id="date_filter" style="padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; width: 100%; margin-bottom: 10px;">
-        <button id="populate_btn" style="padding: 12px 20px; background: #28a745; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px;">
-            📅 Load Members
-        </button>
-        <div id="status_msg" style="margin-top: 10px; font-size: 13px; color: #555; text-align: center;"></div>
-    </div>
-
-    <!-- MEMBER SELECTION -->
-    <div style="background: #f4f4f4; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ccc;">
-        <h3 style="margin-top: 0;">Select Members to Print</h3>
-        
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-            <div style="flex: 1;">
-                <strong style="display:block; margin-bottom:5px;">Available:</strong>
-                <select id="source_listbox" multiple style="width: 100%; height: 200px; padding: 8px; font-size: 14px; border: 1px solid #aaa; border-radius: 5px;">
-                    <option disabled>-- Load members first --</option>
-                </select>
-            </div>
-            
-            <!-- UPDATED COMPACT BUTTONS (Mobile Friendly) -->
-            <div style="display: flex; flex-direction: column; justify-content: center; gap: 5px;">
-                <button class="move-btn" data-dir="right-single" style="padding: 8px 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight:bold; font-size:18px;">&gt;</button>
-                <button class="move-btn" data-dir="right-all" style="padding: 8px 10px; background: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight:bold; font-size:18px;">&gt;&gt;</button>
-                <button class="move-btn" data-dir="left-all" style="padding: 8px 10px; background: #ffc107; color: #333; border: none; border-radius: 5px; cursor: pointer; font-weight:bold; font-size:18px;">&lt;&lt;</button>
-                <button class="move-btn" data-dir="left-single" style="padding: 8px 10px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight:bold; font-size:18px;">&lt;</button>
-            </div>
-            
-            <div style="flex: 1;">
-                <strong style="display:block; margin-bottom:5px; color:#0056b3;">Selected for PDF:</strong>
-                <select id="target_listbox" multiple style="width: 100%; height: 200px; padding: 8px; font-size: 14px; border: 2px solid #007bff; border-radius: 5px;">
-                    <option disabled>-- Add members here --</option>
-                </select>
-            </div>
-        </div>
-        
-        <div style="text-align: center; color: #666; font-size: 13px;">
-            Selected: <strong id="selected_count">0</strong> member(s)
-        </div>
-    </div>
-
-    <!-- SIGNATORY SECTION -->
-    <div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ffc107;">
-        <h3 style="margin-top: 0; color: #856404;">✍️ Add Signatories (Optional)</h3>
-        
-        <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-            <input type="text" id="signatory_input" list="signatory_history" placeholder="Name - Position" style="flex-grow: 1; padding: 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 5px;">
-            <button id="signatory_action_btn" style="padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Add</button>
-        </div>
-        
-        <datalist id="signatory_history"></datalist>
-        
-        <select id="signatory_listbox" multiple size="3" style="width: 100%; height: 100px; padding: 5px; font-size: 13px; border: 1px solid #999; border-radius: 5px; margin-bottom: 5px;">
-            <option disabled>-- No signatories added yet --</option>
-        </select>
-        
-        <small style="color: #856404; font-size: 11px; display: block;">
-            💡 Tip: Type name, click Add, select it, then click "Sign Selected" to add signature
-        </small>
-        
-        <input type="hidden" id="sig_storage" value="[]">
-    </div>
-
-    <!-- PDF LAYOUT OPTIONS -->
-    <div style="background: #e7f3ff; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #0066cc;">
-        <h3 style="margin-top: 0; color: #0066cc;">📄 PDF Layout Options</h3>
-        
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            <label style="display: flex; align-items: center; padding: 10px; background: white; border-radius: 5px; cursor: pointer;">
-                <input type="radio" name="layout" value="side-by-side" checked style="margin-right: 10px;">
-                <div>
-                    <strong>Side-by-Side (Recommended)</strong>
-                    <br><small style="color: #666;">Front and back cards next to each other - easy to cut</small>
-                </div>
-            </label>
-            
-            <label style="display: flex; align-items: center; padding: 10px; background: white; border-radius: 5px; cursor: pointer;">
-                <input type="radio" name="layout" value="separate-pages" style="margin-right: 10px;">
-                <div>
-                    <strong>Separate Pages</strong>
-                    <br><small style="color: #666;">All fronts on first pages, all backs on last pages</small>
-                </div>
-            </label>
-            
-            <label style="display: flex; align-items: center; padding: 10px; background: white; border-radius: 5px; cursor: pointer;">
-                <input type="radio" name="layout" value="one-per-page" style="margin-right: 10px;">
-                <div>
-                    <strong>One Card Per Page</strong>
-                    <br><small style="color: #666;">Best for mobile printing - one complete ID per page</small>
-                </div>
-            </label>
-        </div>
-    </div>
-
-    <!-- GENERATE BUTTONS -->
-    <div style="display: flex; gap: 10px; margin-bottom: 30px;">
-        <button id="preview_pdf_btn" style="flex: 1; padding: 15px; background: #17a2b8; color: white; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-            👁️ Preview PDF
-        </button>
-        <button id="download_pdf_btn" style="flex: 1; padding: 15px; background: #28a745; color: white; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-            💾 Download PDF
-        </button>
-        <button id="print_pdf_btn" style="flex: 1; padding: 15px; background: #333; color: white; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-            🖨️ Print PDF
-        </button>
-    </div>
-
-    <!-- SIGNATURE MODAL -->
-    <div id="signatureModal" style="display:none; position:fixed; z-index:2000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.7);">
-        <div style="background-color:white; margin:5% auto; padding:20px; border-radius:10px; width:90%; max-width:600px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
-            <h3 id="sig_modal_title" style="text-align: center; margin-top: 0; color: #333;">✍️ Sign Here</h3>
-            <!-- IMPORTANT: Height 300px for good balance -->
-            <div style="border:2px solid #000; border-radius:5px; background-color:#fff; position:relative; height:300px; width:100%; overflow: hidden;">
-                <canvas id="signature-pad" style="width:100%; height:100%; display:block; touch-action: none; cursor: crosshair;"></canvas>
-            </div>
-            <div style="display:flex; justify-content:center; gap:10px; margin-top:20px;">
-                <button id="clear_sig_btn" style="padding:12px 25px; background:#fd7e14; color:white; border:none; border-radius:5px; cursor:pointer; font-weight: bold;">Clear</button>
-                <button id="save_sig_btn" style="padding:12px 25px; background:#28a745; color:white; border:none; border-radius:5px; cursor:pointer; font-weight: bold;">Save</button>
-                <button id="cancel_sig_btn" style="padding:12px 25px; background:#6c757d; color:white; border:none; border-radius:5px; cursor:pointer; font-weight: bold;">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- LOADING OVERLAY -->
-    <div id="loading_overlay" style="display:none; position:fixed; z-index:3000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.8);">
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white;">
-            <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
-            <div style="font-size: 20px; font-weight: bold;">Generating PDF...</div>
-        </div>
-    </div>
-
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-<script>
-    const { jsPDF } = window.jspdf;
-    let signaturePad, currentEditingSignatory;
-    const STORAGE_KEY = 'ugb_signatories';
-
-    // ==========================================================
-    // ⚙️ CONFIGURATION: LOAD FROM SUPABASE
-    // ==========================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID PDF Generator - Data Merge FINAL (Line Static Fix)</title>
     
-    // 1. Setup ng credentials (Palitan mo ito ng totoo)
-    const SUPABASE_URL = "https://YOUR_PROJECT.supabase.co"; 
-    const SUPABASE_KEY = "YOUR_ANON_KEY"; 
-
-    let TEMPLATE_CONFIG;
-
-    // 2. Function na kukuha sa table 'layouts'
-    async function loadConfigFromSupabase() {
-        try {
-            console.log("Fetching config from Supabase...");
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/layouts?id=eq.1`, {
-                method: 'GET',
-                headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            const data = await response.json();
-
-            if (data && data.length > 0) {
-                // SUCCESS: Kumuha ng config_json mula sa row #1
-                TEMPLATE_CONFIG = data[0].config_json;
-                console.log("✅ Loaded from Cloud:", TEMPLATE_CONFIG);
-            } else {
-                throw new Error("No data found");
-            }
-        } catch (error) {
-            console.warn("⚠️ Error loading from Cloud, using Default Layout.");
-            // FALLBACK: Gamitin ang hardcoded na config (Backup)
-            TEMPLATE_CONFIG = {
-                imageUrl: "idtemp.jpg", 
-                widthPx: 800, 
-                heightPx: 400,
-                
-                fields: {
-                    'f_photo': { left: 20, top: 60, width: 90, height: 110 },
-                    'f_name': { left: 130, top: 60, font: 'bold', size: 12 },
-                    'f_pseudo': { left: 130, top: 75, font: 'normal', size: 10 },
-                    'f_birthdate': { left: 130, top: 90, font: 'normal', size: 10 },
-                    'f_height': { left: 130, top: 105, font: 'normal', size: 10 },
-                    'f_weight': { left: 200, top: 105, font: 'normal', size: 10 },
-                    'f_blood': { left: 130, top: 120, font: 'normal', size: 10 },
-                    'f_idno': { left: 130, top: 135, font: 'bold', size: 10 },
-                    'f_contact': { left: 130, top: 150, font: 'normal', size: 9 },
-                    
-                    'b_emer_name': { left: 450, top: 60, font: 'bold', size: 9 },
-                    'b_emer_addr': { left: 450, top: 75, font: 'normal', size: 8 },
-                    'b_emer_contact': { left: 450, top: 90, font: 'normal', size: 9 },
-                    
-                    'b_sig1': { left: 450, top: 140, width: 80, height: 35 },
-                    'b_sig1_name': { left: 450, top: 180, font: 'bold', size: 8 },
-                    'b_sig1_pos': { left: 450, top: 187, font: 'normal', size: 7 },
-                    
-                    'b_sig2': { left: 540, top: 140, width: 80, height: 35 },
-                    'b_sig2_name': { left: 540, top: 180, font: 'bold', size: 8 },
-                    'b_sig2_pos': { left: 540, top: 187, font: 'normal', size: 7 },
-                    
-                    'b_sig3': { left: 630, top: 140, width: 80, height: 35 },
-                    'b_sig3_name': { left: 630, top: 180, font: 'bold', size: 8 },
-                    'b_sig3_pos': { left: 630, top: 187, font: 'normal', size: 7 },
-
-                    'b_date_issued': { left: 450, top: 200, font: 'normal', size: 8 },
-                    'b_valid_until': { left: 600, top: 200, font: 'normal', size: 8 }
-                }
-            };
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --bg-color: #f3f4f6;
+            --sidebar-bg: #1e293b;
+            --sidebar-text: #e2e8f0;
         }
-    }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 280px; 
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            display: flex;
+            flex-direction: column;
+            border-right:1px solid #334155;
+            flex-shrink: 0;
+            z-index: 200;
+            overflow-y: auto;
+        }
+        .sidebar-header {
+            padding: 15px;
+            background: #0f172a;
+            font-weight: bold;
+            border-bottom:1px solid #334155;
+        }
+        .sidebar-list {
+            flex-grow: 1;
+            padding: 10px;
+        }
+        .sidebar-group { margin-bottom: 15px; }
+        .sidebar-group-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        .draggable-item {
+            background: #334155;
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            cursor: grab;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #475569;
+        }
+        .draggable-item:hover { background: #475569; border-color: var(--primary-color); }
+        .draggable-item:active { cursor: grabbing; }
 
-    // 3. Tawagin agad para ma-load bago mag-generate
-    loadConfigFromSupabase();
+        /* --- ADMIN FORMS PANEL --- */
+        .admin-forms-panel {
+            background: #0f172a;
+            padding: 10px;
+            border-bottom: 1px solid #334155;
+            border-top: 1px solid #334155;
+        }
+        .admin-input-group {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+        .admin-input {
+            flex: 1;
+            padding: 6px;
+            border: none;
+            border-radius: 3px;
+            background: #334155;
+            color: white;
+            font-size: 12px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .admin-select {
+            width: 100%;
+            padding: 6px;
+            border: none;
+            border-radius: 4px;
+            background: #334155;
+            color: white;
+            font-size: 12px;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+        .admin-btn {
+            padding: 6px 10px;
+            font-size: 11px;
+            cursor: pointer;
+            border: none;
+            border-radius: 3px;
+            color: white;
+            background: #2563eb;
+            width: 100%;
+        }
+        .admin-btn:hover { background: #1d4ed8; }
+        .btn-del { background: #ef4444; }
+        .btn-del:hover { background: #dc2626; }
 
-    // ==========================================================
-    // INITIALIZATION & DATA LOADING
-    // ==========================================================
-    document.getElementById('date_filter').valueAsDate = new Date();
+        /* --- TRANSFER LIST STYLES --- */
+        .transfer-box {
+            display: flex;
+            gap: 4px;
+            height: 180px; 
+            margin-bottom: 5px;
+        }
+        .list-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .btn-col {
+            width: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .transfer-btn {
+            width: 100%;
+            height: 28px;
+            padding: 0;
+            border: none;
+            border-radius: 3px;
+            background: #475569;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .transfer-btn:hover { background: #64748b; }
+        .listbox-select {
+            height: 100%;
+            padding: 4px;
+            background: #334155;
+            border: 1px solid #475569;
+            color: white;
+            font-size: 11px;
+            border-radius: 4px;
+        }
+        .listbox-label {
+            font-size: 10px;
+            color: #94a3b8;
+            text-align: center;
+            margin-bottom: 2px;
+        }
 
-    document.getElementById('populate_btn').addEventListener('click', async () => {
-        const dateVal = document.getElementById('date_filter').value;
-        const statusMsg = document.getElementById('status_msg');
-        const sourceBox = document.getElementById('source_listbox');
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .toolbar {
+            background: white;
+            padding: 8px 20px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        .toolbar-left { display: flex; gap: 10px; align-items: center; }
+        .toolbar-right { display: flex; gap: 8px; align-items: center; }
+        button {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        button:hover { background: #f9fafb; }
+        button.primary { background: var(--primary-color); color: white; border: none; }
+        button.danger { background: #ef4444; color: white; border: none; }
+        .zoom-display { font-size: 12px; color: #666; width: 40px; text-align: center; }
+        input[type="range"] { width: 80px; cursor: pointer; }
+        .workspace {
+            flex-grow: 1;
+            background: #e5e7eb;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 50px;
+            gap: 20px;
+        }
+        .canvas-wrapper {
+            position: relative;
+            background-color: #fff;
+            width: 800px;
+            height: 400px;
+            background-repeat: no-repeat;
+            background-size: contain;
+            background-position: top left;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            user-select: none;
+            flex-shrink: 0;
+            transform-origin: top center;
+        }
+        /* --- ELEMENTS --- */
+        .canvas-element {
+            position: absolute;
+            cursor: move;
+            background: rgba(37, 99, 235, 0.15);
+            border: 1px dashed var(--primary-color);
+            color: #1e3a8a;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-sizing: border-box;
+            z-index: 100;
+            overflow: hidden;
+        }
+        .canvas-element:hover { border: 1px solid var(--primary-color); background: rgba(37, 99, 235, 0.25); }
+        .canvas-element.selected { border: 2px solid var(--primary-color); background: rgba(37, 99, 235, 0.3); z-index: 101; }
+        .canvas-element.is-photo { background: rgba(239, 68, 68, 0.1); border-color: red; color: red; }
+        .canvas-element.is-line { background: transparent; border-bottom: 2px solid black; height: 0px !important; cursor: ns-resize; min-height: 2px; }
+        .canvas-element.is-box { background: transparent; border: 1px solid black; }
+        .canvas-element.is-frosted { background: rgba(255, 255,255, 0.4); backdrop-filter: blur(4px); border: 1px solid rgba(255, 255,255, 0.6); }
+        .canvas-element.is-image { background: transparent; border: 1px dashed #10b981; display: flex; align-items: center; justify-content: center; }
+        .canvas-element.is-image img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+
+        /* --- CUSTOM TEXTBOX --- */
+        .custom-textbox {
+            position: absolute;
+            background: transparent;
+            border: 1px dashed #94a3b8; 
+            color: #000;
+            font-size: 14px;
+            font-family: 'Segoe UI', sans-serif;
+            z-index: 200;
+            min-width: 200px; 
+            min-height: 20px;
+            cursor: text; 
+            padding: 4px;
+            outline: none;
+            white-space: pre-wrap;
+            line-height: 1.4;
+            text-align: left;
+        }
+        .custom-textbox.selected { border: 2px solid var(--primary-color); cursor: move; }
+        .resize-handle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: white;
+            border: 1px solid var(--primary-color);
+            display: none;
+            z-index: 300;
+        }
+        .canvas-element.selected .resize-handle, .custom-textbox.selected .resize-handle { display: block; }
+        .rh-se { bottom: -4px; right: -4px; cursor: nwse-resize; }
+        .rh-sw { bottom: -4px; left: -4px; cursor: nesw-resize; }
+        .rh-ne { top: -4px; right: -4px; cursor: nesw-resize; }
+        .rh-nw { top: -4px; left: -4px; cursor: nwse-resize; }
+
+        /* --- MODAL --- */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.85); z-index: 10000;
+            justify-content: center; align-items: center; padding: 10px; box-sizing: border-box;
+        }
+        .modal-content {
+            background-color: white; width: 100%; max-width: 800px; height: 90%;
+            border-radius: 8px; position: relative; display: flex; flex-direction: column;
+        }
+        .modal-header {
+            background-color: #2563eb; color: white; padding: 10px 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-top-left-radius: 8px; border-top-right-radius: 8px;
+        }
+        .modal-body { flex-grow: 1; border: none; width: 100%; background-color: #f3f4f6; }
+        .close-modal-btn { background: rgba(255,255,255,0.2); border: none; color: white; font-size: 20px; cursor: pointer; padding: 0 10px; border-radius: 4px; }
+        .close-modal-btn:hover { background: rgba(255,255,255,0.4); }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="sidebar-header">📐 ID Generator</div>
         
-        statusMsg.textContent = "⏳ Fetching members...";
-        sourceBox.innerHTML = '';
+        <!-- === NEW: MEMBERS DATA PANEL === -->
+        <div class="admin-forms-panel" style="border-bottom: 1px solid #334155;">
+            <div class="sidebar-group-title" style="color: #fff;">MEMBERS DATA</div>
+            
+            <input type="date" id="issueDateInput" class="admin-input">
+            <button class="admin-btn" onclick="loadMembers()" style="margin-top:5px; margin-bottom:5px;">👥 Load Members</button>
+            
+            <div class="transfer-box">
+                <div class="list-col">
+                    <div class="listbox-label">DB List</div>
+                    <select id="listLeft" class="listbox-select" multiple></select>
+                </div>
+                <div class="btn-col">
+                    <button class="transfer-btn" onclick="moveRight()">&gt;</button>
+                    <button class="transfer-btn" onclick="moveAllRight()">&gt;&gt;</button>
+                    <button class="transfer-btn" onclick="moveLeft()">&lt;</button>
+                    <button class="transfer-btn" onclick="moveAllLeft()">&lt;&lt;</button>
+                </div>
+                <div class="list-col">
+                    <div class="listbox-label">Selected (For Print)</div>
+                    <select id="listRight" class="listbox-select" multiple></select>
+                </div>
+            </div>
+        </div>
 
-        try {
-            const response = await fetch(`/api/members/by-date?date=${dateVal}`);
-            const data = await response.json();
+        <!-- === OFFICERS PANEL (CARBON COPY FROM ADMIN) === -->
+        <div class="admin-forms-panel">
+            <div class="sidebar-group-title" style="color: #fff;">OFFICERS LIST</div>
+            <select id="officerSelect" class="admin-select" onchange="updateDraggableOfficer()">
+                <option value="">-- Select Officer --</option>
+            </select>
+            <div id="officerDragItem" class="draggable-item" draggable="true" data-type="officer-group" style="opacity: 0.5; pointer-events: none; margin-top: 5px;">
+                👤 Drag Selected Officer
+            </div>
+        </div>
 
-            if(data.length === 0) {
-                sourceBox.innerHTML = '<option disabled>No members found</option>';
-                statusMsg.textContent = "❌ No records found";
-            } else {
-                data.forEach(member => {
+        <!-- === TOOLBOX === -->
+        <div class="sidebar-list">
+            <div class="sidebar-group-title">Front Side</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="FULL NAME">📝 FULL NAME</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="PSEUDO NAME">📝 PSEUDO NAME</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="ID NUMBER">🆔 ID NUMBER</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="DESIGNATION">👔 DESIGNATION</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="BLOOD TYPE">🩸 BLOOD TYPE</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="DATE ISSUED">📅 DATE ISSUED</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="VALID UNTIL">⏳ VALID UNTIL</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="ADDRESS">🏠 ADDRESS</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="CONTACT NO">📞 CONTACT NO</div>
+            
+            <div class="sidebar-group-title">Emergency</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="EMERGENCY PERSON NAME">🚑 EMERGENCY NAME</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="EMERGENCY ADDRESS">🏠 EMERGENCY ADDR</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="EMERGENCY NO">📞 EMERGENCY NO</div>
+            
+            <div class="sidebar-group-title">Objects</div>
+            <div class="draggable-item" draggable="true" data-type="photo" data-caption="PHOTO">🖼️ PHOTO</div>
+            <div class="draggable-item" draggable="true" data-type="line" data-caption="LINE">📏 LINE</div>
+            <div class="draggable-item" draggable="true" data-type="box" data-caption="BOX">⬜ BOX</div>
+            <div class="draggable-item" draggable="true" data-type="sig-box" data-caption="SIGNATURE">✍️ SIGNATURE BOX</div>
+            <div class="draggable-item" draggable="true" data-type="qr-code" data-caption="OR CODES">🔳 OR / QR CODES</div>
+        </div>
+    </div>
+
+    <!-- MAIN AREA -->
+    <div class="main-content">
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <label class="primary" style="padding: 6px 12px; cursor:pointer; border-radius:4px; background:#6366f1; color:white;">
+                    📁 Upload Template
+                    <input type="file" id="templateUpload" accept="image/*" style="display:none;">
+                </label>
+                <label class="primary" style="padding: 6px 12px; cursor:pointer; border-radius:4px; background:#10b981; color:white;">
+                    🖼️ Upload Logo
+                    <input type="file" id="logoUpload" accept="image/*" style="display:none;">
+                </label>
+                <button class="primary" style="background: #f59e0b; color: white; border:none;" onclick="addCustomTextbox()">
+                    ➕ Add Text
+                </button>
+                <span id="statusMsg" style="font-size:12px; color:#666; margin-left:10px;">Ready</span>
+            </div>
+
+            <div class="toolbar-right">
+                <span style="font-size:12px;">Zoom:</span>
+                <input type="range" id="zoomSlider" min="0.3" max="2.0" step="0.1" value="1.0">
+                <span id="zoomValue" class="zoom-display">100%</span>
+                
+                <div style="border-left: 1px solid #ddd; padding-left: 10px; gap: 5px; align-items: center; display:flex;">
+                    <select id="propFontFamily" title="Font Family">
+                        <option value="'Segoe UI', sans-serif">Segoe UI</option>
+                        <option value="Arial, sans-serif">Arial</option>
+                        <option value="'Times New Roman', serif">Times New Roman</option>
+                    </select>
+                    <input type="color" id="propTextColor" value="#1e3a8a" title="Text Color">
+                    <span style="font-size:11px; font-weight:bold; color:#555;">SIZE:</span>
+                    <input type="number" id="propSize" value="12" title="Font Size" style="width:40px;">
+                </div>
+
+                <button class="danger" onclick="deleteSelected()">🗑️ Delete</button>
+                <button class="primary" onclick="saveLayout()">💾 Save Layout</button>
+                <!-- Load Layout Button: Logic Changed to Merge Data -->
+                <button class="primary" style="background: #8b5cf6;" onclick="loadAndMergeLayout()">📂 Load & Merge</button>
+            </div>
+        </div>
+
+        <!-- WORKSPACE -->
+        <div class="workspace">
+            <div class="canvas-wrapper" id="editorCanvas">
+                <!-- Items appear here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL (If needed for admin forms) -->
+    <div id="signatureModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Officer Signature</h3>
+                <button class="close-modal-btn" onclick="closeModal('signatureModal')">✖</button>
+            </div>
+            <iframe src="/signature.html" class="modal-body" frameborder="0"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIG ---
+        const API_URL = ''; 
+        const statusMsg = document.getElementById('statusMsg');
+        const workspace = document.querySelector('.workspace'); // For appending stacked canvases
+
+        // --- ZOOM & ELEMENTS SETUP ---
+        const zoomSlider = document.getElementById('zoomSlider');
+        const zoomValue = document.getElementById('zoomValue');
+        const propSize = document.getElementById('propSize');
+        const propFontFamily = document.getElementById('propFontFamily');
+        const propTextColor = document.getElementById('propTextColor');
+
+        let isDragging = false;
+        let isResizing = false;
+        let currentEl = null;
+        let currentHandle = null;
+        let startX, startY, startWidth, startHeight, startLeft, startTop;
+
+        // --- MODAL LOGIC ---
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        // ==========================================
+        // 1. MEMBERS LOGIC (INTEGRATED) - STORES FULL DATA
+        // ==========================================
+        async function loadMembers() {
+            const dateInput = document.getElementById('issueDateInput').value;
+            const listLeft = document.getElementById('listLeft');
+
+            if (!dateInput) { alert("Please select a date first!"); return; }
+            listLeft.innerHTML = "";
+            statusMsg.textContent = "Fetching members...";
+            
+            try {
+                const response = await fetch(`${API_URL}/api/members/by-date?date=${dateInput}`);
+                if (!response.ok) throw new Error("Server error");
+                
+                const members = await response.json();
+                if (!members || members.length === 0) {
+                    alert("No members found for date: " + dateInput);
+                    statusMsg.textContent = "No members found.";
+                    return;
+                }
+
+                members.forEach(member => {
                     const option = document.createElement('option');
-                    option.value = member.id;
-                    option.textContent = member.name;
-                    option.dataset.json = JSON.stringify(member);
-                    sourceBox.add(option);
+                    option.value = member.id; 
+                    option.textContent = member.name; 
+                    // STORE FULL DATA IN DATASET FOR MERGING LATER
+                    option.dataset.memberData = JSON.stringify(member);
+                    listLeft.appendChild(option);
                 });
-                statusMsg.textContent = `✅ ${data.length} member(s) loaded`;
+                statusMsg.textContent = `Loaded ${members.length} members.`;
+            } catch (error) {
+                console.error(error);
+                alert("Error fetching members.");
+                statusMsg.textContent = "Error.";
             }
-        } catch (error) {
-            console.error(error);
-            statusMsg.textContent = "❌ Error loading members";
-            alert("Error fetching members. Please try again.");
         }
-    });
 
-    // Move items between listboxes
-    const sourceBox = document.getElementById('source_listbox');
-    const targetBox = document.getElementById('target_listbox');
+        // Transfer List Logic - Must move dataset too!
+        const listLeftElem = document.getElementById('listLeft');
+        const listRightElem = document.getElementById('listRight');
 
-    document.querySelectorAll('.move-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const dir = btn.dataset.dir;
-            if (dir === 'right-single') moveSelected(sourceBox, targetBox);
-            if (dir === 'right-all') moveAll(sourceBox, targetBox);
-            if (dir === 'left-all') moveAll(targetBox, sourceBox);
-            if (dir === 'left-single') moveSelected(targetBox, sourceBox);
-            updateSelectedCount();
+        function moveRight() { moveSelected(listLeftElem, listRightElem); }
+        function moveAllRight() { moveAll(listLeftElem, listRightElem); }
+        function moveLeft() { moveSelected(listRightElem, listLeftElem); }
+        function moveAllLeft() { moveAll(listRightElem, listLeftElem); }
+
+        function moveSelected(from, to) {
+            const selected = Array.from(from.selectedOptions);
+            selected.forEach(option => to.add(option));
+        }
+        function moveAll(from, to) {
+            const options = Array.from(from.options);
+            options.forEach(option => to.add(option));
+        }
+
+        // ==========================================
+        // 2. OFFICER LOGIC (CARBON COPY FROM ADMIN.HTML)
+        // ==========================================
+        const officerSelect = document.getElementById('officerSelect');
+        const officerDragItem = document.getElementById('officerDragItem');
+        let allOfficers = [];
+
+        async function initOfficersList() {
+            try {
+                const response = await fetch(`${API_URL}/get_officers_list`);
+                const data = await response.json();
+                if (data && Array.isArray(data)) {
+                    allOfficers = data;
+                    renderOfficerList(data);
+                }
+            } catch (error) {
+                console.error("Error loading officers:", error);
+            }
+        }
+
+        function renderOfficerList(data) {
+            officerSelect.innerHTML = '<option value="">-- Select Officer --</option>';
+            data.forEach(off => {
+                const option = document.createElement('option');
+                option.value = off.id;
+                option.textContent = `${off.name_officer} / ${off.designation || 'No Designation'}`;
+                officerSelect.appendChild(option);
+            });
+        }
+
+        function updateDraggableOfficer() {
+            const selectedId = officerSelect.value;
+            if (selectedId) {
+                officerDragItem.style.opacity = '1';
+                officerDragItem.style.pointerEvents = 'auto';
+            } else {
+                officerDragItem.style.opacity = '0.5';
+                officerDragItem.style.pointerEvents = 'none';
+            }
+        }
+
+        // Initialize Officers on Load
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('issueDateInput').valueAsDate = new Date();
+            initOfficersList(); 
         });
-    });
 
-    function moveSelected(fromBox, toBox) {
-        for (let i = fromBox.options.length - 1; i >= 0; i--) {
-            if (fromBox.options[i].selected && !fromBox.options[i].disabled) {
-                toBox.appendChild(fromBox.options[i]);
-            }
-        }
-    }
-
-    function moveAll(fromBox, toBox) {
-        while (fromBox.options.length > 0) {
-            if (!fromBox.options[0].disabled) {
-                toBox.appendChild(fromBox.options[0]);
-            } else {
-                fromBox.removeChild(fromBox.options[0]);
-            }
-        }
-    }
-
-    function updateSelectedCount() {
-        const count = targetBox.options.length;
-        document.getElementById('selected_count').textContent = count;
-    }
-
-    // Signatory management logic
-    const sigInput = document.getElementById('signatory_input');
-    const sigList = document.getElementById('signatory_listbox');
-    const sigDataList = document.getElementById('signatory_history');
-    const actionBtn = document.getElementById('signatory_action_btn');
-    const sigStorage = document.getElementById('sig_storage');
-
-    function loadHistory() {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        sigDataList.innerHTML = '';
-        saved.forEach(name => {
-            const opt = document.createElement('option');
-            opt.value = name;
-            sigDataList.appendChild(opt);
-        });
-    }
-    loadHistory();
-
-    function updateButtonState() {
-        const hasSelection = sigList.selectedIndex !== -1;
-        if (hasSelection) {
-            const item = sigList.options[sigList.selectedIndex];
-            if (item.disabled) return;
-            const data = JSON.parse(item.dataset.json || '{"sig":""}');
-            if (data.sig && data.sig.length > 0) {
-                actionBtn.textContent = "Remove";
-                actionBtn.style.backgroundColor = "#dc3545";
-            } else {
-                actionBtn.textContent = "✍️ Sign";
-                actionBtn.style.backgroundColor = "#fd7e14";
-            }
-        } else {
-            actionBtn.textContent = "Add";
-            actionBtn.style.backgroundColor = "#007bff";
-        }
-    }
-
-    sigList.addEventListener('change', updateButtonState);
-
-    actionBtn.addEventListener('click', () => {
-        const hasSelection = sigList.selectedIndex !== -1;
-        if (hasSelection) {
-            const item = sigList.options[sigList.selectedIndex];
-            if (item.disabled) return;
-            const data = JSON.parse(item.dataset.json || '{}');
-            if (data.sig && data.sig.length > 0) {
-                sigList.remove(sigList.selectedIndex);
-                updateButtonState();
-                saveSignatoryStorage();
-            } else {
-                openSignatureModal(item);
-            }
-        } else {
-            const text = sigInput.value.trim();
-            if(!text) return alert("Please type a name and position");
-            
-            const opt = document.createElement('option');
-            opt.value = text;
-            opt.textContent = text;
-            opt.dataset.json = JSON.stringify({ name: text, sig: "" });
-            sigList.appendChild(opt);
-
-            let saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            if(!saved.includes(text)) {
-                saved.push(text);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-                loadHistory();
-            }
-            sigInput.value = '';
-            updateButtonState();
-        }
-    });
-
-    // ==========================================================
-    // ✅ FIXED SIGNATURE PAD LOGIC (Heavy Duty & Responsive)
-    // ==========================================================
-    function openSignatureModal(optionElement) {
-        currentEditingSignatory = optionElement;
-        const modal = document.getElementById('signatureModal');
-        modal.style.display = 'block';
-
-        setTimeout(() => {
-            const canvas = document.getElementById('signature-pad');
-            const container = canvas.parentElement;
-            
-            // Get precise size AFTER modal is visible
-            const rect = container.getBoundingClientRect();
-            const width = rect.width;
-            const height = rect.height;
-
-            if (width > 0 && height > 0) {
-                // High DPI Scaling Fix
-                const ratio = Math.max(window.devicePixelRatio || 1, 1);
-                
-                // Reset internal canvas resolution to match display size * ratio
-                canvas.width = width * ratio;
-                canvas.height = height * ratio;
-                
-                // Ensure CSS matches container
-                canvas.style.width = width + "px";
-                canvas.style.height = height + "px";
-
-                const ctx = canvas.getContext("2d");
-                ctx.scale(ratio, ratio);
-                
-                // Clean up old instance completely to prevent ghost lines
-                if (signaturePad) {
-                    signaturePad.clear();
-                    signaturePad.off(); 
-                }
-                
-                // Initialize NEW Pad with OPTIMIZED settings for better signing
-                signaturePad = new SignaturePad(canvas, {
-                    backgroundColor: 'rgba(255, 255, 255, 0)', // Transparent base
-                    penColor: 'rgb(0, 0, 0)',
-                    
-                    // --- TUNED SETTINGS FOR BETTER SIGNING ---
-                    // Increased width so lines are visible and not "mahina"
-                    velocityFilterWeight: 0.7,
-                    minWidth: 1.0,   // From 0.5 -> 1.0 (Bold enough)
-                    maxWidth: 3.0,   // From 2.5 -> 3.0 (Stronger signature)
-                    throttle: 8,     // Lowered from 16 -> 8 (Faster response, less lag)
-                    minPointDistance: 0.5 // Tighter curves
-                });
-
-                // Load existing signature if editing
-                if (optionElement.dataset.json) {
-                    try {
-                        const data = JSON.parse(optionElement.dataset.json);
-                        if (data.sig && data.sig.length > 0) {
-                            signaturePad.fromDataURL(data.sig, {
-                                ratio: ratio,
-                                width: width,
-                                height: height
-                            });
-                        }
-                    } catch (e) {
-                        console.error("Error loading signature", e);
-                        signaturePad.clear();
-                    }
-                }
-            }
-        }, 100); // Reduced timeout slightly for snappier feel
-    }
-
-    document.getElementById('clear_sig_btn').addEventListener('click', () => { if(signaturePad) signaturePad.clear(); });
-    document.getElementById('cancel_sig_btn').addEventListener('click', () => { 
-        document.getElementById('signatureModal').style.display = 'none'; 
-        if(signaturePad) signaturePad.off(); // Clean up listener
-        signaturePad = null; 
-    });
-    
-    document.getElementById('save_sig_btn').addEventListener('click', () => {
-        if (!signaturePad || signaturePad.isEmpty()) return alert("Please sign first");
-        const dataURL = signaturePad.toDataURL('image/png');
-        const rawText = currentEditingSignatory.value;
-        const [nameOnly, ...posParts] = rawText.split("-");
-        const sigData = { name: nameOnly.trim(), position: posParts.join("-").trim(), sig: dataURL };
-        currentEditingSignatory.dataset.json = JSON.stringify(sigData);
-        currentEditingSignatory.textContent = rawText + ' ✓';
-        saveSignatoryStorage();
-        document.getElementById('signatureModal').style.display = 'none';
-        if(signaturePad) signaturePad.off();
-        signaturePad = null;
-        updateButtonState();
-    });
-
-    function saveSignatoryStorage() {
-        let signatories = [];
-        for (let i = 0; i < sigList.options.length; i++) {
-            const opt = sigList.options[i];
-            if (opt.disabled) continue;
-            if (opt.dataset.json) {
-                const data = JSON.parse(opt.dataset.json);
-                if (data.sig && data.sig.length > 20) signatories.push(data);
-            }
-        }
-        sigStorage.value = JSON.stringify(signatories);
-    }
-
-    // ==========================================================
-    // ✨ PDF GENERATION LOGIC
-    // ==========================================================
-    async function generatePDF(action) {
-        if (targetBox.options.length === 0) return alert("❌ Please select at least one member");
-        
-        // WAIT: Siguraduhin na naka-load na ang config bago mag-print
-        if (!TEMPLATE_CONFIG) {
-            alert("⏳ Template is still loading from cloud... please try again in a second.");
-            await loadConfigFromSupabase(); // Try one more time
-            if (!TEMPLATE_CONFIG) return alert("❌ Failed to load template.");
-        }
-
-        const layout = document.querySelector('input[name="layout"]:checked').value;
-        const members = [];
-        for (let i = 0; i < targetBox.options.length; i++) {
-            const opt = targetBox.options[i];
-            if (!opt.disabled) members.push(JSON.parse(opt.dataset.json));
-        }
-        const signatories = JSON.parse(sigStorage.value || '[]');
-        document.getElementById('loading_overlay').style.display = 'block';
-
-        try {
-            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-            
-            if (layout === 'side-by-side') await generateSideBySide(pdf, members, signatories);
-            else if (layout === 'separate-pages') await generateSeparatePages(pdf, members, signatories);
-            else if (layout === 'one-per-page') await generateOnePerPage(pdf, members, signatories);
-            
-            document.getElementById('loading_overlay').style.display = 'none';
-
-            if (action === 'preview') window.open(pdf.output('bloburl'), '_blank');
-            else if (action === 'download') pdf.save(`ID_Cards_${new Date().toISOString().split('T')[0]}.pdf`);
-            else if (action === 'print') { pdf.autoPrint(); window.open(pdf.output('bloburl'), '_blank'); }
-        } catch (error) {
-            console.error(error);
-            document.getElementById('loading_overlay').style.display = 'none';
-            alert("❌ Error generating PDF. Check console.");
-        }
-    }
-
-    async function generateSideBySide(pdf, members, signatories) {
-        const cardW_mm = 86;
-        const cardH_mm = 54;
-        const gap_mm = 10;
-        const marginX = (210 - (cardW_mm * 2 + gap_mm)) / 2;
-        let currentY = 15;
-
-        for (let i = 0; i < members.length; i++) {
-            if (i > 0 && currentY + cardH_mm > 280) {
-                pdf.addPage();
-                currentY = 15;
-            }
-            await drawIDCard(pdf, members[i], signatories, marginX, currentY, cardW_mm, cardH_mm, 'front');
-            await drawIDCard(pdf, members[i], signatories, marginX + cardW_mm + gap_mm, currentY, cardW_mm, cardH_mm, 'back');
-            currentY += cardH_mm + gap_mm;
-        }
-    }
-
-    async function generateSeparatePages(pdf, members, signatories) {
-        const cardW_mm = 86;
-        const cardH_mm = 54;
-        const gap_mm = 10;
-        const marginX = (210 - (cardW_mm * 2 + gap_mm)) / 2;
-        let currentY = 15;
-        
-        // Fronts
-        for (let i = 0; i < members.length; i++) {
-            if (i > 0 && currentY + cardH_mm > 280) { pdf.addPage(); currentY = 15; }
-            await drawIDCard(pdf, members[i], signatories, marginX, currentY, cardW_mm, cardH_mm, 'front');
-            currentY += cardH_mm + gap_mm;
-        }
-        // Backs
-        pdf.addPage(); currentY = 15;
-        for (let i = 0; i < members.length; i++) {
-            if (i > 0 && currentY + cardH_mm > 280) { pdf.addPage(); currentY = 15; }
-            await drawIDCard(pdf, members[i], signatories, marginX, currentY, cardW_mm, cardH_mm, 'back');
-            currentY += cardH_mm + gap_mm;
-        }
-    }
-
-    async function generateOnePerPage(pdf, members, signatories) {
-        const cardW_mm = 86;
-        const cardH_mm = 54;
-        const gap_mm = 10;
-        const centerX = (210 - cardW_mm) / 2;
-        const startY = 60;
-
-        for (let i = 0; i < members.length; i++) {
-            if (i > 0) pdf.addPage();
-            await drawIDCard(pdf, members[i], signatories, centerX, startY, cardW_mm, cardH_mm, 'front');
-            await drawIDCard(pdf, members[i], signatories, centerX, startY + cardH_mm + gap_mm, cardW_mm, cardH_mm, 'back');
-        }
-    }
-
-    // ==========================================================
-    // 🎨 CORE DRAWING FUNCTION
-    // ==========================================================
-    async function drawIDCard(pdf, member, signatories, x_mm, y_mm, w_mm, h_mm, side) {
-        // 1. Draw Background Template
-        try {
-            pdf.addImage(TEMPLATE_CONFIG.imageUrl, 'JPEG', x_mm, y_mm, w_mm, h_mm);
-        } catch (e) {
-            console.warn("Template image not found, drawing blank card.");
-            pdf.setDrawColor(0); pdf.rect(x_mm, y_mm, w_mm, h_mm);
-        }
-
-        // Calculate Scale (Pixels to MM)
-        const scaleX = w_mm / TEMPLATE_CONFIG.widthPx;
-        const scaleY = h_mm / TEMPLATE_CONFIG.heightPx;
-
-        // Helper
-        const drawText = (fieldKey, textContent, options = {}) => {
-            const field = TEMPLATE_CONFIG.fields[fieldKey];
-            if (!field || !textContent) return;
-            const pdfX = x_mm + (field.left * scaleX);
-            const pdfY = y_mm + (field.top * scaleY);
-            pdf.setFontSize(field.size * 1.5);
-            pdf.setFont('helvetica', field.font || 'normal');
-            pdf.text(textContent.toString(), pdfX, pdfY);
-        };
-
-        const drawPhoto = () => {
-            const field = TEMPLATE_CONFIG.fields['f_photo'];
-            if (!field || !member.photo_data) return;
-            const pdfX = x_mm + (field.left * scaleX);
-            const pdfY = y_mm + (field.top * scaleY);
-            const pdfW = field.width * scaleX;
-            const pdfH = field.height * scaleY;
-            try { pdf.addImage(member.photo_data, 'JPEG', pdfX, pdfY, pdfW, pdfH); } catch(e){}
-        };
-
-        const drawSignatures = () => {
-            signatories.forEach((sig, index) => {
-                if (index > 2) return;
-                const sigKey = `b_sig${index + 1}`;
-                const nameKey = `b_sig${index + 1}_name`;
-                const posKey = `b_sig${index + 1}_pos`;
-                
-                // Sig Image
-                const sigField = TEMPLATE_CONFIG.fields[sigKey];
-                if (sigField && sig.sig) {
-                    const pdfX = x_mm + (sigField.left * scaleX);
-                    const pdfY = y_mm + (sigField.top * scaleY);
-                    const pdfW = sigField.width * scaleX;
-                    const pdfH = sigField.height * scaleY;
-                    
-                    try { 
-                        pdf.addImage(sig.sig, 'PNG', pdfX, pdfY, { 
-                            maxWidth: pdfW, 
-                            maxHeight: pdfH, 
-                            align: 'center',
-                            angle: 0 
-                        }); 
-                    } catch(e){
-                        console.log("Sig error", e);
-                    }
-                }
-
-                // Name
-                if (TEMPLATE_CONFIG.fields[nameKey]) {
-                    const f = TEMPLATE_CONFIG.fields[nameKey];
-                    pdf.setFontSize(f.size * 1.5);
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text(sig.name, x_mm + (f.left * scaleX), y_mm + (f.top * scaleY));
-                }
-                // Pos
-                if (TEMPLATE_CONFIG.fields[posKey]) {
-                    const f = TEMPLATE_CONFIG.fields[posKey];
-                    pdf.setFontSize(f.size * 1.5);
-                    pdf.setFont('helvetica', 'normal');
-                    pdf.text(sig.position, x_mm + (f.left * scaleX), y_mm + (f.top * scaleY));
+        // ==========================================
+        // 3. CANVAS & DRAG DROP LOGIC (Single Editor Canvas)
+        // ==========================================
+        const canvas = document.getElementById('editorCanvas');
+        const draggables = document.querySelectorAll('.draggable-item');
+        draggables.forEach(d => {
+            d.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('type', d.dataset.type);
+                e.dataTransfer.setData('caption', d.dataset.caption);
+                if(d.dataset.type === 'officer-group') {
+                    e.dataTransfer.setData('officerId', officerSelect.value);
                 }
             });
-        };
+        });
 
-        // === DRAWING LOGIC BY SIDE ===
-        if (side === 'front') {
-            drawPhoto();
-            drawText('f_name', member.name);
-            drawText('f_pseudo', member.pseudo_name);
-            drawText('f_birthdate', member.birthdate);
-            drawText('f_height', member.height);
-            drawText('f_weight', member.weight);
-            drawText('f_blood', member.blood_type);
-            drawText('f_idno', member.id_no);
-            drawText('f_contact', member.contact_no);
-        } else if (side === 'back') {
-            drawText('b_emer_name', member.emergency_name);
-            drawText('b_emer_addr', member.emergency_address);
-            drawText('b_emer_contact', member.emergency_contact);
+        canvas.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            canvas.style.border = "2px dashed #2563eb";
+        });
+        canvas.addEventListener('dragleave', (e) => {
+            canvas.style.border = "none";
+        });
+        canvas.addEventListener('drop', (e) => {
+            e.preventDefault();
+            canvas.style.border = "none";
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const zoom = parseFloat(zoomSlider.value);
+            const actualX = x / zoom;
+            const actualY = y / zoom;
+            const type = e.dataTransfer.getData('type');
             
-            drawSignatures();
+            if (type === 'officer-group') {
+                const officerId = e.dataTransfer.getData('officerId');
+                const officer = allOfficers.find(o => o.id == officerId);
+                if (officer) createOfficerElements(officer, actualX, actualY);
+            } else {
+                const caption = e.dataTransfer.getData('caption');
+                createSidebarElement(type, caption, actualX, actualY);
+            }
+        });
 
-            const today = new Date().toLocaleDateString();
-            drawText('b_date_issued', `Issued: ${today}`);
-            drawText('b_valid_until', `Valid Until: 2025`);
+        function createSidebarElement(type, caption, x, y, imgSrc = null) {
+            const el = document.createElement('div');
+            el.className = 'canvas-element';
+            if (imgSrc) {
+                el.classList.add('is-image');
+                const img = document.createElement('img');
+                img.src = imgSrc;
+                el.appendChild(img);
+                el.style.width = '100px'; el.style.height = '100px';
+            } else {
+                el.textContent = caption;
+                el.style.fontSize = '12px';
+                el.style.color = "#1e3a8a";
+            }
+
+            if(!imgSrc) {
+                el.style.left = Math.round(x) + 'px';
+                el.style.top = Math.round(y) + 'px';
+            } else {
+                el.style.left = Math.round(x) + 'px';
+                el.style.top = Math.round(y) + 'px';
+            }
+
+            if (type === 'photo') { el.classList.add('is-photo'); el.style.width = '100px'; el.style.height = '120px'; }
+            else if (type === 'line') { el.classList.add('is-line'); el.style.width = '150px'; el.textContent = ''; }
+            else if (type === 'box' || type === 'sig-box') { el.classList.add('is-box'); el.style.width = '100px'; el.style.height = '40px'; }
+            else if (type === 'qr-code') { el.classList.add('is-box'); el.style.width = '80px'; el.style.height = '80px'; el.textContent = 'QR CODE'; }
+            else if (!imgSrc) { el.style.width = 'auto'; el.style.padding = '2px 5px'; }
+
+            el.id = 'field_' + Date.now();
+            ['nw', 'ne', 'sw', 'se'].forEach(pos => {
+                const handle = document.createElement('div');
+                handle.className = `resize-handle rh-${pos}`;
+                handle.dataset.handle = pos;
+                el.appendChild(handle);
+            });
+            canvas.appendChild(el);
+            selectElement(el);
         }
-    }
 
-    document.getElementById('preview_pdf_btn').addEventListener('click', () => generatePDF('preview'));
-    document.getElementById('download_pdf_btn').addEventListener('click', () => generatePDF('download'));
-    document.getElementById('print_pdf_btn').addEventListener('click', () => generatePDF('print'));
+        function createOfficerElements(officer, x, y) {
+            // Name
+            const nameEl = document.createElement('div');
+            nameEl.className = 'canvas-element';
+            nameEl.textContent = officer.name_officer;
+            nameEl.style.left = Math.round(x) + 'px';
+            nameEl.style.top = Math.round(y) + 'px';
+            nameEl.style.fontSize = '12px';
+            nameEl.style.fontWeight = 'bold';
+            nameEl.id = 'officer_' + Date.now();
+            addResizeHandles(nameEl); canvas.appendChild(nameEl); selectElement(nameEl);
 
-</script>
-{% endblock %}
+            // Designation
+            const desigEl = document.createElement('div');
+            desigEl.className = 'canvas-element';
+            desigEl.textContent = officer.designation || "";
+            desigEl.style.left = Math.round(x) + 'px';
+            desigEl.style.top = (Math.round(y) + 20) + 'px';
+            desigEl.style.fontSize = '11px';
+            desigEl.id = 'officer_' + Date.now();
+            addResizeHandles(desigEl); canvas.appendChild(desigEl);
+
+            // Line
+            const lineEl = document.createElement('div');
+            lineEl.className = 'canvas-element is-line';
+            lineEl.style.left = Math.round(x) + 'px';
+            lineEl.style.top = (Math.round(y) + 40) + 'px';
+            lineEl.style.width = '150px';
+            lineEl.id = 'officer_' + Date.now();
+            addResizeHandles(lineEl); canvas.appendChild(lineEl);
+
+            // Signature
+            if (officer.man_signature) {
+                const sigEl = document.createElement('div');
+                sigEl.className = 'canvas-element is-image';
+                sigEl.style.left = Math.round(x) + 'px';
+                sigEl.style.top = (Math.round(y) + 50) + 'px';
+                sigEl.style.width = '100px'; sigEl.style.height = '40px';
+                const img = document.createElement('img'); img.src = officer.man_signature;
+                sigEl.appendChild(img);
+                sigEl.id = 'officer_' + Date.now();
+                addResizeHandles(sigEl); canvas.appendChild(sigEl);
+            }
+        }
+
+        function addResizeHandles(el) {
+            ['nw', 'ne', 'sw', 'se'].forEach(pos => {
+                const handle = document.createElement('div');
+                handle.className = `resize-handle rh-${pos}`;
+                handle.dataset.handle = pos;
+                el.appendChild(handle);
+            });
+        }
+
+        function addCustomTextbox() {
+            const el = document.createElement('div');
+            el.className = 'custom-textbox';
+            el.contentEditable = "true";
+            el.style.left = (canvas.offsetWidth / 2 - 100) + 'px';
+            el.style.top = (canvas.offsetHeight / 2 - 10) + 'px';
+            el.style.width = '200px'; el.innerText = "";
+            el.id = 'custom_' + Date.now();
+            ['nw', 'ne', 'sw', 'se'].forEach(pos => {
+                const handle = document.createElement('div');
+                handle.className = `resize-handle rh-${pos}`;
+                el.appendChild(handle);
+            });
+            canvas.appendChild(el); selectElement(el);
+            setTimeout(() => el.focus(), 100);
+        }
+
+        document.getElementById('templateUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const img = new Image();
+                    img.onload = function() {
+                        canvas.style.width = img.width + 'px';
+                        canvas.style.height = img.height + 'px';
+                        canvas.style.backgroundImage = `url('${evt.target.result}')`;
+                        statusMsg.textContent = "Template: " + file.name;
+                    };
+                    img.src = evt.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('logoUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    createSidebarElement('logo-image', 'Logo', 50, 50, evt.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // --- ZOOM SLIDER FIX (Apply to ALL wrappers) ---
+        zoomSlider.addEventListener('input', function() {
+            const scale = this.value;
+            const allCanvases = document.querySelectorAll('.canvas-wrapper');
+            allCanvases.forEach(c => {
+                c.style.transform = `scale(${scale})`;
+            });
+            zoomValue.textContent = Math.round(scale * 100) + '%';
+        });
+
+        // --- MOUSE EVENTS (Drag, Resize, Select) - FIXED DELETE ISSUE ---
+        document.addEventListener('mousedown', function(e) {
+            if (e.target.classList.contains('resize-handle')) {
+                isResizing = true; currentHandle = e.target.dataset.handle; currentEl = e.target.parentElement;
+                startX = e.clientX; startY = e.clientY;
+                startWidth = parseInt(getComputedStyle(currentEl).width);
+                startHeight = parseInt(getComputedStyle(currentEl).height);
+                selectElement(currentEl); e.stopPropagation(); return;
+            }
+            const targetEl = e.target.closest('.canvas-element') || e.target.closest('.custom-textbox');
+            if (targetEl) {
+                currentEl = targetEl;
+                startX = e.clientX; startY = e.clientY;
+                startLeft = currentEl.offsetLeft; startTop = currentEl.offsetTop;
+                if (currentEl.classList.contains('custom-textbox')) {
+                    const dragTimer = setTimeout(() => { isDragging = true; selectElement(currentEl); }, 150);
+                    currentEl.dataset.dragTimer = dragTimer;
+                } else {
+                    isDragging = true; selectElement(currentEl);
+                }
+            } else if (!e.target.closest('.toolbar') && !e.target.closest('.sidebar') && !e.target.closest('.modal-content')) {
+                deselectAll();
+            }
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (isResizing && currentEl) {
+                e.preventDefault();
+                const zoom = parseFloat(zoomSlider.value);
+                const dx = (e.clientX - startX) / zoom;
+                const dy = (e.clientY - startY) / zoom;
+                if (currentHandle.includes('e')) currentEl.style.width = Math.round(startWidth + dx) + 'px';
+                if (currentHandle.includes('s')) currentEl.style.height = Math.round(startHeight + dy) + 'px';
+            }
+            else if ((isDragging || currentEl) && (Math.abs(e.clientX - startX) > 2 || Math.abs(e.clientY - startY) > 2)) {
+                if (currentEl && !isDragging) {
+                    isDragging = true;
+                }
+                if (isDragging && currentEl) {
+                    e.preventDefault();
+                    const zoom = parseFloat(zoomSlider.value);
+                    const dx = (e.clientX - startX) / zoom;
+                    const dy = (e.clientY - startY) / zoom;
+                    currentEl.style.left = Math.round(startLeft + dx) + 'px';
+                    currentEl.style.top = Math.round(startTop + dy) + 'px';
+                }
+            }
+        });
+
+        document.addEventListener('mouseup', function() {
+            if (currentEl && currentEl.dataset.dragTimer) clearTimeout(currentEl.dataset.dragTimer);
+            isDragging = false; isResizing = false; currentEl = null; currentHandle = null;
+        });
+
+        function selectElement(el) {
+            deselectAll();
+            el.classList.add('selected');
+            propSize.value = parseInt(getComputedStyle(el).fontSize) || 12;
+            propFontFamily.value = el.style.fontFamily || "'Segoe UI', sans-serif";
+            propTextColor.value = rgbToHex(el.style.color) || "#000000";
+        }
+
+        function deselectAll() {
+            document.querySelectorAll('.canvas-element, .custom-textbox').forEach(el => el.classList.remove('selected'));
+        }
+        
+        function deleteSelected() {
+            const selected = document.querySelectorAll('.canvas-element.selected, .custom-textbox.selected');
+            if (selected.length > 0) {
+                selected.forEach(el => el.remove());
+                currentEl = null;
+            } else {
+                alert("Please select an item on canvas first to delete it.");
+            }
+        }
+        
+        // Helpers
+        propSize.addEventListener('input', () => {
+            const sel = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
+            if(sel) sel.style.fontSize = propSize.value + 'px';
+        });
+        propFontFamily.addEventListener('change', () => {
+            const sel = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
+            if(sel) sel.style.fontFamily = propFontFamily.value;
+        });
+        propTextColor.addEventListener('input', () => {
+            const sel = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
+            if(sel) sel.style.color = propTextColor.value;
+        });
+        function rgbToHex(rgb) { if(!rgb) return "#000"; if(rgb.startsWith('#')) return rgb; const [r,g,b] = rgb.match(/\d+/g); return "#" + [r,g,b].map(x => parseInt(x).toString(16).padStart(2,'0')).join(''); }
+
+        // ==========================================
+        // 4. SAVE / LOAD LAYOUT (EXACT COORDINATES)
+        // ==========================================
+        async function saveLayout() {
+            const elements = [];
+            Array.from(canvas.children).forEach(child => {
+                if (child.classList.contains('resize-handle')) return; 
+                const data = {
+                    className: child.className,
+                    id: child.id,
+                    text: child.innerText,
+                    left: child.style.left,
+                    top: child.style.top,
+                    width: child.style.width,
+                    height: child.style.height,
+                    color: child.style.color,
+                    fontSize: child.style.fontSize,
+                    fontFamily: child.style.fontFamily,
+                    fontWeight: child.style.fontWeight,
+                    isContentEditable: child.isContentEditable
+                };
+                const img = child.querySelector('img');
+                if (img) data.imgSrc = img.src;
+                elements.push(data);
+            });
+            const payload = {
+                template: {
+                    backgroundImage: canvas.style.backgroundImage,
+                    width: canvas.style.width,
+                    height: canvas.style.height
+                },
+                fields: elements
+            };
+            try {
+                const response = await fetch(`${API_URL}/save_layout`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (response.ok) alert(result.message || "Layout Saved!");
+                else alert("Error: " + result.message);
+            } catch (e) { console.error(e); alert("Failed to save."); }
+        }
+
+        // ==========================================
+        // 5. LOAD AND MERGE LOGIC (THE MAGIC - STATIC LINE FIX)
+        // ==========================================
+        
+        // Keywords that NEED to be merged from member data
+        const MERGE_KEYWORDS = [
+            "FULL NAME", "PSEUDO NAME", "ID NUMBER", "BLOOD TYPE",
+            "DATE ISSUED", "VALID UNTIL", "ADDRESS", "HOME ADDRESS",
+            "CONTACT NO", "CONTACT NUMBER",
+            "CHAPTER", "HEIGHT", "WEIGHT", "OCCUPATION",
+            "EMERGENCY NAME", "EMERGENCY PERSON NAME",
+            "EMERGENCY ADDRESS",
+            "EMERGENCY CONTACT", "EMERGENCY NO", "EMERGENCY CONTACT NO",
+            "BIRTHDATE", "CIVIL STATUS", "DESIGNATION",
+            "PHOTO", "SIGNATURE", "QR CODE", "OR CODES"
+        ];
+
+        async function loadAndMergeLayout() {
+            // 1. Get Layout Template
+            try {
+                const response = await fetch(`${API_URL}/load_layout`);
+                const result = await response.json();
+                if (!response.ok) { alert("Error: " + result.message); return; }
+                
+                const saved = result.data;
+                if (!saved) { alert("No saved layout found."); return; }
+
+                // 2. Check Selected Members
+                const selectedOptions = listRightElem.options;
+                if (selectedOptions.length === 0) {
+                    alert("Please select members in the 'Selected' listbox first!");
+                    return;
+                }
+
+                // 3. Clear existing workspace
+                workspace.innerHTML = ""; 
+
+                // 4. Loop through selected members and create a card for each
+                for (let i = 0; i < selectedOptions.length; i++) {
+                    const option = selectedOptions[i];
+                    const member = JSON.parse(option.dataset.memberData);
+                    
+                    // Create a new canvas wrapper for this member
+                    const newCanvas = document.createElement('div');
+                    newCanvas.className = 'canvas-wrapper';
+                    newCanvas.style.width = saved.template.width;
+                    newCanvas.style.height = saved.template.height;
+                    newCanvas.style.backgroundImage = saved.template.backgroundImage;
+                    newCanvas.style.backgroundRepeat = "no-repeat";
+                    newCanvas.style.backgroundSize = "contain";
+                    newCanvas.style.boxShadow = "0 10px 40px rgba(0,0,0,0.2)";
+                    
+                    // IMPORTANT: Apply current zoom to new canvas immediately
+                    const zoom = parseFloat(zoomSlider.value);
+                    newCanvas.style.transform = `scale(${zoom})`;
+
+                    // Append to workspace (Stacking)
+                    workspace.appendChild(newCanvas);
+
+                    // Render fields for this specific member
+                    if (saved && saved.fields) {
+                        saved.fields.forEach(fieldData => {
+                            const el = document.createElement('div');
+                            el.className = fieldData.className;
+                            el.id = fieldData.id + '_' + i; // Unique ID
+                            el.style.left = fieldData.left;
+                            el.style.top = fieldData.top;
+                            el.style.width = fieldData.width;
+                            el.style.height = fieldData.height;
+                            el.style.color = fieldData.color;
+                            el.style.fontSize = fieldData.fontSize;
+                            el.style.fontFamily = fieldData.fontFamily;
+                            el.style.fontWeight = fieldData.fontWeight;
+                            el.style.borderColor = "transparent"; // Hide borders for final output
+
+                            // --- SMART RENDER LOGIC ---
+                            const fieldText = (fieldData.text || "").trim().toUpperCase();
+                            
+                            // CHECK: IS THIS A CSS OBJECT (Line, Box, etc)?
+                            const isCssObject = fieldData.className.includes('is-line') || 
+                                                  fieldData.className.includes('is-box') || 
+                                                  fieldData.className.includes('is-frosted');
+                            
+                            // CASE 1: OFFICER ELEMENTS (ID starts with "officer_")
+                            if (fieldData.id.includes("officer_")) {
+                                if (fieldData.imgSrc) {
+                                    // Officer Signature (Static from Layout)
+                                    el.innerHTML = "";
+                                    const img = document.createElement('img');
+                                    img.src = fieldData.imgSrc;
+                                    img.style.width = '100%'; img.style.height = '100%';
+                                    img.style.objectFit = 'contain'; img.style.pointerEvents = 'none';
+                                    el.appendChild(img);
+                                } else {
+                                    // Officer Name / Designation / Line (Static Text from Layout)
+                                    el.innerText = fieldData.text; 
+                                }
+                            }
+                            // CASE 1.5: CSS OBJECTS (Static Lines, Boxes, Frosted)
+                            // This covers "Guhit", "Box", etc.
+                            // They render purely via CSS classes, so just render them as is.
+                            else if (isCssObject) {
+                                el.innerText = fieldData.text; // Usually empty for lines
+                            }
+                            // CASE 2: STATIC IMAGE (Logo from Admin)
+                            else if (fieldData.imgSrc) {
+                                const img = document.createElement('img');
+                                img.src = fieldData.imgSrc;
+                                img.style.width = '100%'; img.style.height = '100%';
+                                img.style.objectFit = 'contain'; img.style.pointerEvents = 'none';
+                                el.innerHTML = ''; el.appendChild(img);
+                            }
+                            // CASE 3: DYNAMIC MEMBER DATA (Merge Fields)
+                            else if (MERGE_KEYWORDS.includes(fieldText)) {
+                                const dataVal = getMemberValue(fieldData.text, member);
+
+                                if (isImageField(fieldData.text)) {
+                                    // Render Photo / Signature / QR Code as <img>
+                                    el.innerHTML = "";
+                                    const img = document.createElement('img');
+                                    
+                                    if (fieldText === "PHOTO") img.src = member.photo_data || "";
+                                    else if (fieldText === "SIGNATURE") img.src = member.signature || "";
+                                    else if (fieldText === "QR CODE" || fieldText === "OR CODES") img.src = member.qr_code || "";
+                                    else img.src = ""; // Fallback
+
+                                    img.style.width = '100%'; img.style.height = '100%';
+                                    img.style.objectFit = 'contain';
+                                    el.appendChild(img);
+                                } else {
+                                    // Render as Text
+                                    el.innerText = dataVal;
+                                }
+                            }
+                            // CASE 4: STATIC TEXT (Lines, Custom Text, etc.)
+                            else {
+                                // Render EXACTLY what was saved
+                                el.innerText = fieldData.text; 
+                            }
+                            
+                            newCanvas.appendChild(el);
+                        });
+                    }
+                }
+                statusMsg.textContent = `Generated ID for ${selectedOptions.length} member(s).`;
+            } catch (e) { console.error(e); alert("Failed to load."); }
+        }
+
+        // ==========================================
+        // 6. HELPER: GET MEMBER VALUE (UPDATED MAPPING)
+        // ==========================================
+        function getMemberValue(caption, member) {
+            // Normalize caption
+            const cap = caption.trim().toUpperCase();
+
+            // Explicit Mapping
+            if (cap === "FULL NAME") return member.name || "";
+            if (cap === "PSEUDO NAME") return member.pseudo_name || "";
+            if (cap === "ID NUMBER") return member.idnumb || "";
+            if (cap === "DESIGNATION") return member.designation || ""; // Member's designation
+            if (cap === "BLOOD TYPE") return member.blood_type || "";
+            if (cap === "ADDRESS" || cap === "HOME ADDRESS") return member.home_address || "";
+            if (cap === "EMERGENCY ADDRESS") return member.home_address || ""; // Map to home_address
+            if (cap === "CONTACT NO" || cap === "CONTACT NUMBER") return member.contact_no || "";
+            if (cap === "EMERGENCY NO" || cap === "EMERGENCY CONTACT NO" || cap === "EMERGENCY CONTACT") return member.emergency_contact_no || "";
+            if (cap === "DATE ISSUED") return member.issued_date || "";
+            if (cap === "VALID UNTIL") return member.valid_until || "";
+            if (cap === "CHAPTER") return member.chapter || "";
+            if (cap === "HEIGHT") return member.height || "";
+            if (cap === "WEIGHT") return member.weight || "";
+            if (cap === "OCCUPATION") return member.occupation || "";
+            if (cap === "EMERGENCY NAME" || cap === "EMERGENCY PERSON NAME") return member.emergency_person_name || "";
+            if (cap === "BIRTHDATE") return member.birthdate || "";
+            if (cap === "CIVIL STATUS") return member.civil_status || "";
+
+            // Dynamic Fallback: Try snake_case or exact match
+            const key = caption.trim().toLowerCase().replace(/ /g, '_');
+            if (member[key]) return member[key];
+
+            return ""; // Return empty if not found
+        }
+
+        function isImageField(caption) {
+            const cap = caption.trim().toUpperCase();
+            return (cap === "PHOTO" || cap === "SIGNATURE" || cap === "QR CODE" || cap === "OR CODES");
+        }
+
+    </script>
+</body>
+</html>
