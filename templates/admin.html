@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID Layout Editor - Final w/ Modal</title>
+    <title>ID Layout Editor - Final w/ Zoom Fix</title>
     
     <style>
         :root {
@@ -84,6 +84,7 @@
             background: #334155;
             color: white;
             font-size: 12px;
+            box-sizing: border-box;
         }
         .admin-select {
             width: 100%;
@@ -95,6 +96,7 @@
             font-size: 12px;
             margin-bottom: 5px;
             cursor: pointer;
+            box-sizing: border-box;
         }
         .admin-btn-group {
             display: flex;
@@ -108,10 +110,43 @@
             border: none;
             border-radius: 3px;
             color: white;
+            background: #2563eb;
+            box-sizing: border-box;
         }
+        .admin-btn:hover { background: #1d4ed8; }
         .btn-add { background: var(--primary-color); }
         .btn-del { background: var(--danger-color, #ef4444); }
         .btn-save { background: var(--success-color, #10b981); }
+
+        /* --- ADDED: Transfer List Styles --- */
+        .transfer-box {
+            display: flex;
+            gap: 4px;
+            height: 180px; 
+            margin-bottom: 5px;
+        }
+        .list-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .list-col label {
+            font-size: 10px;
+            color: #94a3b8;
+            text-align: center;
+            margin-bottom: 2px;
+        }
+        .listbox-select {
+            height: 100%;
+            padding: 4px;
+            background: #334155;
+            border: 1px solid #475569;
+            color: white;
+            font-size: 11px;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
 
         /* --- MAIN CONTENT --- */
         .main-content {
@@ -166,7 +201,7 @@
             user-select: none;
             transform-origin: top center; 
         }
-        /* --- 1. ORIGINAL FIELDS (Sidebar Items - SOLID VERSION) --- */
+        /* --- ELEMENTS --- */
         .canvas-element {
             position: absolute;
             cursor: move;
@@ -192,11 +227,7 @@
             background: rgba(37, 99, 235, 0.3);
             z-index: 101;
         }
-        .canvas-element.is-photo {
-            background: rgba(239, 68, 68, 0.1);
-            border-color: red;
-            color: red;
-        }
+        .canvas-element.is-photo { background: rgba(239, 68, 68, 0.1); border-color: red; color: red; }
         .canvas-element.is-line {
             background: transparent; 
             border-bottom: 2px solid black; 
@@ -205,16 +236,13 @@
             border-top: none; border-left: none; border-right: none;
             min-height: 2px;
         }
-        .canvas-element.is-box {
-            background: transparent;
-            border: 1px solid black;
-        }
+        .canvas-element.is-box { background: transparent; border: 1px solid black; }
         .canvas-element.is-frosted {
-            background: rgba(255, 255,255, 0.4);
+            background: rgba(255, 255, 255, 0.4);
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255,255, 0.6);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         .canvas-element.is-image {
             background: transparent;
@@ -223,13 +251,9 @@
             align-items: center;
             justify-content: center;
         }
-        .canvas-element.is-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            pointer-events: none; 
-        }
-        /* --- 2. MS WORD TEXTBOX STYLE (NEW - FIXED) --- */
+        .canvas-element.is-image img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+
+        /* --- 2. MS WORD TEXTBOX STYLE (FIXED) --- */
         .custom-textbox {
             position: absolute;
             background: transparent;
@@ -293,7 +317,7 @@
             height: 90%;
             border-radius: 8px;
             position: relative;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
             display: flex;
             flex-direction: column;
         }
@@ -315,7 +339,7 @@
         }
 
         .close-modal-btn {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             border: none;
             color: white;
             font-size: 20px;
@@ -323,7 +347,7 @@
             padding: 0 10px;
             border-radius: 4px;
         }
-        .close-modal-btn:hover { background: rgba(255,255,255,0.4); }
+        .close-modal-btn:hover { background: rgba(255, 255, 255, 0.4); }
 
         .modal-body {
             flex-grow: 1;
@@ -339,9 +363,24 @@
     <div class="sidebar">
         <div class="sidebar-header">🧩 Toolbox</div>
         
+        <!-- === NEW: MEMBERS DATA PANEL (For Print Merge) === -->
+        <div class="admin-forms-panel">
+            <div class="sidebar-group-title" style="color: #fff;">MEMBERS DATA (PRINT)</div>
+            
+            <input type="date" id="printDateInput" class="admin-input">
+            <button class="admin-btn" onclick="loadPrintMembers()" style="margin-top:5px; margin-bottom:5px;">👥 Load List</button>
+            
+            <div style="margin-top: 10px; margin-bottom: 5px;">
+                <label class="listbox-select">SELECT TO PRINT</label>
+                <select id="printMembersList" class="listbox-select" multiple></select>
+            </div>
+
+            <button class="admin-btn btn-add" onclick="loadAndMergeLayout()" style="background: #8b5cf6; margin-bottom: 5px;">📂 LOAD & MERGE (PRINT)</button>
+        </div>
+
         <!-- === OFFICERS PANEL (NEW) === -->
-        <div class="admin-forms-panel" style="border-bottom: 1px solid #334155;">
-            <div class="sidebar-group-title" style="color: #fff;">Officers List (officer_list)</div>
+        <div class="admin-forms-panel">
+            <div class="sidebar-group-title" style="color: #fff;">OFFICERS LIST</div>
             
             <select id="officerSelect" class="admin-select" onchange="updateDraggableOfficer()">
                 <option value="">-- Select Officer --</option>
@@ -383,9 +422,6 @@
             <div class="draggable-item" draggable="true" data-type="text" data-caption="HEIGHT">📏 HEIGHT</div>
             <div class="draggable-item" draggable="true" data-type="text" data-caption="WEIGHT">⚖️ WEIGHT</div>
             
-            <div class="sidebar-group-title">Objects</div>
-            <div class="draggable-item" draggable="true" data-type="photo" data-caption="PHOTO">🖼️ PHOTO</div>
-
             <div class="sidebar-group-title">Back Side / Emergency</div>
             <div class="draggable-item" draggable="true" data-type="text" data-caption="OR CODES">📄 OR CODES</div>
             <div class="draggable-item" draggable="true" data-type="text" data-caption="EMERGENCY PERSON NAME">🚑 EMERGENCY NAME</div>
@@ -398,9 +434,10 @@
             <div class="draggable-item" draggable="true" data-type="sig-box" data-caption="SIGNATURE">✍️ SIGNATURE BOX</div>
 
             <div class="sidebar-group-title">Shapes & Effects</div>
+            <div class="draggable-item" draggable="true" data-type="photo" data-caption="PHOTO">🖼️ PHOTO</div>
             <div class="draggable-item" draggable="true" data-type="line" data-caption="LINE">📏 LINE</div>
             <div class="draggable-item" draggable="true" data-type="box" data-caption="BOX">⬜ BOX</div>
-            <div class="draggable-item" draggable="true" data-type="frosted-box" data-caption="FROSTED BOX">🧊 FROSTED BOX (Malabo)</div>
+            <div class="draggable-item" draggable="true" data-type="frosted-box" data-caption="FROSTED BOX">🧊 FROSTED BOX</div>
         </div>
     </div>
 
@@ -410,26 +447,26 @@
         <!-- TOP TOOLBAR -->
         <div class="toolbar">
             <div class="toolbar-left">
-                <label class="primary" style="padding: 6px 12px; cursor:pointer; border-radius:4px; background:#6366f1; color:white;">
+                <label class="primary" style="padding: 6px 12px; cursor:pointer; border-radius: 4px; background: #6366f1; color: white;">
                     📁 Upload Template
-                    <input type="file" id="templateUpload" accept="image/*" style="display:none;">
+                    <input type="file" id="templateUpload" accept="image/*" style="display: none;">
                 </label>
-                <label class="primary" style="padding: 6px 12px; cursor:pointer; border-radius:4px; background:#10b981; color:white;">
-                    🖼️ Upload Logo/Img
-                    <input type="file" id="logoUpload" accept="image/*" style="display:none;">
+                <label class="primary" style="padding: 6px 12px; cursor:pointer; border-radius: 4px; background: #10b981; color: white;">
+                    🖼️ Upload Logo
+                    <input type="file" id="logoUpload" accept="image/*" style="display: none;">
                 </label>
-                <button class="primary" style="background: #f59e0b; color: white; border:none;" onclick="addCustomTextbox()">
+                <button class="primary" style="background: #f59e0b; color: white; border: none;" onclick="addCustomTextbox()">
                     ➕ Add Text (MS Word)
                 </button>
-                <span id="filename" style="font-size:12px; color:#666;">No template loaded</span>
+                <span id="filename" style="font-size: 12px; color: #666;">No template loaded</span>
             </div>
 
             <div class="toolbar-right">
-                <span style="font-size:12px;">Zoom:</span>
+                <span style="font-size: 12px;">Zoom:</span>
                 <input type="range" id="zoomSlider" min="0.3" max="2.0" step="0.1" value="1.0">
                 <span id="zoomValue" class="zoom-display">100%</span>
                 
-                <div style="border-left: 1px solid #ddd; padding-left: 10px; gap: 5px; align-items: center; display:flex;">
+                <div style="border-left: 1px solid #ddd; padding-left: 10px; gap: 5px; align-items: center; display: flex;">
                     <select id="propFontFamily" title="Font Family">
                         <option value="'Segoe UI', sans-serif">Segoe UI</option>
                         <option value="Arial, sans-serif">Arial</option>
@@ -439,7 +476,7 @@
                         <option value="Georgia, serif">Georgia</option>
                     </select>
                     <input type="color" id="propTextColor" value="#1e3a8a" title="Text Color">
-                    <span style="font-size:11px; font-weight:bold; color:#555;">SIZE:</span>
+                    <span style="font-size: 11px; font-weight: bold; color: #555;">SIZE:</span>
                     <input type="number" id="propSize" value="12" title="Font Size">
                     <select id="propFont" title="Font Style">
                         <option value="normal">Normal</option>
@@ -449,24 +486,24 @@
 
                 <button class="danger" onclick="deleteSelected()">🗑️ Delete</button>
                 <button class="primary" onclick="saveLayout()">💾 Save</button>
-                <button class="primary" style="background: #8b5cf6;" onclick="loadLayout()">📂 Load</button>
+                <button class="primary" style="background: #8b5cf6;" onclick="loadLayout()">📂 Load (Template)</button>
             </div>
         </div>
 
         <!-- WORKSPACE -->
-        <div class="workspace">
+        <div class="workspace" id="workspace">
             <div class="canvas-wrapper" id="editorCanvas">
-                <!-- Dropped items appear here -->
+                <!-- Items appear here -->
             </div>
         </div>
 
     </div>
 
-    <!-- NEW: SIGNATURE MODAL (Pop-up) -->
+    <!-- NEW: SIGNATURE MODAL -->
     <div id="signatureModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Officer Signature Creator</h3>
+                <h3>Officer Signature</h3>
                 <button class="close-modal-btn" onclick="closeModal('signatureModal')">✖</button>
             </div>
             <iframe src="/signature.html" class="modal-body" frameborder="0"></iframe>
@@ -496,10 +533,12 @@
     </div>
 
     <script>
-        // FIXED: Changed hardcoded localhost to empty string for Relative Path
-        // This ensures it works on both Local and Render.
-        const API_URL = ''; 
+        // ==========================================
+        // CONSTANTS & SETUP
+        // ==========================================
+        const API_URL = ''; // Use Relative Path
         const canvas = document.getElementById('editorCanvas');
+        const workspace = document.getElementById('workspace');
         const uploadInput = document.getElementById('templateUpload');
         const logoUploadInput = document.getElementById('logoUpload');
         const zoomSlider = document.getElementById('zoomSlider');
@@ -516,6 +555,7 @@
         let currentHandle = null;
         let startX, startY, startWidth, startHeight, startLeft, startTop;
         let hasMoved = false;
+        let allOfficers = [];
 
         // ==========================================
         // MODAL LOGIC (Unified)
@@ -529,11 +569,46 @@
         }
 
         // ==========================================
-        // OFFICER LIST LOGIC (NEW)
+        // 1. MEMBERS PRINT LOGIC (NEW FOR SIDEBAR)
+        // ==========================================
+        async function loadPrintMembers() {
+            const dateInput = document.getElementById('printDateInput');
+            const listLeft = document.getElementById('printMembersList');
+
+            if (!dateInput) { alert("Please select a date first!"); return; }
+            listLeft.innerHTML = "";
+
+            try {
+                const response = await fetch(`${API_URL}/api/members/by-date?date=${dateInput.value}`);
+                if (!response.ok) throw new Error("Server error");
+                
+                const members = await response.json();
+
+                if (!members || members.length === 0) {
+                    alert("No members found for date: " + dateInput.value);
+                    return;
+                }
+
+                members.forEach(member => {
+                    const option = document.createElement('option');
+                    option.value = member.id; 
+                    option.textContent = member.name; 
+                    // Store full data in dataset for Merge later
+                    option.dataset.memberData = JSON.stringify(member);
+                    listLeft.appendChild(option);
+                });
+
+            } catch (error) {
+                console.error("Error loading members:", error);
+                alert("Error fetching members.");
+            }
+        }
+
+        // ==========================================
+        // 2. OFFICER LIST LOGIC (NEW)
         // ==========================================
         const officerSelect = document.getElementById('officerSelect');
         const officerDragItem = document.getElementById('officerDragItem');
-        let allOfficers = [];
 
         async function initOfficersList() {
             try {
@@ -549,7 +624,6 @@
         }
 
         function renderOfficerList(data) {
-            // Keep the first option
             officerSelect.innerHTML = '<option value="">-- Select Officer --</option>';
             data.forEach(off => {
                 const option = document.createElement('option');
@@ -571,9 +645,8 @@
         }
 
         // ==========================================
-        // ADMIN FORMS LOGIC
+        // 3. ADMIN FORMS LOGIC
         // ==========================================
-        
         const adminSelect = document.getElementById('adminFormsSelect');
         const newFormInput = document.getElementById('newFormName');
 
@@ -591,7 +664,7 @@
             } catch (error) {
                 console.error("Error loading forms:", error);
                 console.warn("Using Fallback Data");
-                renderAdminList([{ id: 1, forms_name: "Officer Signature" }]);
+                renderAdminList([{ id: 1, forms_name: "Officer Signature" }, { id: 2, forms_name: "Mode of Payment" }, { id: 3, forms_name: "Caption Changer" }]);
             }
         }
 
@@ -608,7 +681,6 @@
         async function addAdminForm() {
             const name = newFormInput.value.trim();
             if (!name) return alert("Please enter name.");
-
             try {
                 await fetch(`${API_URL}/add_admin_form`, {
                     method: 'POST',
@@ -659,9 +731,8 @@
         });
 
         // ==========================================
-        // ORIGINAL LOGIC (Sidebar, Canvas, etc)
+        // 4. DRAG & DROP LOGIC (CANVAS)
         // ==========================================
-
         const draggables = document.querySelectorAll('.draggable-item');
         draggables.forEach(d => {
             d.addEventListener('dragstart', (e) => {
@@ -677,9 +748,11 @@
             e.preventDefault();
             canvas.style.border = "2px dashed #2563eb";
         });
+
         canvas.addEventListener('dragleave', (e) => {
             canvas.style.border = "none";
         });
+
         canvas.addEventListener('drop', (e) => {
             e.preventDefault();
             canvas.style.border = "none";
@@ -694,9 +767,7 @@
             if (type === 'officer-group') {
                 const officerId = e.dataTransfer.getData('officerId');
                 const officer = allOfficers.find(o => o.id == officerId);
-                if (officer) {
-                    createOfficerElements(officer, actualX, actualY);
-                }
+                if (officer) createOfficerElements(officer, actualX, actualY);
             } else {
                 const caption = e.dataTransfer.getData('caption');
                 createSidebarElement(type, caption, actualX, actualY);
@@ -711,8 +782,7 @@
                 const img = document.createElement('img');
                 img.src = imgSrc;
                 el.appendChild(img);
-                el.style.width = '100px';
-                el.style.height = '100px';
+                el.style.width = '100px'; el.style.height = '100px';
             } else {
                 el.textContent = caption;
                 el.style.left = Math.round(x) + 'px';
@@ -721,6 +791,7 @@
                 el.style.fontWeight = 'normal';
                 el.style.fontFamily = "'Segoe UI', sans-serif";
                 el.style.color = "#1e3a8a"; 
+                el.style.padding = '2px 5px';
             }
 
             if(!imgSrc) {
@@ -732,7 +803,7 @@
             else if (type === 'line') { el.classList.add('is-line'); el.style.width = '150px'; el.textContent = ''; }
             else if (type === 'box' || type === 'sig-box') { el.classList.add('is-box'); el.style.width = '100px'; el.style.height = '40px'; }
             else if (type === 'frosted-box') { el.classList.add('is-frosted'); el.textContent = ''; el.style.width = '150px'; el.style.height = '150px'; }
-            else if (!imgSrc) { el.style.width = 'auto'; el.style.padding = '2px 5px'; el.style.whiteSpace = 'nowrap'; }
+            else if (!imgSrc) { el.style.width = 'auto'; el.style.whiteSpace = 'nowrap'; }
 
             el.id = 'field_' + Date.now();
             ['nw', 'ne', 'sw', 'se'].forEach(pos => {
@@ -746,6 +817,7 @@
         }
 
         function createOfficerElements(officer, x, y) {
+            // Name
             const nameEl = document.createElement('div');
             nameEl.className = 'canvas-element';
             nameEl.textContent = officer.name_officer;
@@ -762,6 +834,7 @@
             canvas.appendChild(nameEl);
             selectElement(nameEl);
 
+            // Designation
             const desigEl = document.createElement('div');
             desigEl.className = 'canvas-element';
             desigEl.textContent = officer.designation || 'No Designation';
@@ -781,12 +854,10 @@
                 sigEl.className = 'canvas-element is-image';
                 sigEl.style.left = Math.round(x) + 'px';
                 sigEl.style.top = (Math.round(y) + 45) + 'px';
-                sigEl.style.width = '100px';
-                sigEl.style.height = '40px';
+                sigEl.style.width = '100px'; sigEl.style.height = '40px';
                 sigEl.id = 'officer_sig_' + officer.id + '_' + Date.now();
                 
-                const img = document.createElement('img');
-                img.src = officer.man_signature;
+                const img = document.createElement('img'); img.src = officer.man_signature;
                 sigEl.appendChild(img);
                 
                 addResizeHandles(sigEl);
@@ -809,16 +880,14 @@
             el.contentEditable = "true";
             const canvasWidth = canvas.offsetWidth;
             const canvasHeight = canvas.offsetHeight;
-            el.style.left = (canvasWidth / 2 - 100) + 'px'; 
+            el.style.left = (canvasWidth / 2 - 100) + 'px';
             el.style.top = (canvasHeight / 2 - 10) + 'px';
             el.style.width = '200px'; 
-            el.style.minHeight = '20px';
             el.innerText = "";
             el.id = 'custom_' + Date.now();
             ['nw', 'ne', 'sw', 'se'].forEach(pos => {
                 const handle = document.createElement('div');
                 handle.className = `resize-handle rh-${pos}`;
-                handle.dataset.handle = pos;
                 el.appendChild(handle);
             });
             canvas.appendChild(el);
@@ -855,10 +924,22 @@
             }
         });
 
+        // ==========================================
+        // 5. ZOOM LOGIC (FIXED FOR EDITOR + WORKSPACE)
+        // ==========================================
         zoomSlider.addEventListener('input', function() {
             const scale = this.value;
-            canvas.style.transform = `scale(${scale})`;
+            
+            // 1. Update Text Display
             zoomValue.textContent = Math.round(scale * 100) + '%';
+            
+            // 2. Get All Canvases in Workspace (This includes Editor + Generated IDs)
+            const allCanvases = document.querySelectorAll('.workspace .canvas-wrapper');
+            
+            // 3. Apply Zoom to All of them
+            allCanvases.forEach(c => {
+                c.style.transform = `scale(${scale})`;
+            });
         });
 
         document.addEventListener('mousedown', function(e) {
@@ -954,9 +1035,13 @@
             let currentWeight = 'normal';
             let currentFamily = "'Segoe UI', sans-serif";
             let currentColor = "#000";
+            
             const computed = getComputedStyle(el);
             if(computed.fontSize) currentSize = parseInt(computed.fontSize); 
+            if(computed.fontWeight) currentWeight = computed.fontWeight;
+            if(computed.fontFamily) currentFamily = computed.fontFamily;
             currentColor = el.style.color || "#000"; 
+            
             propSize.value = currentSize;
             propFont.value = currentWeight;
             propFontFamily.value = currentFamily;
@@ -988,13 +1073,26 @@
 
         function deleteSelected() {
             const selected = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
-            if (selected) selected.remove();
+            if (selected) {
+                selected.remove();
+            } else {
+                alert("Please select an item on canvas first to delete it.");
+            }
         }
 
+        // ==========================================
+        // 6. SAVE & LOAD LOGIC (TEMPLATE)
+        // ==========================================
         async function saveLayout() {
             const elements = [];
             Array.from(canvas.children).forEach(child => {
                 if (child.classList.contains('resize-handle')) return; 
+                
+                // LINE FIX: Don't save height for lines
+                const isLine = child.classList.contains('is-line');
+                let h = parseInt(getComputedStyle(child).height);
+                if (isLine) h = ""; 
+
                 const data = {
                     className: child.className,
                     id: child.id,
@@ -1002,7 +1100,7 @@
                     left: child.style.left,
                     top: child.style.top,
                     width: child.style.width,
-                    height: child.style.height,
+                    height: h,
                     color: child.style.color,
                     fontSize: child.style.fontSize,
                     fontFamily: child.style.fontFamily,
@@ -1011,6 +1109,7 @@
                 };
                 const img = child.querySelector('img');
                 if (img) data.imgSrc = img.src;
+                
                 elements.push(data);
             });
             const payload = {
@@ -1030,14 +1129,14 @@
                 const result = await response.json();
                 if (response.ok) alert(result.message || "Layout Saved Successfully!");
                 else alert("Error saving: " + result.message);
-            } catch (error) {
-                console.error("Save error:", error);
-                alert("Failed to connect to server.");
-            }
+            } catch (e) { console.error("Save error:", e); alert("Failed to connect to server."); }
         }
 
         async function loadLayout() {
             try {
+                // 1. Clear Editor Canvas Only
+                Array.from(canvas.children).forEach(child => child.remove());
+
                 const response = await fetch(`${API_URL}/load_layout`);
                 const result = await response.json();
                 if (!response.ok) {
@@ -1045,12 +1144,15 @@
                     return;
                 }
                 const saved = result.data;
+
+                // 2. Restore Canvas Background & Size
                 if (saved && saved.template) {
                     canvas.style.backgroundImage = saved.template.backgroundImage;
                     canvas.style.width = saved.template.width;
                     canvas.style.height = saved.template.height;
                 }
-                Array.from(canvas.children).forEach(child => child.remove());
+
+                // 3. Restore Fields
                 if (saved && saved.fields) {
                     saved.fields.forEach(fieldData => {
                         const el = document.createElement('div');
@@ -1059,23 +1161,28 @@
                         el.style.left = fieldData.left;
                         el.style.top = fieldData.top;
                         el.style.width = fieldData.width;
-                        el.style.height = fieldData.height;
                         el.style.color = fieldData.color;
                         el.style.fontSize = fieldData.fontSize;
                         el.style.fontFamily = fieldData.fontFamily;
                         el.style.fontWeight = fieldData.fontWeight;
-                        el.innerText = fieldData.text;
-                        if (fieldData.isContentEditable) el.contentEditable = "true";
-                        if (fieldData.imgSrc) {
-                            const img = document.createElement('img');
-                            img.src = fieldData.imgSrc;
-                            img.style.width = '100%';
-                            img.style.height = '100%';
-                            img.style.objectFit = 'contain';
-                            img.style.pointerEvents = 'none';
-                            el.innerHTML = '';
-                            el.appendChild(img);
+
+                        // LINE FIX: Don't set inline height for lines
+                        if (!fieldData.height || fieldData.height === '' || fieldData.height === '0px') {
+                            el.style.height = "";
+                        } else {
+                            el.style.height = fieldData.height;
                         }
+
+                        if (fieldData.className.includes('is-line')) {
+                            el.innerText = "";
+                        } else {
+                            el.innerText = fieldData.text;
+                        }
+                        
+                        if (fieldData.imgSrc) {
+                            el.innerHTML = `<img src="${fieldData.imgSrc}" style="width:100%; height:100%; object-fit:contain; pointer-events:none;">`;
+                        }
+                        
                         ['nw', 'ne', 'sw', 'se'].forEach(pos => {
                             const handle = document.createElement('div');
                             handle.className = `resize-handle rh-${pos}`;
@@ -1091,6 +1198,220 @@
                 alert("Failed to connect to server.");
             }
         }
+
+        // ==========================================
+        // 7. LOAD & MERGE LOGIC (THE BIG UPDATE)
+        // ==========================================
+        
+        const MERGE_KEYWORDS = [
+            "FULL NAME", "PSEUDO NAME", "ID NUMBER", "BLOOD TYPE",
+            "DATE ISSUED", "VALID UNTIL", "ADDRESS", "HOME ADDRESS",
+            "CONTACT NO", "CONTACT NUMBER",
+            "CHAPTER", "HEIGHT", "WEIGHT", "OCCUPATION",
+            "EMERGENCY NAME", "EMERGENCY PERSON NAME",
+            "EMERGENCY ADDRESS",
+            "EMERGENCY CONTACT", "EMERGENCY NO", "EMERGENCY CONTACT NO",
+            "BIRTHDATE", "CIVIL STATUS", "DESIGNATION", "PHOTO", "SIGNATURE", "QR CODE", "OR CODES"
+        ];
+
+        async function loadAndMergeLayout() {
+            try {
+                // 1. Get Layout Template
+                const response = await fetch(`${API_URL}/load_layout`);
+                const result = await response.json();
+                if (!response.ok) {
+                    alert("Error: " + result.message);
+                    return;
+                }
+                const saved = result.data;
+                if (!saved) {
+                    alert("No saved layout found.");
+                    return;
+                }
+
+                // 2. Get Selected Members
+                const selectedOptions = document.getElementById('printMembersList').options;
+                
+                if (selectedOptions.length === 0) {
+                    alert("Please select members in 'SELECT TO PRINT' listbox first!");
+                    return;
+                }
+
+                // 3. Clear Workspace (Keep Editor Canvas?)
+                // Requirement: "isa isa lang... mawawala ang isa yung isa hindi"
+                // If we want to merge, we should probably hide the editor canvas to avoid confusion, or keep it.
+                // User said "Load Layout" is for aligning.
+                // Let's clear workspace content but maybe keep editor? 
+                // Actually, usually users want to see the result. Let's append to workspace.
+                workspace.innerHTML = "";
+
+                // 4. Loop through selected members and create a card for each
+                for (let i = 0; i < selectedOptions.length; i++) {
+                    const option = selectedOptions[i];
+                    const member = JSON.parse(option.dataset.memberData);
+                    
+                    // Create a new canvas wrapper for this member
+                    const newCanvas = document.createElement('div');
+                    newCanvas.className = 'canvas-wrapper';
+                    newCanvas.style.width = saved.template.width;
+                    newCanvas.style.height = saved.template.height;
+                    newCanvas.style.backgroundImage = saved.template.backgroundImage;
+                    newCanvas.style.backgroundRepeat = "no-repeat";
+                    newCanvas.style.backgroundSize = "contain";
+                    newCanvas.style.boxShadow = "0 10px 40px rgba(0,0,0,0.2)";
+                    
+                    // IMPORTANT: Zoom fix for new canvases. 
+                    // The global zoom slider only affects the active element logic usually.
+                    // We must apply the transform directly here.
+                    const zoom = parseFloat(zoomSlider.value);
+                    newCanvas.style.transform = `scale(${zoom})`;
+
+                    workspace.appendChild(newCanvas);
+
+                    // Render fields for this specific member
+                    if (saved && saved.fields) {
+                        saved.fields.forEach(fieldData => {
+                            const el = document.createElement('div');
+                            el.className = fieldData.className;
+                            el.id = fieldData.id + '_' + i;
+                            el.style.left = fieldData.left;
+                            el.style.top = fieldData.top;
+                            el.style.width = fieldData.width;
+                            
+                            // LINE FIX
+                            if (fieldData.height && fieldData.height !== '' && fieldData.height !== '0px') {
+                                el.style.height = fieldData.height;
+                            } else {
+                                el.style.height = ""; 
+                            }
+
+                            el.style.color = fieldData.color;
+                            el.style.fontSize = fieldData.fontSize;
+                            el.style.fontFamily = fieldData.fontFamily;
+                            el.style.fontWeight = fieldData.fontWeight;
+                            el.style.borderColor = "transparent";
+
+                            const fieldText = (fieldData.text || "").trim().toUpperCase();
+                            const isCssObject = fieldData.className.includes('is-line') || 
+                                                    fieldData.className.includes('is-box') || 
+                                                    fieldData.className.includes('is-frosted');
+                            const isOfficer = fieldData.id.includes("officer_");
+
+                            if (isOfficer) {
+                                if (fieldData.imgSrc) {
+                                    el.innerHTML = "";
+                                    const img = document.createElement('img');
+                                    img.src = fieldData.imgSrc;
+                                    img.style.width = '100%'; img.style.height = '100%';
+                                    img.style.objectFit = 'contain'; img.style.pointerEvents = 'none';
+                                    el.appendChild(img);
+                                } else {
+                                    if (fieldData.className.includes('is-line')) el.innerText = "";
+                                    else el.innerText = fieldData.text;
+                                }
+                            }
+                            else if (isCssObject) {
+                                if (fieldData.className.includes('is-line')) el.innerText = "";
+                                else el.innerText = fieldData.text;
+                            }
+                            else if (fieldData.imgSrc) {
+                                const img = document.createElement('img');
+                                img.src = fieldData.imgSrc;
+                                img.style.width = '100%'; img.style.height = '100%';
+                                img.style.objectFit = 'contain'; img.style.pointerEvents = 'none';
+                                el.innerHTML = ''; el.appendChild(img);
+                            }
+                            else if (MERGE_KEYWORDS.includes(fieldText)) {
+                                const dataVal = getMemberValue(fieldData.text, member);
+
+                                if (isImageField(fieldData.text)) {
+                                    el.innerHTML = "";
+                                    const img = document.createElement('img');
+                                    
+                                    if (fieldText === "PHOTO") img.src = member.photo_data || "";
+                                    else if (fieldText === "SIGNATURE") img.src = member.signature || "";
+                                    else if (fieldText === "QR CODE" || fieldText === "OR CODES") img.src = member.qr_code || "";
+                                    else img.src = ""; 
+
+                                    img.style.width = '100%'; img.style.height = '100%';
+                                    img.style.objectFit = 'contain';
+                                    el.appendChild(img);
+                                } else {
+                                    el.innerText = dataVal;
+                                }
+                            }
+                            else {
+                                // CASE: COMBO BOX or SEQ NO in Layout
+                                if (fieldData.selectValue) {
+                                    el.innerHTML = "";
+                                    const sel = document.createElement('select');
+                                    sel.style.width = '100%';
+                                    sel.style.height = '100%';
+                                    sel.style.background = 'rgba(255,255,255,0.8)';
+                                    sel.style.border = '1px dashed #10b981';
+                                    
+                                    el.innerText = member.name; // Replacing select with static text
+                                    el.style.fontWeight = 'bold';
+                                }
+                                else if (fieldData.inputValue) {
+                                    el.innerHTML = "";
+                                    const inp = document.createElement('input');
+                                    inp.type = 'number';
+                                    inp.value = i + 1; // Auto Sequence 1, 2, 3...
+                                    inp.style.width = '100%';
+                                    inp.style.height = '100%';
+                                    inp.style.background = 'rgba(255,255,255,0.8)';
+                                    inp.style.border = '1px dashed #94a3b8';
+                                    inp.style.textAlign = 'center';
+                                    el.appendChild(inp);
+                                }
+                                else {
+                                    el.innerText = fieldData.text;
+                                }
+                            }
+                            
+                            newCanvas.appendChild(el);
+                        });
+                    }
+                }
+                statusMsg = `Generated ID for ${selectedOptions.length} member(s).`;
+            } catch (e) {
+                console.error("Merge Error:", e);
+                alert("Failed to load.");
+            }
+        }
+
+        // ==========================================
+        // 8. HELPERS
+        // ==========================================
+        function getMemberValue(caption, member) {
+            const cap = caption.trim().toUpperCase();
+            if (cap === "FULL NAME") return member.name || "";
+            if (cap === "PSEUDO NAME") return member.pseudo_name || "";
+            if (cap === "ID NUMBER") return member.idnumb || "";
+            if (cap === "DESIGNATION") return member.designation || ""; 
+            if (cap === "BLOOD TYPE") return member.blood_type || "";
+            if (cap === "ADDRESS" || cap === "HOME ADDRESS") return member.home_address || "";
+            if (cap === "EMERGENCY ADDRESS") return member.home_address || "";
+            if (cap === "CONTACT NO" || cap === "CONTACT NUMBER") return member.contact_no || "";
+            if (cap === "EMERGENCY NO" || cap === "EMERGENCY CONTACT NO" || cap === "EMERGENCY CONTACT") return member.emergency_contact_no || "";
+            if (cap === "DATE ISSUED") return member.issued_date || "";
+            if (cap === "VALID UNTIL") return member.valid_until || "";
+            if (cap === "CHAPTER") return member.chapter || "";
+            if (cap === "HEIGHT") return member.height || "";
+            if (cap === "WEIGHT") return member.weight || "";
+            if (cap === "OCCUPATION") return member.occupation || "";
+            if (cap === "EMERGENCY NAME" || cap === "EMERGENCY PERSON NAME") return member.emergency_person_name || "";
+            if (cap === "BIRTHDATE") return member.birthdate || "";
+            if (cap === "CIVIL STATUS") return member.civil_status || "";
+            return "";
+        }
+
+        function isImageField(caption) {
+            const cap = caption.trim().toUpperCase();
+            return (cap === "PHOTO" || cap === "SIGNATURE" || cap === "QR CODE" || cap === "OR CODES");
+        }
+
     </script>
 </body>
 </html>
