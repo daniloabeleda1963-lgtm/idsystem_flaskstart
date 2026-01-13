@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID PDF Generator - Data Merge FINAL (Line Static Fix)</title>
+    <title>ID PDF Generator - Data Merge FINAL (Box Border Fix)</title>
     
     <!-- PDF GENERATION LIBRARIES (ADDED) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -889,7 +889,7 @@
         }
 
         // ==========================================
-        // 5. LOAD AND MERGE LOGIC (THE MAGIC - STATIC LINE FIX)
+        // 5. LOAD AND MERGE LOGIC (THE MAGIC - BOX BORDER FIX)
         // ==========================================
         
         // Keywords that NEED to be merged from member data
@@ -962,7 +962,7 @@
                             el.style.fontFamily = fieldData.fontFamily;
                             el.style.fontWeight = fieldData.fontWeight;
                             
-                            // --- LOGIC UPDATE START ---
+                            // --- SMART RENDER LOGIC ---
                             const fieldText = (fieldData.text || "").trim().toUpperCase();
                             
                             // 1. Identify if this is a CSS Object (Line, Box, Frosted)
@@ -974,10 +974,17 @@
                             if (!isCssObject) {
                                 el.style.borderColor = "transparent";
                             } else {
-                                // Keep default border for lines/boxes (defined in CSS)
-                                el.style.borderColor = ""; // Reset any inline style
+                                // --- FIX FOR BOX BORDER ("MADUMING TINGNAN") ---
+                                // If it's a box, remove the border completely.
+                                // If it's a line, keep the border.
+                                if (fieldData.className.includes('is-box')) {
+                                    el.style.border = "none";
+                                } else if (fieldData.className.includes('is-line')) {
+                                    // Keep default line border (black)
+                                    el.style.borderColor = ""; 
+                                }
+                                // ------------------------------------------------
                             }
-                            // --- LOGIC UPDATE END ---
 
                             // --- SMART RENDER LOGIC ---
                             
@@ -997,8 +1004,33 @@
                                 }
                             }
                             // CASE 1.5: CSS OBJECTS (Static Lines, Boxes, Frosted)
+                            // --- FIX FOR SIGNATURE BOX ---
                             else if (isCssObject) {
-                                el.innerText = fieldData.text; // Usually empty for lines
+                                // Check if this CSS Object (Box) is actually a Data Field (e.g., Signature Box)
+                                if (MERGE_KEYWORDS.includes(fieldText)) {
+                                    // Treat it as a dynamic data field
+                                    const dataVal = getMemberValue(fieldData.text, member);
+
+                                    if (isImageField(fieldData.text)) {
+                                        // Render Image inside Box (e.g., Member Signature)
+                                        el.innerHTML = "";
+                                        const img = document.createElement('img');
+                                        
+                                        if (fieldText === "PHOTO") img.src = member.photo_data || "";
+                                        else if (fieldText === "SIGNATURE") img.src = member.signature || "";
+                                        else if (fieldText === "QR CODE" || fieldText === "OR CODES") img.src = member.qr_code || "";
+                                        else img.src = ""; // Fallback
+
+                                        img.style.width = '100%'; img.style.height = '100%';
+                                        img.style.objectFit = 'contain';
+                                        el.appendChild(img);
+                                    } else {
+                                        el.innerText = dataVal;
+                                    }
+                                } else {
+                                    // It's a plain Box (Static) - Border already handled above
+                                    el.innerText = fieldData.text; 
+                                }
                             }
                             // CASE 2: STATIC IMAGE (Logo from Admin)
                             else if (fieldData.imgSrc) {
@@ -1084,23 +1116,21 @@
         }
 
         // ==========================================
-        // 7. DOWNLOAD PDF LOGIC (ADDED)
+        // 7. DOWNLOAD PDF LOGIC (UPDATED - VERTICAL STACKING FIX)
         // ==========================================
         async function downloadPDF() {
             const { jsPDF } = window.jspdf;
             
             // 1. Setup PDF Size (A4 Standard)
-            // A4 Size: 210mm width x 297mm height
             const doc = new jsPDF('p', 'mm', 'a4'); 
             const pageWidth = 210;
             const pageHeight = 297;
-            const margin = 10; // 10mm margin from sides
+            const margin = 10; 
 
             // 2. Configuration of Layout
-            // Standard ID: 86mm x 54mm
-            const cardW_mm = 86;
-            const cardH_mm = 54;
-            const gap_mm = 5; // 5mm spacing between cards
+            // Standard ID Height is 54mm. Width will be calculated dynamically to prevent stretching.
+            const targetH_mm = 54; 
+            const gap_mm = 5; 
 
             // 3. Select all cards in workspace
             const cards = document.querySelectorAll('.workspace .canvas-wrapper');
@@ -1112,54 +1142,62 @@
 
             statusMsg.textContent = "Generating PDF... Please wait.";
 
-            // 4. Grid Layout Logic (2 Cards per Row)
-            const cardsPerPage = 2; 
+            // 4. Grid Layout Logic (Auto-Width)
+            const cardsPerPage = 1; 
             
             // Position variables
             let x = margin;
             let y = margin;
-            let col = 0;
 
             // Process cards one by one using async/await
             for (let i = 0; i < cards.length; i++) {
-                // Check for Vertical Overflow (New Page)
-                // If we are at column 0 (start of new row) and there's no vertical space
-                if (col === 0 && i > 0 && (y + cardH_mm) > (pageHeight - margin)) {
+                // Check for New Page
+                if (i > 0 && (y + targetH_mm) > (pageHeight - margin)) {
                     doc.addPage();
                     y = margin;
                     x = margin;
                 }
 
-                // 5. CAPTURE IMAGE using html2canvas
-                // Scale 2 for high quality print
+                // --- FIX: REMOVE ZOOM TRANSFORM TEMPORARILY ---
+                const originalTransform = cards[i].style.transform;
+                const originalOrigin = cards[i].style.transformOrigin;
+                cards[i].style.transform = 'none'; 
+                // -------------------------------------------------
+
                 try {
+                    // 5. CAPTURE IMAGE
                     const canvas = await html2canvas(cards[i], { scale: 2 });
                     
+                    // --- FIX: CALCULATE ASPECT RATIO ---
+                    const capturedW = canvas.width;
+                    const capturedH = canvas.height;
+                    const ratio = capturedW / capturedH;
+                    const targetW_mm = targetH_mm * ratio;
+                    // ----------------------------------
+
                     // 6. ADD IMAGE TO PDF
                     const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                    
-                    doc.addImage(imgData, 'JPEG', x, y, cardW_mm, cardH_mm);
+                    doc.addImage(imgData, 'JPEG', x, y, targetW_mm, targetH_mm);
 
-                    // 7. UPDATE POSITION for next card
-                    // Move X to the right
-                    x += cardW_mm + gap_mm;
-                    col++;
+                    // Update Position (Move Down Only)
+                    y += targetH_mm + gap_mm;
 
-                    // Check for Horizontal Overflow (New Row)
-                    if (col >= cardsPerPage) {
-                        col = 0;
-                        x = margin;
-                        y += cardH_mm + gap_mm; // Move Y down
+                    if (i % 2 === 0) {
+                        statusMsg.textContent = `Processing card ${i + 1} of ${cards.length}...`;
                     }
 
                 } catch (err) {
                     console.error("Error rendering card:", err);
                     alert("Error generating PDF for card " + (i + 1));
+                } finally {
+                    // --- RESTORE ZOOM ---
+                    cards[i].style.transform = originalTransform;
+                    cards[i].style.transformOrigin = originalOrigin;
+                    // ----------------------------------------
                 }
             }
 
             // 8. SAVE FILE
-            // 'save' triggers direct download (best for mobile)
             const fileName = `ID_Cards_${new Date().toISOString().slice(0, 10)}.pdf`;
             doc.save(fileName);
 
