@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ID PDF Generator - Data Merge FINAL (Line Static Fix)</title>
     
+    <!-- PDF GENERATION LIBRARIES (ADDED) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
     <style>
         :root {
             --primary-color: #2563eb;
@@ -27,7 +31,7 @@
             color: var(--sidebar-text);
             display: flex;
             flex-direction: column;
-            border-right:1px solid #334155;
+            border-right: 1px solid #334155;
             flex-shrink: 0;
             z-index: 200;
             overflow-y: auto;
@@ -36,7 +40,7 @@
             padding: 15px;
             background: #0f172a;
             font-weight: bold;
-            border-bottom:1px solid #334155;
+            border-bottom: 1px solid #334155;
         }
         .sidebar-list {
             flex-grow: 1;
@@ -239,7 +243,7 @@
         .canvas-element.is-photo { background: rgba(239, 68, 68, 0.1); border-color: red; color: red; }
         .canvas-element.is-line { background: transparent; border-bottom: 2px solid black; height: 0px !important; cursor: ns-resize; min-height: 2px; }
         .canvas-element.is-box { background: transparent; border: 1px solid black; }
-        .canvas-element.is-frosted { background: rgba(255, 255,255, 0.4); backdrop-filter: blur(4px); border: 1px solid rgba(255, 255,255, 0.6); }
+        .canvas-element.is-frosted { background: rgba(255,255,255,0.4); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.6); }
         .canvas-element.is-image { background: transparent; border: 1px dashed #10b981; display: flex; align-items: center; justify-content: center; }
         .canvas-element.is-image img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 
@@ -308,7 +312,7 @@
             <div class="sidebar-group-title" style="color: #fff;">MEMBERS DATA</div>
             
             <input type="date" id="issueDateInput" class="admin-input">
-            <button class="admin-btn" onclick="loadMembers()" style="margin-top:5px; margin-bottom:5px;">👥 Load Members</button>
+            <button class="admin-btn" onclick="loadMembers()" style="margin-top: 5px; margin-bottom: 5px;">👥 Load Members</button>
             
             <div class="transfer-box">
                 <div class="list-col">
@@ -370,40 +374,42 @@
     <div class="main-content">
         <div class="toolbar">
             <div class="toolbar-left">
-                <label class="primary" style="padding: 6px 12px; cursor:pointer; border-radius:4px; background:#6366f1; color:white;">
+                <label class="primary" style="padding: 6px 12px; cursor: pointer; border-radius: 4px; background: #6366f1; color: white;">
                     📁 Upload Template
-                    <input type="file" id="templateUpload" accept="image/*" style="display:none;">
+                    <input type="file" id="templateUpload" accept="image/*" style="display: none;">
                 </label>
-                <label class="primary" style="padding: 6px 12px; cursor:pointer; border-radius:4px; background:#10b981; color:white;">
+                <label class="primary" style="padding: 6px 12px; cursor: pointer; border-radius: 4px; background: #10b981; color: white;">
                     🖼️ Upload Logo
-                    <input type="file" id="logoUpload" accept="image/*" style="display:none;">
+                    <input type="file" id="logoUpload" accept="image/*" style="display: none;">
                 </label>
-                <button class="primary" style="background: #f59e0b; color: white; border:none;" onclick="addCustomTextbox()">
+                <button class="primary" style="background: #f59e0b; color: white; border: none;" onclick="addCustomTextbox()">
                     ➕ Add Text
                 </button>
-                <span id="statusMsg" style="font-size:12px; color:#666; margin-left:10px;">Ready</span>
+                <span id="statusMsg" style="font-size: 12px; color: #666; margin-left: 10px;">Ready</span>
             </div>
 
             <div class="toolbar-right">
-                <span style="font-size:12px;">Zoom:</span>
+                <span style="font-size: 12px;">Zoom:</span>
                 <input type="range" id="zoomSlider" min="0.3" max="2.0" step="0.1" value="1.0">
                 <span id="zoomValue" class="zoom-display">100%</span>
                 
-                <div style="border-left: 1px solid #ddd; padding-left: 10px; gap: 5px; align-items: center; display:flex;">
+                <div style="border-left: 1px solid #ddd; padding-left: 10px; gap: 5px; align-items: center; display: flex;">
                     <select id="propFontFamily" title="Font Family">
                         <option value="'Segoe UI', sans-serif">Segoe UI</option>
                         <option value="Arial, sans-serif">Arial</option>
                         <option value="'Times New Roman', serif">Times New Roman</option>
                     </select>
                     <input type="color" id="propTextColor" value="#1e3a8a" title="Text Color">
-                    <span style="font-size:11px; font-weight:bold; color:#555;">SIZE:</span>
-                    <input type="number" id="propSize" value="12" title="Font Size" style="width:40px;">
+                    <span style="font-size: 11px; font-weight: bold; color: #555;">SIZE:</span>
+                    <input type="number" id="propSize" value="12" title="Font Size" style="width: 40px;">
                 </div>
 
                 <button class="danger" onclick="deleteSelected()">🗑️ Delete</button>
                 <button class="primary" onclick="saveLayout()">💾 Save Layout</button>
                 <!-- Load Layout Button: Logic Changed to Merge Data -->
                 <button class="primary" style="background: #8b5cf6;" onclick="loadAndMergeLayout()">📂 Load & Merge</button>
+                <!-- Download PDF Button (ADDED) -->
+                <button class="primary" style="background: #dc2626; color: white; border: none;" onclick="downloadPDF()">⬇️ Download PDF</button>
             </div>
         </div>
 
@@ -700,6 +706,7 @@
             ['nw', 'ne', 'sw', 'se'].forEach(pos => {
                 const handle = document.createElement('div');
                 handle.className = `resize-handle rh-${pos}`;
+                handle.dataset.handle = pos;
                 el.appendChild(handle);
             });
             canvas.appendChild(el); selectElement(el);
@@ -824,15 +831,15 @@
         // Helpers
         propSize.addEventListener('input', () => {
             const sel = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
-            if(sel) sel.style.fontSize = propSize.value + 'px';
+            if (sel) sel.style.fontSize = propSize.value + 'px';
         });
         propFontFamily.addEventListener('change', () => {
             const sel = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
-            if(sel) sel.style.fontFamily = propFontFamily.value;
+            if (sel) sel.style.fontFamily = propFontFamily.value;
         });
         propTextColor.addEventListener('input', () => {
             const sel = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
-            if(sel) sel.style.color = propTextColor.value;
+            if (sel) sel.style.color = propTextColor.value;
         });
         function rgbToHex(rgb) { if(!rgb) return "#000"; if(rgb.startsWith('#')) return rgb; const [r,g,b] = rgb.match(/\d+/g); return "#" + [r,g,b].map(x => parseInt(x).toString(16).padStart(2,'0')).join(''); }
 
@@ -911,7 +918,7 @@
                 // 2. Check Selected Members
                 const selectedOptions = listRightElem.options;
                 if (selectedOptions.length === 0) {
-                    alert("Please select members in the 'Selected' listbox first!");
+                    alert("Please select members in 'Selected' listbox first!");
                     return;
                 }
 
@@ -954,15 +961,25 @@
                             el.style.fontSize = fieldData.fontSize;
                             el.style.fontFamily = fieldData.fontFamily;
                             el.style.fontWeight = fieldData.fontWeight;
-                            el.style.borderColor = "transparent"; // Hide borders for final output
-
-                            // --- SMART RENDER LOGIC ---
+                            
+                            // --- LOGIC UPDATE START ---
                             const fieldText = (fieldData.text || "").trim().toUpperCase();
                             
-                            // CHECK: IS THIS A CSS OBJECT (Line, Box, etc)?
+                            // 1. Identify if this is a CSS Object (Line, Box, Frosted)
                             const isCssObject = fieldData.className.includes('is-line') || 
                                                   fieldData.className.includes('is-box') || 
                                                   fieldData.className.includes('is-frosted');
+                            
+                            // 2. FIX: Conditionally hide border
+                            if (!isCssObject) {
+                                el.style.borderColor = "transparent";
+                            } else {
+                                // Keep default border for lines/boxes (defined in CSS)
+                                el.style.borderColor = ""; // Reset any inline style
+                            }
+                            // --- LOGIC UPDATE END ---
+
+                            // --- SMART RENDER LOGIC ---
                             
                             // CASE 1: OFFICER ELEMENTS (ID starts with "officer_")
                             if (fieldData.id.includes("officer_")) {
@@ -980,8 +997,6 @@
                                 }
                             }
                             // CASE 1.5: CSS OBJECTS (Static Lines, Boxes, Frosted)
-                            // This covers "Guhit", "Box", etc.
-                            // They render purely via CSS classes, so just render them as is.
                             else if (isCssObject) {
                                 el.innerText = fieldData.text; // Usually empty for lines
                             }
@@ -1066,6 +1081,89 @@
         function isImageField(caption) {
             const cap = caption.trim().toUpperCase();
             return (cap === "PHOTO" || cap === "SIGNATURE" || cap === "QR CODE" || cap === "OR CODES");
+        }
+
+        // ==========================================
+        // 7. DOWNLOAD PDF LOGIC (ADDED)
+        // ==========================================
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            
+            // 1. Setup PDF Size (A4 Standard)
+            // A4 Size: 210mm width x 297mm height
+            const doc = new jsPDF('p', 'mm', 'a4'); 
+            const pageWidth = 210;
+            const pageHeight = 297;
+            const margin = 10; // 10mm margin from sides
+
+            // 2. Configuration of Layout
+            // Standard ID: 86mm x 54mm
+            const cardW_mm = 86;
+            const cardH_mm = 54;
+            const gap_mm = 5; // 5mm spacing between cards
+
+            // 3. Select all cards in workspace
+            const cards = document.querySelectorAll('.workspace .canvas-wrapper');
+            
+            if (cards.length === 0) {
+                alert("No IDs generated yet. Please click 'Load & Merge' first.");
+                return;
+            }
+
+            statusMsg.textContent = "Generating PDF... Please wait.";
+
+            // 4. Grid Layout Logic (2 Cards per Row)
+            const cardsPerPage = 2; 
+            
+            // Position variables
+            let x = margin;
+            let y = margin;
+            let col = 0;
+
+            // Process cards one by one using async/await
+            for (let i = 0; i < cards.length; i++) {
+                // Check for Vertical Overflow (New Page)
+                // If we are at column 0 (start of new row) and there's no vertical space
+                if (col === 0 && i > 0 && (y + cardH_mm) > (pageHeight - margin)) {
+                    doc.addPage();
+                    y = margin;
+                    x = margin;
+                }
+
+                // 5. CAPTURE IMAGE using html2canvas
+                // Scale 2 for high quality print
+                try {
+                    const canvas = await html2canvas(cards[i], { scale: 2 });
+                    
+                    // 6. ADD IMAGE TO PDF
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                    
+                    doc.addImage(imgData, 'JPEG', x, y, cardW_mm, cardH_mm);
+
+                    // 7. UPDATE POSITION for next card
+                    // Move X to the right
+                    x += cardW_mm + gap_mm;
+                    col++;
+
+                    // Check for Horizontal Overflow (New Row)
+                    if (col >= cardsPerPage) {
+                        col = 0;
+                        x = margin;
+                        y += cardH_mm + gap_mm; // Move Y down
+                    }
+
+                } catch (err) {
+                    console.error("Error rendering card:", err);
+                    alert("Error generating PDF for card " + (i + 1));
+                }
+            }
+
+            // 8. SAVE FILE
+            // 'save' triggers direct download (best for mobile)
+            const fileName = `ID_Cards_${new Date().toISOString().slice(0, 10)}.pdf`;
+            doc.save(fileName);
+
+            statusMsg.textContent = "PDF Downloaded!";
         }
 
     </script>
