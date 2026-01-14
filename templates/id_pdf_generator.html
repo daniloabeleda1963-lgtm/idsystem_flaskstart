@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID PDF Generator - Data Merge FINAL (Mobile Safe Export)</title>
+    <title>ID PDF Generator - Data Merge FINAL (Mobile Safe Export - COORDINATE FIX)</title>
     
     <!-- PDF GENERATION LIBRARIES (ADDED) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -413,6 +413,7 @@
                 <button class="primary" onclick="saveLayout()">💾 Save Layout</button>
                 <button class="primary" style="background: #8b5cf6;" onclick="loadAndMergeLayout()">📂 Load & Merge</button>
                 <button class="primary" style="background: #dc2626; color: white; border: none;" onclick="downloadPDF()">⬇️ Download PDF</button>
+                
                 <button class="primary btn-export-phone" onclick="exportForPhone()">📱 EXPORT FOR PHONE</button>
             </div>
         </div>
@@ -894,7 +895,6 @@
         // 5. LOAD AND MERGE LOGIC (THE MAGIC - STATIC LINE FIX)
         // ==========================================
         
-        // Keywords that NEED to be merged from member data
         const MERGE_KEYWORDS = [
             "FULL NAME", "PSEUDO NAME", "ID NUMBER", "BLOOD TYPE",
             "DATE ISSUED", "VALID UNTIL", "ADDRESS", "HOME ADDRESS",
@@ -908,7 +908,6 @@
         ];
 
         async function loadAndMergeLayout() {
-            // 1. Get Layout Template
             try {
                 const response = await fetch(`${API_URL}/load_layout`);
                 const result = await response.json();
@@ -917,22 +916,18 @@
                 const saved = result.data;
                 if (!saved) { alert("No saved layout found."); return; }
 
-                // 2. Check Selected Members
                 const selectedOptions = listRightElem.options;
                 if (selectedOptions.length === 0) {
                     alert("Please select members in 'Selected' listbox first!");
                     return;
                 }
 
-                // 3. Clear existing workspace
                 workspace.innerHTML = ""; 
 
-                // 4. Loop through selected members and create a card for each
                 for (let i = 0; i < selectedOptions.length; i++) {
                     const option = selectedOptions[i];
                     const member = JSON.parse(option.dataset.memberData);
                     
-                    // Create a new canvas wrapper for this member
                     const newCanvas = document.createElement('div');
                     newCanvas.className = 'canvas-wrapper';
                     newCanvas.style.width = saved.template.width;
@@ -941,20 +936,15 @@
                     newCanvas.style.backgroundRepeat = "no-repeat";
                     newCanvas.style.backgroundSize = "contain";
                     newCanvas.style.boxShadow = "0 10px 40px rgba(0,0,0,0.2)";
-                    
-                    // IMPORTANT: Apply current zoom to new canvas immediately
-                    const zoom = parseFloat(zoomSlider.value);
-                    newCanvas.style.transform = `scale(${zoom})`;
+                    newCanvas.style.transform = `scale(${zoomSlider.value})`;
 
-                    // Append to workspace (Stacking)
                     workspace.appendChild(newCanvas);
 
-                    // Render fields for this specific member
                     if (saved && saved.fields) {
                         saved.fields.forEach(fieldData => {
                             const el = document.createElement('div');
                             el.className = fieldData.className;
-                            el.id = fieldData.id + '_' + i; // Unique ID
+                            el.id = fieldData.id + '_' + i;
                             el.style.left = fieldData.left;
                             el.style.top = fieldData.top;
                             el.style.width = fieldData.width;
@@ -964,29 +954,21 @@
                             el.style.fontFamily = fieldData.fontFamily;
                             el.style.fontWeight = fieldData.fontWeight;
                             
-                            // --- LOGIC UPDATE START ---
                             const fieldText = (fieldData.text || "").trim().toUpperCase();
-                            
-                            // 1. Identify if this is a CSS Object (Line, Box, Frosted)
                             const isCssObject = fieldData.className.includes('is-line') || 
                                                   fieldData.className.includes('is-box') || 
                                                   fieldData.className.includes('is-frosted');
                             
-                            // 2. FIX: Conditionally hide border
                             if (!isCssObject) {
                                 el.style.borderColor = "transparent";
                             } else {
-                                // Keep default border for lines/boxes (defined in CSS)
-                                el.style.borderColor = ""; // Reset any inline style
+                                el.style.borderColor = ""; 
                             }
-                            // --- LOGIC UPDATE END ---
 
-                            // --- SMART RENDER LOGIC ---
-                            
-                            // CASE 1: OFFICER ELEMENTS (ID starts with "officer_")
-                            if (fieldData.id.includes("officer_")) {
+                            const isOfficer = fieldData.id.includes("officer_");
+
+                            if (isOfficer) {
                                 if (fieldData.imgSrc) {
-                                    // Officer Signature (Static from Layout)
                                     el.innerHTML = "";
                                     const img = document.createElement('img');
                                     img.src = fieldData.imgSrc;
@@ -994,27 +976,20 @@
                                     img.style.objectFit = 'contain'; img.style.pointerEvents = 'none';
                                     el.appendChild(img);
                                 } else {
-                                    // Officer Name / Designation / Line (Static Text from Layout)
                                     el.innerText = fieldData.text; 
                                 }
                             }
-                            // CASE 1.5: CSS OBJECTS (Static Lines, Boxes, Frosted)
-                            // --- FIX FOR SIGNATURE BOX ---
                             else if (isCssObject) {
-                                // Check if this CSS Object (Box) is actually a Data Field (e.g., Signature Box)
                                 if (MERGE_KEYWORDS.includes(fieldText)) {
-                                    // Treat it as a dynamic data field
                                     const dataVal = getMemberValue(fieldData.text, member);
-
                                     if (isImageField(fieldData.text)) {
-                                        // Render Image inside Box (e.g., Member Signature)
                                         el.innerHTML = "";
                                         const img = document.createElement('img');
                                         
                                         if (fieldText === "PHOTO") img.src = member.photo_data || "";
                                         else if (fieldText === "SIGNATURE") img.src = member.signature || "";
                                         else if (fieldText === "QR CODE" || fieldText === "OR CODES") img.src = member.qr_code || "";
-                                        else img.src = ""; // Fallback
+                                        else img.src = ""; 
 
                                         img.style.width = '100%'; img.style.height = '100%';
                                         img.style.objectFit = 'contain';
@@ -1023,11 +998,9 @@
                                         el.innerText = dataVal;
                                     }
                                 } else {
-                                    // It's a plain Box (Static)
                                     el.innerText = fieldData.text; 
                                 }
                             }
-                            // CASE 2: STATIC IMAGE (Logo from Admin)
                             else if (fieldData.imgSrc) {
                                 const img = document.createElement('img');
                                 img.src = fieldData.imgSrc;
@@ -1035,31 +1008,25 @@
                                 img.style.objectFit = 'contain'; img.style.pointerEvents = 'none';
                                 el.innerHTML = ''; el.appendChild(img);
                             }
-                            // CASE 3: DYNAMIC MEMBER DATA (Merge Fields)
                             else if (MERGE_KEYWORDS.includes(fieldText)) {
                                 const dataVal = getMemberValue(fieldData.text, member);
-
                                 if (isImageField(fieldData.text)) {
-                                    // Render Photo / Signature / QR Code as <img>
                                     el.innerHTML = "";
                                     const img = document.createElement('img');
                                     
                                     if (fieldText === "PHOTO") img.src = member.photo_data || "";
                                     else if (fieldText === "SIGNATURE") img.src = member.signature || "";
                                     else if (fieldText === "QR CODE" || fieldText === "OR CODES") img.src = member.qr_code || "";
-                                    else img.src = ""; // Fallback
+                                    else img.src = ""; 
 
                                     img.style.width = '100%'; img.style.height = '100%';
                                     img.style.objectFit = 'contain';
                                     el.appendChild(img);
                                 } else {
-                                    // Render as Text
                                     el.innerText = dataVal;
                                 }
                             }
-                            // CASE 4: STATIC TEXT (Lines, Custom Text, etc.)
                             else {
-                                // Render EXACTLY what was saved
                                 el.innerText = fieldData.text; 
                             }
                             
@@ -1072,27 +1039,25 @@
         }
 
         // ==========================================
-        // 6. EXPORT FOR PHONE (SMART BRIDGE - FETCH SERVER)
+        // 6. EXPORT FOR PHONE (SERVER-DRIVEN BRIDGE - CSS FIX)
         // ==========================================
         function exportForPhone() {
             const cards = document.querySelectorAll('.workspace .canvas-wrapper');
-            // NOTE: We don't use the cards from the DOM. We use the DATA.
+            
             const selectedOptions = listRightElem.options;
             if (selectedOptions.length === 0) {
                 alert("No IDs generated yet. Please click 'Load & Merge' first.");
                 return;
             }
 
-            // 1. Extract Member Data (JSON)
+            // 1. EXTRACT MEMBER DATA (JSON)
             const membersList = [];
             Array.from(selectedOptions).forEach(opt => {
                 membersList.push(JSON.parse(opt.dataset.memberData));
             });
             const membersJSON = JSON.stringify(membersList);
 
-            // 2. Generate Lightweight HTML File (The Viewer)
-            // This file contains JS logic to fetch Layout from Server and Render.
-            
+            // 2. GENERATE PHONE HTML FILE (Lightweight)
             const phoneHTML = `
             <!DOCTYPE html>
             <html lang="en">
@@ -1103,17 +1068,42 @@
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>
                 <style>
+                    /* === CSS FIX: MATCH EXACT EDITOR STYLES === */
                     body { margin: 20px; background: #f3f4f6; font-family: sans-serif; text-align: center; }
                     .preview-container { display: flex; flex-direction: column; align-items: center; gap: 20px; padding-bottom: 50px; padding-top: 60px; }
                     .toolbar { position: fixed; top: 0; left: 0; width: 100%; background: #2563eb; color: white; padding: 15px; display: flex; justify-content: center; gap: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 9999; flex-wrap: wrap; }
-                    .canvas-wrapper { position: relative; background: #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+                    
+                    /* Element Styles (Copied from Main Editor) */
+                    .canvas-wrapper { position: relative; background: #fff; box-shadow: 0 10px 40px rgba(0,0,0,0.2); transform-origin: top center; }
+                    .canvas-element {
+                        position: absolute; cursor: move; background: rgba(37, 99, 235, 0.15);
+                        border: 1px dashed var(--primary-color); color: #1e3a8a;
+                        font-size: 12px; font-weight: bold; display: flex;
+                        align-items: center; justify-content: center; text-align: center;
+                        box-sizing: border-box; z-index: 100; overflow: hidden;
+                        padding: 2px 5px; /* <--- FIXED COORDINATES MATCH */
+                    }
+                    .canvas-element.is-photo { background: rgba(239, 68, 68, 0.1); border-color: red; color: red; }
+                    .canvas-element.is-line { background: transparent; border-bottom: 2px solid black; height: 0px !important; min-height: 2px; }
+                    .canvas-element.is-box { background: transparent; border: 1px solid black; }
+                    .canvas-element.is-frosted { background: rgba(255,255,255,0.4); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.6); }
+                    .canvas-element.is-image { background: transparent; border: 1px dashed #10b981; display: flex; align-items: center; justify-content: center; }
+                    .canvas-element.is-image img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+                    
                     .btn { padding: 10px 20px; font-size: 14px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
                     .btn-dl { background: #dc2626; color: white; }
-                    .btn-info { background: #f59e0b; color: black; }
-                    .loader { font-size: 14px; color: white; }
+                    .btn-dl:hover { background: #b91c1c; }
+                    .btn-info { background: #f59e0b; color: black; font-size: 12px; padding: 12px; }
+                    .loader { font-size: 14px; color: white; font-weight: bold; }
                 </style>
             </head>
             <body>
+                <!-- === CRITICAL FIX: EMBED DATA SCRIPT === -->
+                <script id="member-data-json" type="application/json">
+                    ${membersJSON}
+                <\/script>
+                <!-- ========================================= -->
+
                 <div class="toolbar">
                     <button class="btn btn-info" onclick="alert('Instructions: 1. Wait for Layout to Load. 2. Check if IDs are displayed below. 3. Click Download PDF.')">ℹ️ INFO</button>
                     <span id="toolbar-status" class="loader">Initializing...</span>
@@ -1184,7 +1174,7 @@
                             const result = await response.json();
                             
                             if (!response.ok || !result.data) {
-                                container.innerHTML = '<h3 style="color:red">Error: Layout not found on Server.</h3><p>Please ensure the app is deployed and "Save Layout" was clicked.</p>';
+                                container.innerHTML = '<h3 style="color:red">Error: Layout not found on Server.</h3><p>Please ensure app is deployed and "Save Layout" was clicked.</p>';
                                 toolbarStatus.textContent = "Error.";
                                 return;
                             }
@@ -1236,8 +1226,14 @@
                                                 if (fieldText === "PHOTO") imgSrc = member.photo_data || "";
                                                 else if (fieldText === "SIGNATURE") imgSrc = member.signature || "";
                                                 else if (fieldText === "QR CODE" || fieldText === "OR CODES") imgSrc = member.qr_code || "";
-                                                el.innerHTML = \`<img src="\${imgSrc}" style="width:100%; height:100%; object-fit:contain;">\`;
-                                                el.style.border = "none"; el.style.background = "none";
+                                                else imgSrc = "";
+                                                
+                                                /* === FIX: SIGNATURE BORDER / PAD === */
+                                                el.innerHTML = \`<img src="\${imgSrc}" style="width:100%; height:100%; object-fit:contain; border:none; background:transparent;">\`;
+                                                el.style.padding = "0"; 
+                                                el.style.border = "none"; 
+                                                el.style.background = "transparent";
+                                                /* ========================= */
                                             } else {
                                                 el.innerText = dataVal;
                                             }
@@ -1250,8 +1246,6 @@
                                 container.appendChild(newCanvas);
                             }
                             toolbarStatus.textContent = \`Loaded \${MEMBER_DATA.length} IDs.\`;
-                        }
-
                         } catch (e) {
                             console.error(e);
                             document.getElementById('previewContainer').innerHTML = \`<h3 style="color:red">Error: \${e.message}</h3>\`;
@@ -1298,11 +1292,9 @@
             </html>
             `;
 
-            // 3. Create Blob & Download
             const blob = new Blob([phoneHTML], {type: 'text/html'});
             const url = URL.createObjectURL(blob);
             
-            // 4. Trigger Download
             const win = window.open('', '_blank');
             if (win) {
                 win.document.write(phoneHTML);
@@ -1335,6 +1327,8 @@
 
             statusMsg.textContent = "Generating PDF... Please wait.";
 
+            const cardsPerPage = 1; 
+            
             let x = margin;
             let y = margin;
 
@@ -1351,6 +1345,7 @@
                 
                 try {
                     const canvas = await html2canvas(cards[i], { scale: 2 });
+                    
                     const capturedW = canvas.width;
                     const capturedH = canvas.height;
                     const ratio = capturedW / capturedH;
