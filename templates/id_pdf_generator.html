@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ID PDF Generator - Data Merge FINAL (Word & Image Export - WORD FIX)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID PDF Generator - Data Merge FINAL (Mobile Safe Export - SIGNATURE BOX FIX)</title>
     
-    <!-- PDF GENERATION LIBRARIES -->
+    <!-- PDF GENERATION LIBRARIES (ADDED) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
@@ -16,9 +16,6 @@
             --sidebar-bg: #1e293b;
             --sidebar-text: #e2e8f0;
         }
-        * {
-            -webkit-tap-highlight-color: transparent;
-        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: var(--bg-color);
@@ -27,59 +24,7 @@
             display: flex;
             height: 100vh;
             overflow: hidden;
-            -webkit-overflow-scrolling: touch;
         }
-        
-        /* MOBILE RESPONSIVE LAYOUT */
-        @media (max-width: 768px) {
-            body {
-                flex-direction: column;
-                height: auto;
-                min-height: 100vh;
-            }
-            .sidebar {
-                width: 100% !important;
-                max-height: 40vh;
-                border-right: none;
-                border-bottom: 2px solid #334155;
-            }
-            .main-content {
-                width: 100%;
-                height: auto;
-                min-height: 60vh;
-            }
-            .toolbar {
-                flex-wrap: wrap;
-                padding: 5px 10px !important;
-                gap: 5px !important;
-            }
-            .toolbar-left, .toolbar-right {
-                flex-wrap: wrap;
-                gap: 5px !important;
-            }
-            .toolbar button, .toolbar label {
-                font-size: 11px !important;
-                padding: 5px 8px !important;
-            }
-            .workspace {
-                padding: 20px 10px !important;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-            .canvas-wrapper {
-                width: 100% !important;
-                max-width: 400px !important;
-                height: auto !important;
-                aspect-ratio: 2/1;
-            }
-            .zoom-display {
-                display: none;
-            }
-            input[type="range"] {
-                width: 60px !important;
-            }
-        }
-        
         .sidebar {
             width: 280px; 
             background: var(--sidebar-bg);
@@ -90,7 +35,6 @@
             flex-shrink: 0;
             z-index: 200;
             overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
         }
         .sidebar-header {
             padding: 15px;
@@ -101,8 +45,6 @@
         .sidebar-list {
             flex-grow: 1;
             padding: 10px;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
         }
         .sidebar-group { margin-bottom: 15px; }
         .sidebar-group-title {
@@ -123,7 +65,6 @@
             align-items: center;
             gap: 8px;
             border: 1px solid #475569;
-            touch-action: none;
         }
         .draggable-item:hover { background: #475569; border-color: var(--primary-color); }
         .draggable-item:active { cursor: grabbing; }
@@ -171,7 +112,6 @@
             color: white;
             background: #2563eb;
             width: 100%;
-            touch-action: manipulation;
         }
         .admin-btn:hover { background: #1d4ed8; }
         .btn-del { background: #ef4444; }
@@ -213,7 +153,6 @@
             cursor: pointer;
             font-size: 14px;
             font-weight: bold;
-            touch-action: manipulation;
         }
         .transfer-btn:hover { background: #64748b; }
         .listbox-select {
@@ -238,7 +177,6 @@
             display: flex;
             flex-direction: column;
             position: relative;
-            overflow: hidden;
         }
         .toolbar {
             background: white;
@@ -249,11 +187,9 @@
             align-items: center;
             justify-content: space-between;
             flex-wrap: wrap;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
         }
-        .toolbar-left { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .toolbar-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .toolbar-left { display: flex; gap: 10px; align-items: center; }
+        .toolbar-right { display: flex; gap: 8px; align-items: center; }
         button {
             padding: 6px 12px;
             border: 1px solid #ddd;
@@ -261,7 +197,6 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 13px;
-            touch-action: manipulation;
         }
         button:hover { background: #f9fafb; }
         button.primary { background: var(--primary-color); color: white; border: none; }
@@ -277,7 +212,6 @@
             align-items: center;
             padding: 50px;
             gap: 20px;
-            -webkit-overflow-scrolling: touch;
         }
         .canvas-wrapper {
             position: relative;
@@ -308,7 +242,6 @@
             box-sizing: border-box;
             z-index: 100;
             overflow: hidden;
-            touch-action: none;
         }
         .canvas-element:hover { border: 1px solid var(--primary-color); background: rgba(37, 99, 235, 0.25); }
         .canvas-element.selected { border: 2px solid var(--primary-color); background: rgba(37, 99, 235, 0.3); z-index: 101; }
@@ -336,24 +269,22 @@
             white-space: pre-wrap;
             line-height: 1.4;
             text-align: left;
-            touch-action: none;
         }
         .custom-textbox.selected { border: 2px solid var(--primary-color); cursor: move; }
         .resize-handle {
             position: absolute;
-            width: 12px;
-            height: 12px;
+            width: 8px;
+            height: 8px;
             background: white;
-            border: 2px solid var(--primary-color);
+            border: 1px solid var(--primary-color);
             display: none;
             z-index: 300;
-            touch-action: none;
         }
         .canvas-element.selected .resize-handle, .custom-textbox.selected .resize-handle { display: block; }
-        .rh-se { bottom: -6px; right: -6px; cursor: nwse-resize; }
-        .rh-sw { bottom: -6px; left: -6px; cursor: nesw-resize; }
-        .rh-ne { top: -6px; right: -6px; cursor: nesw-resize; }
-        .rh-nw { top: -6px; left: -6px; cursor: nwse-resize; }
+        .rh-se { bottom: -4px; right: -4px; cursor: nwse-resize; }
+        .rh-sw { bottom: -4px; left: -4px; cursor: nesw-resize; }
+        .rh-ne { top: -4px; right: -4px; cursor: nesw-resize; }
+        .rh-nw { top: -4px; left: -4px; cursor: nwse-resize; }
 
         /* --- MODAL --- */
         .modal-overlay {
@@ -373,46 +304,9 @@
         .modal-body { flex-grow: 1; border: none; width: 100%; background-color: #f3f4f6; }
         .close-modal-btn { background: rgba(255,255,255,0.2); border: none; color: white; font-size: 20px; cursor: pointer; padding: 0 10px; border-radius: 4px; }
         .close-modal-btn:hover { background: rgba(255,255,255,0.4); }
-        
-        /* LOADING INDICATOR */
-        .loading-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            z-index: 99999;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            color: white;
-        }
-        .loading-overlay.active {
-            display: flex;
-        }
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #2563eb;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body>
-
-    <!-- LOADING OVERLAY -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="spinner"></div>
-        <p style="margin-top: 20px;">Loading...</p>
-    </div>
 
     <!-- SIDEBAR -->
     <div class="sidebar">
@@ -456,28 +350,7 @@
 
         <!-- === TOOLBOX === -->
         <div class="sidebar-list">
-            <div class="sidebar-group-title">Front Side</div>
-            <div class="draggable-item" draggable="true" data-type="text" data-caption="FULL NAME">📝 FULL NAME</div>
-            <div class="draggable-item" draggable="true" data-type="text" data-caption="PSEUDO NAME">📝 PSEUDO NAME</div>
-            <div class="draggable-item" draggable="true" data-type="text" data-caption="ID NUMBER">🆔 ID NUMBER</div>
-            <div class="draggable-item" draggable="true" data-type="text" data-caption="DESIGNATION">👔 DESIGNATION</div>
-            <div class="draggable-item" draggable="true" data-type="text" data-caption="BLOOD TYPE">🩸 BLOOD TYPE</div>
-            <div class="draggable-item" draggable="true" data-type="text" data-caption="DATE ISSUED">📅 DATE ISSUED</div>
-            <div class="draggable-item" draggable="true" data-type="text" data-caption="VALID UNTIL">⏳ VALID UNTIL</div>
-            <div class="draggable-item" draggable="true" data-type="text" data-caption="ADDRESS">🏠 ADDRESS</div>
-            <div class="draggable-item" draggable="true" data-type="text" data-caption="CONTACT NO">📞 CONTACT NO</div>
-            
-            <div class="sidebar-group-title">Emergency</div>
-            <div class="draggable-item" draggable="true" data-type="text" data-caption="EMERGENCY PERSON NAME">🚑 EMERGENCY NAME</div>
-            <div class="draggable-item" draggable="true" data-type="text" data-caption="EMERGENCY ADDRESS">🏠 EMERGENCY ADDR</div>
-            <div class="draggable-item" draggable="true" data-type="text" data-caption="EMERGENCY NO">📞 EMERGENCY NO</div>
-            
-            <div class="sidebar-group-title">Objects</div>
-            <div class="draggable-item" draggable="true" data-type="photo" data-caption="PHOTO">🖼️ PHOTO</div>
-            <div class="draggable-item" draggable="true" data-type="line" data-caption="LINE">📏 LINE</div>
-            <div class="draggable-item" draggable="true" data-type="box" data-caption="BOX">⬜ BOX</div>
-            <div class="draggable-item" draggable="true" data-type="sig-box" data-caption="SIGNATURE">✍️ SIGNATURE BOX</div>
-            <div class="draggable-item" draggable="true" data-type="qr-code" data-caption="OR CODES">🔳 OR / QR CODES</div>
+            <!-- Items removed per user request -->
         </div>
     </div>
 
@@ -518,14 +391,8 @@
                 <button class="danger" onclick="deleteSelected()">🗑️ Delete</button>
                 <button class="primary" onclick="saveLayout()">💾 Save Layout</button>
                 <button class="primary" style="background: #8b5cf6;" onclick="loadAndMergeLayout()">📂 Load & Merge</button>
+                <button class="primary" style="background: #dc2626; color: white; border: none;" onclick="downloadPDF()">⬇️ Download PDF</button>
                 
-                <!-- NEW BUTTONS FOR EXPORT -->
-                <div style="background: #e0f2fe; border-radius: 4px; padding: 2px 8px; gap: 5px; display: flex; align-items: center;">
-                    <button class="primary" style="background: #2563eb; border: none;" onclick="downloadImages()">🖼️ Download IMG</button>
-                    <button class="primary" style="background: #2563eb; border: none;" onclick="exportToWord()">📄 Export WORD</button>
-                    <button class="primary" style="background: #dc2626; color: white; border: none;" onclick="downloadPDF()">⬇️ Download PDF</button>
-                </div>
-
                 <button class="primary btn-export-phone" onclick="exportForPhone()">📱 EXPORT FOR PHONE</button>
             </div>
         </div>
@@ -560,17 +427,12 @@
         const propSize = document.getElementById('propSize');
         const propFontFamily = document.getElementById('propFontFamily');
         const propTextColor = document.getElementById('propTextColor');
-        const loadingOverlay = document.getElementById('loadingOverlay');
 
         let isDragging = false;
         let isResizing = false;
         let currentEl = null;
         let currentHandle = null;
         let startX, startY, startWidth, startHeight, startLeft, startTop;
-
-        // Show/Hide Loading
-        function showLoading() { loadingOverlay.classList.add('active'); }
-        function hideLoading() { loadingOverlay.classList.remove('active'); }
 
         // --- MODAL LOGIC ---
         function openModal(id) { document.getElementById(id).style.display = 'flex'; }
@@ -586,7 +448,6 @@
             if (!dateInput) { alert("Please select a date first!"); return; }
             listLeft.innerHTML = "";
             statusMsg.textContent = "Fetching members...";
-            showLoading();
             
             try {
                 const response = await fetch(`${API_URL}/api/members/by-date?date=${dateInput}`);
@@ -596,7 +457,6 @@
                 if (!members || members.length === 0) {
                     alert("No members found for date: " + dateInput);
                     statusMsg.textContent = "No members found.";
-                    hideLoading();
                     return;
                 }
 
@@ -611,10 +471,8 @@
                 statusMsg.textContent = `Loaded ${members.length} members.`;
             } catch (error) {
                 console.error(error);
-                alert("Error fetching members: " + error.message);
+                alert("Error fetching members.");
                 statusMsg.textContent = "Error.";
-            } finally {
-                hideLoading();
             }
         }
 
@@ -695,9 +553,6 @@
                     e.dataTransfer.setData('officerId', officerSelect.value);
                 }
             });
-            
-            // Mobile touch support
-            d.addEventListener('touchstart', handleTouchStart, {passive: false});
         });
 
         canvas.addEventListener('dragover', (e) => {
@@ -727,53 +582,6 @@
                 createSidebarElement(type, caption, actualX, actualY);
             }
         });
-
-        // Mobile touch drag support
-        let touchDragData = null;
-        function handleTouchStart(e) {
-            e.preventDefault();
-            const item = e.currentTarget;
-            touchDragData = {
-                type: item.dataset.type,
-                caption: item.dataset.caption,
-                officerId: item.dataset.type === 'officer-group' ? officerSelect.value : null
-            };
-            
-            document.addEventListener('touchmove', handleTouchMove);
-            document.addEventListener('touchend', handleTouchEnd);
-        }
-
-        function handleTouchMove(e) {
-            e.preventDefault();
-        }
-
-        function handleTouchEnd(e) {
-            e.preventDefault();
-            if (!touchDragData) return;
-            
-            const touch = e.changedTouches[0];
-            const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
-            
-            if (dropTarget && (dropTarget === canvas || canvas.contains(dropTarget))) {
-                const rect = canvas.getBoundingClientRect();
-                const x = touch.clientX - rect.left;
-                const y = touch.clientY - rect.top;
-                const zoom = parseFloat(zoomSlider.value);
-                const actualX = x / zoom;
-                const actualY = y / zoom;
-                
-                if (touchDragData.type === 'officer-group') {
-                    const officer = allOfficers.find(o => o.id == touchDragData.officerId);
-                    if (officer) createOfficerElements(officer, actualX, actualY);
-                } else {
-                    createSidebarElement(touchDragData.type, touchDragData.caption, actualX, actualY);
-                }
-            }
-            
-            touchDragData = null;
-            document.removeEventListener('touchmove', handleTouchMove);
-            document.removeEventListener('touchend', handleTouchEnd);
-        }
 
         function createSidebarElement(type, caption, x, y, imgSrc = null) {
             const el = document.createElement('div');
@@ -890,7 +698,6 @@
         document.getElementById('templateUpload').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
-                showLoading();
                 const reader = new FileReader();
                 reader.onload = function(evt) {
                     const img = new Image();
@@ -899,17 +706,8 @@
                         canvas.style.height = img.height + 'px';
                         canvas.style.backgroundImage = `url('${evt.target.result}')`;
                         statusMsg.textContent = "Template: " + file.name;
-                        hideLoading();
-                    };
-                    img.onerror = function() {
-                        alert("Failed to load image");
-                        hideLoading();
                     };
                     img.src = evt.target.result;
-                };
-                reader.onerror = function() {
-                    alert("Failed to read file");
-                    hideLoading();
                 };
                 reader.readAsDataURL(file);
             }
@@ -918,15 +716,9 @@
         document.getElementById('logoUpload').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
-                showLoading();
                 const reader = new FileReader();
                 reader.onload = function(evt) {
                     createSidebarElement('logo-image', 'Logo', 50, 50, evt.target.result);
-                    hideLoading();
-                };
-                reader.onerror = function() {
-                    alert("Failed to read file");
-                    hideLoading();
                 };
                 reader.readAsDataURL(file);
             }
@@ -942,95 +734,59 @@
             zoomValue.textContent = Math.round(scale * 100) + '%';
         });
 
-        // --- MOUSE/TOUCH EVENTS (Drag, Resize, Select) ---
-        function getEventCoords(e) {
-            if (e.touches && e.touches.length > 0) {
-                return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
-            }
-            return { clientX: e.clientX, clientY: e.clientY };
-        }
-
-        document.addEventListener('mousedown', handlePointerDown);
-        document.addEventListener('touchstart', handlePointerDown, {passive: false});
-
-        function handlePointerDown(e) {
-            const coords = getEventCoords(e);
-            
+        // --- MOUSE EVENTS (Drag, Resize, Select) - FIXED DELETE ISSUE ---
+        document.addEventListener('mousedown', function(e) {
             if (e.target.classList.contains('resize-handle')) {
-                e.preventDefault();
-                isResizing = true; 
-                currentHandle = e.target.dataset.handle; 
-                currentEl = e.target.parentElement;
-                startX = coords.clientX; 
-                startY = coords.clientY;
+                isResizing = true; currentHandle = e.target.dataset.handle; currentEl = e.target.parentElement;
+                startX = e.clientX; startY = e.clientY;
                 startWidth = parseInt(getComputedStyle(currentEl).width);
                 startHeight = parseInt(getComputedStyle(currentEl).height);
-                selectElement(currentEl); 
-                return;
+                selectElement(currentEl); e.stopPropagation(); return;
             }
-            
             const targetEl = e.target.closest('.canvas-element') || e.target.closest('.custom-textbox');
             if (targetEl) {
                 currentEl = targetEl;
-                startX = coords.clientX; 
-                startY = coords.clientY;
-                startLeft = currentEl.offsetLeft; 
-                startTop = currentEl.offsetTop;
-                
+                startX = e.clientX; startY = e.clientY;
+                startLeft = currentEl.offsetLeft; startTop = currentEl.offsetTop;
                 if (currentEl.classList.contains('custom-textbox')) {
-                    const dragTimer = setTimeout(() => { 
-                        isDragging = true; 
-                        selectElement(currentEl); 
-                    }, 150);
+                    const dragTimer = setTimeout(() => { isDragging = true; selectElement(currentEl); }, 150);
                     currentEl.dataset.dragTimer = dragTimer;
                 } else {
-                    isDragging = true; 
-                    selectElement(currentEl);
+                    isDragging = true; selectElement(currentEl);
                 }
             } else if (!e.target.closest('.toolbar') && !e.target.closest('.sidebar') && !e.target.closest('.modal-content')) {
                 deselectAll();
             }
-        }
+        });
 
-        document.addEventListener('mousemove', handlePointerMove);
-        document.addEventListener('touchmove', handlePointerMove, {passive: false});
-
-        function handlePointerMove(e) {
-            const coords = getEventCoords(e);
-            
+        document.addEventListener('mousemove', function(e) {
             if (isResizing && currentEl) {
                 e.preventDefault();
                 const zoom = parseFloat(zoomSlider.value);
-                const dx = (coords.clientX - startX) / zoom;
-                const dy = (coords.clientY - startY) / zoom;
+                const dx = (e.clientX - startX) / zoom;
+                const dy = (e.clientY - startY) / zoom;
                 if (currentHandle.includes('e')) currentEl.style.width = Math.round(startWidth + dx) + 'px';
                 if (currentHandle.includes('s')) currentEl.style.height = Math.round(startHeight + dy) + 'px';
             }
-            else if ((isDragging || currentEl) && (Math.abs(coords.clientX - startX) > 2 || Math.abs(coords.clientY - startY) > 2)) {
+            else if ((isDragging || currentEl) && (Math.abs(e.clientX - startX) > 2 || Math.abs(e.clientY - startY) > 2)) {
                 if (currentEl && !isDragging) {
                     isDragging = true;
                 }
                 if (isDragging && currentEl) {
                     e.preventDefault();
                     const zoom = parseFloat(zoomSlider.value);
-                    const dx = (coords.clientX - startX) / zoom;
-                    const dy = (coords.clientY - startY) / zoom;
+                    const dx = (e.clientX - startX) / zoom;
+                    const dy = (e.clientY - startY) / zoom;
                     currentEl.style.left = Math.round(startLeft + dx) + 'px';
                     currentEl.style.top = Math.round(startTop + dy) + 'px';
                 }
             }
-        }
+        });
 
-        document.addEventListener('mouseup', handlePointerUp);
-        document.addEventListener('touchend', handlePointerUp);
-
-        function handlePointerUp() {
+        document.addEventListener('mouseup', function() {
             if (currentEl && currentEl.dataset.dragTimer) clearTimeout(currentEl.dataset.dragTimer);
-            isDragging = false; 
-            isResizing = false; 
-            currentEl = null; 
-            currentHandle = null;
-        }
+            isDragging = false; isResizing = false; currentEl = null; currentHandle = null;
+        });
 
         function selectElement(el) {
             deselectAll();
@@ -1067,20 +823,12 @@
             const sel = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
             if (sel) sel.style.color = propTextColor.value;
         });
-        function rgbToHex(rgb) { 
-            if(!rgb) return "#000"; 
-            if(rgb.startsWith('#')) return rgb; 
-            const match = rgb.match(/\d+/g);
-            if (!match) return "#000";
-            const [r,g,b] = match;
-            return "#" + [r,g,b].map(x => parseInt(x).toString(16).padStart(2,'0')).join(''); 
-        }
+        function rgbToHex(rgb) { if(!rgb) return "#000"; if(rgb.startsWith('#')) return rgb; const [r,g,b] = rgb.match(/\d+/g); return "#" + [r,g,b].map(x => parseInt(x).toString(16).padStart(2,'0')).join(''); }
 
         // ==========================================
         // 4. SAVE / LOAD LAYOUT (EXACT COORDINATES)
         // ==========================================
         async function saveLayout() {
-            showLoading();
             const elements = [];
             Array.from(canvas.children).forEach(child => {
                 if (child.classList.contains('resize-handle')) return; 
@@ -1119,12 +867,7 @@
                 const result = await response.json();
                 if (response.ok) alert(result.message || "Layout Saved!");
                 else alert("Error: " + result.message);
-            } catch (e) { 
-                console.error(e); 
-                alert("Failed to save: " + e.message); 
-            } finally {
-                hideLoading();
-            }
+            } catch (e) { console.error(e); alert("Failed to save."); }
         }
 
         // ==========================================
@@ -1144,27 +887,17 @@
         ];
 
         async function loadAndMergeLayout() {
-            showLoading();
             try {
                 const response = await fetch(`${API_URL}/load_layout`);
                 const result = await response.json();
-                if (!response.ok) { 
-                    alert("Error: " + result.message); 
-                    hideLoading();
-                    return; 
-                }
+                if (!response.ok) { alert("Error: " + result.message); return; }
                 
                 const saved = result.data;
-                if (!saved) { 
-                    alert("No saved layout found."); 
-                    hideLoading();
-                    return; 
-                }
+                if (!saved) { alert("No saved layout found."); return; }
 
                 const selectedOptions = listRightElem.options;
                 if (selectedOptions.length === 0) {
                     alert("Please select members in 'Selected' listbox first!");
-                    hideLoading();
                     return;
                 }
 
@@ -1222,9 +955,11 @@
                                     img.style.objectFit = 'contain'; img.style.pointerEvents = 'none';
                                     el.appendChild(img);
                                     
+                                    /* === FIX: SIGNATURE BORDER CLEANUP === */
                                     el.style.border = "none";
                                     el.style.background = "transparent";
                                     el.style.padding = "0";
+                                    /* ========================================= */
                                 } else {
                                     el.innerText = fieldData.text; 
                                 }
@@ -1244,6 +979,12 @@
                                         img.style.width = '100%'; img.style.height = '100%';
                                         img.style.objectFit = 'contain';
                                         el.appendChild(img);
+
+                                        /* === FIX: SIGNATURE BORDER CLEANUP === */
+                                        el.style.border = "none";
+                                        el.style.background = "transparent";
+                                        el.style.padding = "0";
+                                        /* ========================================= */
                                     } else {
                                         el.innerText = dataVal;
                                     }
@@ -1272,10 +1013,12 @@
                                     img.style.width = '100%'; img.style.height = '100%';
                                     img.style.objectFit = 'contain';
                                     el.appendChild(img);
-                                    
+
+                                    /* === FIX: SIGNATURE BORDER CLEANUP === */
                                     el.style.border = "none";
                                     el.style.background = "transparent";
                                     el.style.padding = "0";
+                                    /* ========================================= */
                                 } else {
                                     el.innerText = dataVal;
                                 }
@@ -1289,114 +1032,11 @@
                     }
                 }
                 statusMsg.textContent = `Generated ID for ${selectedOptions.length} member(s).`;
-            } catch (e) { 
-                console.error(e); 
-                alert("Failed to load: " + e.message); 
-            } finally {
-                hideLoading();
-            }
+            } catch (e) { console.error(e); alert("Failed to load."); }
         }
 
         // ==========================================
-        // 6. EXPORT TO WORD (ZOOM FIX - FULL SIZE)
-        // ==========================================
-        function exportToWord() {
-            const cards = document.querySelectorAll('.workspace .canvas-wrapper');
-            if (cards.length === 0) {
-                alert("No IDs generated yet. Please click 'Load & Merge' first.");
-                return;
-            }
-
-            showLoading();
-            const tempDiv = document.createElement('div');
-            tempDiv.style.width = '800px'; 
-            tempDiv.style.padding = '20px';
-            tempDiv.style.background = '#fff';
-            tempDiv.style.display = 'flex';
-            tempDiv.style.flexDirection = 'column';
-            tempDiv.style.gap = '20px';
-
-            const originalTransforms = [];
-
-            try {
-                Array.from(cards).forEach((card, index) => {
-                    originalTransforms.push(card.style.transform);
-                    card.style.transform = 'none'; 
-                    const clone = card.cloneNode(true);
-                    tempDiv.appendChild(clone);
-                });
-
-                const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' " +
-                              "xmlns:w='urn:schemas-microsoft-com:office:word'>" +
-                              "<head><meta charset='utf-8'><title>Export HTML to Word Document</title></head><body>";
-                const footer = "</body></html>";
-                
-                const sourceHTML = header + tempDiv.innerHTML + footer;
-                
-                const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
-                const fileDownload = document.createElement("a");
-                document.body.appendChild(fileDownload);
-                fileDownload.href = source;
-                fileDownload.download = 'ID_Cards.doc';
-                fileDownload.click();
-                document.body.removeChild(fileDownload);
-
-            } catch (e) {
-                console.error(e);
-                alert("Error exporting to Word: " + e.message);
-            } finally {
-                Array.from(cards).forEach((card, index) => {
-                    card.style.transform = originalTransforms[index];
-                });
-                hideLoading();
-            }
-        }
-
-        // ==========================================
-        // 7. DOWNLOAD AS IMAGES (JPG) - RAM SAFE
-        // ==========================================
-        async function downloadImages() {
-            const cards = document.querySelectorAll('.workspace .canvas-wrapper');
-            if (cards.length === 0) {
-                alert("No IDs generated yet. Please click 'Load & Merge' first.");
-                return;
-            }
-
-            showLoading();
-            const downloadCard = async (index) => {
-                const originalTransform = cards[index].style.transform;
-                const originalOrigin = cards[index].style.transformOrigin;
-                
-                cards[index].style.transform = 'none'; 
-                
-                try {
-                    const canvas = await html2canvas(cards[index], { scale: 2 });
-                    const imgData = canvas.toDataURL('image/jpeg', 0.9);
-                    const link = document.createElement('a');
-                    link.href = imgData;
-                    link.download = `ID_Card_${index + 1}.jpg`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                } finally {
-                    cards[index].style.transform = originalTransform;
-                    cards[index].style.transformOrigin = originalOrigin;
-                }
-            };
-
-            statusMsg.textContent = "Downloading images...";
-
-            for (let i = 0; i < cards.length; i++) {
-                await downloadCard(i);
-                statusMsg.textContent = `Downloaded ${i + 1} of ${cards.length}...`;
-            }
-            
-            statusMsg.textContent = "Images Downloaded!";
-            hideLoading();
-        }
-
-        // ==========================================
-        // 8. EXPORT FOR PHONE (OFFLINE MODE - SIGNATURE FIX)
+        // 6. EXPORT FOR PHONE (OFFLINE MODE - SIGNATURE FIX)
         // ==========================================
         function exportForPhone() {
             const cards = document.querySelectorAll('.workspace .canvas-wrapper');
@@ -1407,13 +1047,14 @@
                 return;
             }
 
-            showLoading();
+            // 1. EXTRACT MEMBER DATA (JSON)
             const membersList = [];
             Array.from(selectedOptions).forEach(opt => {
                 membersList.push(JSON.parse(opt.dataset.memberData));
             });
             const membersJSON = JSON.stringify(membersList);
 
+            // 2. FETCH LAYOUT DATA (Laptop Side) - Must work on Laptop
             let savedLayout = null;
             (async () => {
                 try {
@@ -1425,17 +1066,16 @@
                         proceedExport(savedLayout, membersJSON);
                     } else {
                         alert("Could not load Layout from Server. Please ensure 'Save Layout' was clicked.");
-                        hideLoading();
                     }
                 } catch (e) {
                     alert("Error fetching layout: " + e.message);
                     console.error(e);
-                    hideLoading();
                 }
             })();
         }
 
         function proceedExport(layoutData, membersJSON) {
+            // 3. GENERATE PHONE HTML FILE (OFFLINE CAPABLE)
             const layoutJSON = JSON.stringify(layoutData);
 
             const phoneHTML = `
@@ -1443,24 +1083,25 @@
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>ID Phone Viewer</title>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>
                 <style>
-                    * { -webkit-tap-highlight-color: transparent; }
-                    body { margin: 20px; background: #f3f4f6; font-family: sans-serif; text-align: center; -webkit-overflow-scrolling: touch; }
+                    /* === CSS FIX: MATCH EXACT EDITOR STYLES === */
+                    body { margin: 20px; background: #f3f4f6; font-family: sans-serif; text-align: center; }
                     .preview-container { display: flex; flex-direction: column; align-items: center; gap: 20px; padding-bottom: 50px; padding-top: 60px; }
                     .toolbar { position: fixed; top: 0; left: 0; width: 100%; background: #2563eb; color: white; padding: 15px; display: flex; justify-content: center; gap: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 9999; flex-wrap: wrap; }
                     
-                    .canvas-wrapper { position: relative; background: #fff; box-shadow: 0 10px 40px rgba(0,0,0,0.2); transform-origin: top center; max-width: 100%; }
+                    /* Element Styles (Copied from Main Editor) */
+                    .canvas-wrapper { position: relative; background: #fff; box-shadow: 0 10px 40px rgba(0,0,0,0.2); transform-origin: top center; }
                     .canvas-element {
                         position: absolute; cursor: move; background: rgba(37, 99, 235, 0.15);
-                        border: 1px dashed var(--primary-color); color: #1e3a8a;
+                        border:1px dashed var(--primary-color); color: #1e3a8a;
                         font-size: 12px; font-weight: bold; display: flex;
                         align-items: center; justify-content: center; text-align: center;
                         box-sizing: border-box; z-index: 100; overflow: hidden;
-                        padding: 2px 5px;
+                        padding: 2px 5px; /* <--- FIXED COORDINATES MATCH */
                     }
                     .canvas-element.is-photo { background: rgba(239, 68, 68, 0.1); border-color: red; color: red; }
                     .canvas-element.is-line { background: transparent; border-bottom: 2px solid black; height: 0px !important; min-height: 2px; }
@@ -1469,28 +1110,25 @@
                     .canvas-element.is-image { background: transparent; border: 1px dashed #10b981; display: flex; align-items: center; justify-content: center; }
                     .canvas-element.is-image img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
                     
-                    .btn { padding: 10px 20px; font-size: 14px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; touch-action: manipulation; }
+                    .btn { padding: 10px 20px; font-size: 14px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
                     .btn-dl { background: #dc2626; color: white; }
                     .btn-dl:hover { background: #b91c1c; }
                     .btn-info { background: #f59e0b; color: black; font-size: 12px; padding: 12px; }
                     .loader { font-size: 14px; color: white; font-weight: bold; }
-                    
-                    @media (max-width: 768px) {
-                        .canvas-wrapper { max-width: 95vw !important; height: auto !important; }
-                        .btn { font-size: 12px; padding: 8px 16px; }
-                    }
                 </style>
             </head>
             <body>
+                <!-- === CRITICAL FIX: EMBED BOTH DATA SCRIPTS === -->
                 <script id="layout-data-json" type="application/json">
                     ${layoutJSON}
                 <\/script>
                 <script id="member-data-json" type="application/json">
                     ${membersJSON}
                 <\/script>
+                <!-- ========================================= -->
 
                 <div class="toolbar">
-                    <button class="btn btn-info" onclick="alert('IDs are pre-loaded. Click Download PDF.')">ℹ️ INFO</button>
+                    <button class="btn btn-info" onclick="alert('Instructions: 1. IDs are pre-loaded. 2. Click Download PDF.')">ℹ️ INFO</button>
                     <span id="toolbar-status" class="loader">Initializing...</span>
                     <button class="btn btn-dl" onclick="downloadPDFPhone()">⬇️ DOWNLOAD PDF</button>
                 </div>
@@ -1499,9 +1137,14 @@
                 </div>
                 
                 <script>
+                    // 1. AUTO-DETECT PHONE (FIX)
+                    const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+                    // 2. Get Data from embedded scripts (OFFLINE MODE)
                     const LAYOUT_DATA = JSON.parse(document.getElementById('layout-data-json').textContent);
                     const MEMBER_DATA = JSON.parse(document.getElementById('member-data-json').textContent);
 
+                    // 3. Helper Functions (Duplicated for Standalone)
                     function getMemberValue(caption, member) {
                         const cap = caption.trim().toUpperCase();
                         if (cap === "FULL NAME") return member.name || "";
@@ -1542,6 +1185,7 @@
                         "PHOTO", "SIGNATURE", "QR CODE", "OR CODES"
                     ];
 
+                    // 4. Main Logic: Render (OFFLINE)
                     function initApp() {
                         const toolbarStatus = document.getElementById('toolbar-status');
                         const container = document.getElementById('previewContainer');
@@ -1549,6 +1193,7 @@
                         try {
                             toolbarStatus.textContent = "Rendering IDs...";
                             
+                            // NO FETCH. Read embedded LAYOUT_DATA.
                             const saved = LAYOUT_DATA;
                             if (!saved) {
                                 container.innerHTML = '<h3 style="color:red">Error: Layout data not found.</h3><p>The layout was not embedded correctly.</p>';
@@ -1556,8 +1201,9 @@
                                 return;
                             }
 
-                            container.innerHTML = "";
+                            container.innerHTML = ""; // Clear Loading
 
+                            // Render Cards
                             for (let i = 0; i < MEMBER_DATA.length; i++) {
                                 const member = MEMBER_DATA[i];
                                 
@@ -1570,6 +1216,7 @@
                                 newCanvas.style.backgroundSize = "contain";
                                 newCanvas.style.boxShadow = "0 10px 40px rgba(0,0,0,0.2)";
 
+                                // Render Fields
                                 if (saved && saved.fields) {
                                     saved.fields.forEach(fieldData => {
                                         const el = document.createElement('div');
@@ -1590,16 +1237,15 @@
 
                                         if (!isCssObject) { el.style.borderColor = "transparent"; }
                                         
+                                        // Render Logic
                                         if (fieldData.imgSrc) {
-                                            el.innerHTML = \`<img src="\${fieldData.imgSrc}" style="width:100%; height:100%; object-fit:contain;">\`;
+                                            // IMAGE SAFETY FIX (LOADING)
+                                            el.innerHTML = \`<img src="\${fieldData.imgSrc}" style="width:100%; height:100%; object-fit:contain;" loading="lazy" decoding="async">\`;
+                                            /* === FIX: BOX BORDER CLEANUP === */
                                             el.style.border = "none";
                                             el.style.background = "transparent";
                                             el.style.padding = "0";
-                                            el.style.zIndex = "101";
-                                            el.style.display = "flex";
-                                            el.style.alignItems = "center";
-                                            el.style.justifyContent = "center";
-                                            el.style.overflow = "hidden";
+                                            /* ========================================= */
                                         } else if (MERGE_KEYWORDS.includes(fieldText)) {
                                             const dataVal = getMemberValue(fieldData.text, member);
                                             if (isImageField(fieldData.text)) {
@@ -1609,10 +1255,12 @@
                                                 else if (fieldText === "QR CODE" || fieldText === "OR CODES") imgSrc = member.qr_code || "";
                                                 else imgSrc = "";
                                                 
-                                                el.innerHTML = \`<img src="\${imgSrc}" style="width:100%; height:100%; object-fit:contain; border:none; background:transparent;">\`;
+                                                /* === FIX: SIGNATURE BOX TRANSPARENT + LAZY === */
+                                                el.innerHTML = \`<img src="\${imgSrc}" style="width:100%; height:100%; object-fit:contain; border:none; background:transparent;" loading="lazy" decoding="async">\`;
                                                 el.style.padding = "0"; 
                                                 el.style.border = "none"; 
                                                 el.style.background = "transparent";
+                                                /* ========================= */
                                             } else {
                                                 el.innerText = dataVal;
                                             }
@@ -1631,6 +1279,7 @@
                         }
                     }
 
+                    // 5. PDF Download Function (FIXED FOR PHONE)
                     async function downloadPDFPhone() {
                         const { jsPDF } = window.jspdf;
                         const doc = new jsPDF('p', 'mm', 'a4');
@@ -1650,19 +1299,36 @@
                                 y = margin;
                             }
 
+                            // LIMIT CANVAS SIZE (PHONE SAFE FIX)
+                            const originalMaxWidth = cards[i].style.maxWidth;
+                            cards[i].style.maxWidth = '360px';
+
                             try {
-                                const canvas = await html2canvas(cards[i], { scale: 2 });
+                                // FIX: DYNAMIC SCALE BASED ON DEVICE
+                                const canvas = await html2canvas(cards[i], { 
+                                    scale: IS_MOBILE ? 1 : 2,
+                                    useCORS: true,
+                                    backgroundColor: '#ffffff'
+                                });
                                 const props = doc.getImageProperties(canvas);
                                 const ratio = props.width / props.height;
                                 const targetW_mm = targetH_mm * ratio;
                                 doc.addImage(canvas, 'JPEG', margin, y, targetW_mm, targetH_mm);
                                 y += targetH_mm + gap_mm;
-                            } catch(e) { alert("Error: " + e); }
+
+                                // ONE-CARD-AT-A-TIME (ANTI-CRASH LOOP)
+                                await new Promise(r => setTimeout(r, 150));
+
+                            } catch(e) { alert("Error: " + e); } finally {
+                                // Restore width
+                                cards[i].style.maxWidth = '';
+                            }
                         }
                         doc.save('ID_Cards.pdf');
                         alert("PDF Downloaded!");
                     }
 
+                    // Run Init on Load
                     window.addEventListener('load', initApp);
                 <\/script>
             </body>
@@ -1679,11 +1345,10 @@
             } else {
                 alert("Pop-up blocker blocked. Please allow pop-ups.");
             }
-            hideLoading();
         }
 
         // ==========================================
-        // 9. DOWNLOAD PDF LOGIC (UPDATED - VERTICAL STACKING FIX)
+        // 7. DOWNLOAD PDF LOGIC (UPDATED - VERTICAL STACKING FIX)
         // ==========================================
         async function downloadPDF() {
             const { jsPDF } = window.jspdf;
@@ -1703,9 +1368,10 @@
                 return;
             }
 
-            showLoading();
             statusMsg.textContent = "Generating PDF... Please wait.";
 
+            const cardsPerPage = 1; 
+            
             let x = margin;
             let y = margin;
 
@@ -1750,11 +1416,10 @@
             doc.save(fileName);
 
             statusMsg.textContent = "PDF Downloaded!";
-            hideLoading();
         }
 
         // ==========================================
-        // 10. HELPER: GET MEMBER VALUE (UPDATED MAPPING)
+        // 8. HELPER: GET MEMBER VALUE (UPDATED MAPPING)
         // ==========================================
         function getMemberValue(caption, member) {
             const cap = caption.trim().toUpperCase();
