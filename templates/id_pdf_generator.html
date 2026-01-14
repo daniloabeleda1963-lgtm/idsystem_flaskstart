@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID PDF Generator - Data Merge FINAL (Box Border Fix)</title>
+    <title>ID PDF Generator - Data Merge FINAL (Vertical Layout Fix)</title>
     
     <!-- PDF GENERATION LIBRARIES (ADDED) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -116,6 +116,13 @@
         .admin-btn:hover { background: #1d4ed8; }
         .btn-del { background: #ef4444; }
         .btn-del:hover { background: #dc2626; }
+        
+        /* --- EXPORT PHONE BUTTON STYLE (ADDED) --- */
+        .btn-export-phone {
+            background: #10b981; 
+            border: 1px solid #059669;
+        }
+        .btn-export-phone:hover { background: #059669; }
 
         /* --- TRANSFER LIST STYLES --- */
         .transfer-box {
@@ -385,7 +392,7 @@
                 <button class="primary" style="background: #f59e0b; color: white; border: none;" onclick="addCustomTextbox()">
                     ➕ Add Text
                 </button>
-                <span id="statusMsg" style="font-size: 12px; color: #666; margin-left: 10px;">Ready</span>
+                <span id="statusMsg" style="font-size: 12px; color: #666;">Ready</span>
             </div>
 
             <div class="toolbar-right">
@@ -410,6 +417,9 @@
                 <button class="primary" style="background: #8b5cf6;" onclick="loadAndMergeLayout()">📂 Load & Merge</button>
                 <!-- Download PDF Button (ADDED) -->
                 <button class="primary" style="background: #dc2626; color: white; border: none;" onclick="downloadPDF()">⬇️ Download PDF</button>
+                
+                <!-- EXPORT FOR PHONE BUTTON (ADDED) -->
+                <button class="primary btn-export-phone" onclick="exportForPhone()">📱 EXPORT FOR PHONE</button>
             </div>
         </div>
 
@@ -889,7 +899,7 @@
         }
 
         // ==========================================
-        // 5. LOAD AND MERGE LOGIC (THE MAGIC - BOX BORDER FIX)
+        // 5. LOAD AND MERGE LOGIC (THE MAGIC - STATIC LINE FIX)
         // ==========================================
         
         // Keywords that NEED to be merged from member data
@@ -962,7 +972,7 @@
                             el.style.fontFamily = fieldData.fontFamily;
                             el.style.fontWeight = fieldData.fontWeight;
                             
-                            // --- SMART RENDER LOGIC ---
+                            // --- LOGIC UPDATE START ---
                             const fieldText = (fieldData.text || "").trim().toUpperCase();
                             
                             // 1. Identify if this is a CSS Object (Line, Box, Frosted)
@@ -974,17 +984,10 @@
                             if (!isCssObject) {
                                 el.style.borderColor = "transparent";
                             } else {
-                                // --- FIX FOR BOX BORDER ("MADUMING TINGNAN") ---
-                                // If it's a box, remove the border completely.
-                                // If it's a line, keep the border.
-                                if (fieldData.className.includes('is-box')) {
-                                    el.style.border = "none";
-                                } else if (fieldData.className.includes('is-line')) {
-                                    // Keep default line border (black)
-                                    el.style.borderColor = ""; 
-                                }
-                                // ------------------------------------------------
+                                // Keep default border for lines/boxes (defined in CSS)
+                                el.style.borderColor = ""; // Reset any inline style
                             }
+                            // --- LOGIC UPDATE END ---
 
                             // --- SMART RENDER LOGIC ---
                             
@@ -1028,7 +1031,7 @@
                                         el.innerText = dataVal;
                                     }
                                 } else {
-                                    // It's a plain Box (Static) - Border already handled above
+                                    // It's a plain Box (Static)
                                     el.innerText = fieldData.text; 
                                 }
                             }
@@ -1077,7 +1080,199 @@
         }
 
         // ==========================================
-        // 6. HELPER: GET MEMBER VALUE (UPDATED MAPPING)
+        // 6. EXPORT FOR PHONE (NEW FEATURE - ADDED)
+        // ==========================================
+        function exportForPhone() {
+            const cards = document.querySelectorAll('.workspace .canvas-wrapper');
+            if (cards.length === 0) {
+                alert("No IDs generated yet. Please click 'Load & Merge' first.");
+                return;
+            }
+
+            document.body.innerHTML = '<h2 style="text-align:center; margin-top:100px;">Moved to New Tab.<br><br>Opening ID Preview...</h2>';
+            document.body.style.background = '#f3f4f6';
+
+            const newTabContent = `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>ID Preview - New Window</title>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>
+                <style>
+                    body { margin: 20px; background: #f3f4f6; font-family: sans-serif; text-align: center; }
+                    .preview-container { display: flex; flex-direction: column; align-items: center; gap: 20px; padding-bottom: 50px; }
+                    .toolbar { position: fixed; top: 0; left: 0; width: 100%; background: #fff; padding: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 9999; display: flex; justify-content: center; gap: 10px; }
+                    .canvas-wrapper { position: relative; background: #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+                    .btn { padding: 10px 20px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer; }
+                    .btn-pdf { background: #dc2626; color: white; }
+                    .btn-print { background: #2563eb; color: white; }
+                    .btn-instruction { background: #f59e0b; color: black; font-size: 12px; padding: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="toolbar">
+                    <button class="btn btn-instruction" onclick="alert('Instructions: 1. Save this page. 2. Close this tab. 3. Open saved file on your phone. 4. Click Download PDF.')">ℹ️ HOW TO USE</button>
+                    <button class="btn btn-print" onclick="window.print()">🖨️ PRINT</button>
+                    <button class="btn btn-pdf" onclick="downloadPDFNewTab()">⬇️ DOWNLOAD PDF</button>
+                </div>
+                <div class="preview-container">
+                    ${cards.map(c => c.outerHTML).join('')}
+                </div>
+                
+                <script>
+                    async function downloadPDFNewTab() {
+                        const { jsPDF } = window.jspdf;
+                        const cards = document.querySelectorAll('.canvas-wrapper');
+                        if(cards.length === 0) return;
+
+                        const doc = new jsPDF('p', 'mm', 'a4');
+                        const pageWidth = 210;
+                        const pageHeight = 297;
+                        const margin = 10; 
+                        const targetH_mm = 54; 
+                        const gap_mm = 5;
+                        let y = margin;
+
+                        for (let i = 0; i < cards.length; i++) {
+                            if (i > 0 && (y + targetH_mm) > (pageHeight - margin)) {
+                                doc.addPage();
+                                y = margin;
+                            }
+
+                            // Remove Zoom
+                            const originalTransform = cards[i].style.transform;
+                            const originalOrigin = cards[i].style.transformOrigin;
+                            cards[i].style.transform = 'none';
+
+                            try {
+                                const canvas = await html2canvas(cards[i], { scale: 2 });
+                                const props = doc.getImageProperties(canvas);
+                                const ratio = props.width / props.height;
+                                const targetW_mm = targetH_mm * ratio;
+                                doc.addImage(canvas, 'JPEG', margin, y, targetW_mm, targetH_mm);
+                                y += targetH_mm + gap_mm;
+                            } catch(e) { alert("Error: " + e); }
+                            finally {
+                                cards[i].style.transform = originalTransform;
+                                cards[i].style.transformOrigin = originalOrigin;
+                            }
+                        }
+                        doc.save('ID_Cards.pdf');
+                        alert("PDF Downloaded!");
+                    }
+                <\/script>
+            </body>
+            </html>
+            `;
+
+            const win = window.open('', '_blank');
+            if (win) {
+                win.document.write(newTabContent);
+                win.document.close();
+            } else {
+                alert("Pop-up blocker blocked. Please allow pop-ups.");
+            }
+        }
+
+        // ==========================================
+        // 7. DOWNLOAD PDF LOGIC (UPDATED - VERTICAL STACKING FIX)
+        // ==========================================
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            
+            // 1. Setup PDF Size (A4 Standard)
+            const doc = new jsPDF('p', 'mm', 'a4'); 
+            const pageWidth = 210;
+            const pageHeight = 297;
+            const margin = 10; 
+
+            // 2. Configuration of Layout
+            // Standard ID Height is 54mm.
+            const targetH_mm = 54; 
+            const gap_mm = 5; 
+
+            // 3. Select all cards in workspace
+            const cards = document.querySelectorAll('.workspace .canvas-wrapper');
+            
+            if (cards.length === 0) {
+                alert("No IDs generated yet. Please click 'Load & Merge' first.");
+                return;
+            }
+
+            statusMsg.textContent = "Generating PDF... Please wait.";
+
+            // 4. Grid Layout Logic (Vertical Stacking - 1 Card Per Row)
+            // Based on user request "Pababa lahat sila" (All below).
+            // This maximizes width subject to aspect ratio (prevents "1/4" look if card is landscape).
+            const cardsPerPage = 1; // Changed to 1 for Vertical Stacking
+            
+            // Position variables
+            let x = margin;
+            let y = margin;
+
+            // Process cards one by one using async/await
+            for (let i = 0; i < cards.length; i++) {
+                // Check for New Page
+                // If next card (height + current y) exceeds page height, go to new page.
+                if (i > 0 && (y + targetH_mm) > (pageHeight - margin)) {
+                    doc.addPage();
+                    y = margin;
+                    x = margin; // Reset X to margin
+                }
+
+                // --- FIX: REMOVE ZOOM TRANSFORM TEMPORARILY ---
+                const originalTransform = cards[i].style.transform;
+                const originalOrigin = cards[i].style.transformOrigin;
+                cards[i].style.transform = 'none'; 
+                // -------------------------------------------------
+
+                try {
+                    // 5. CAPTURE IMAGE
+                    const canvas = await html2canvas(cards[i], { scale: 2 });
+                    
+                    // --- FIX: CALCULATE ASPECT RATIO ---
+                    const capturedW = canvas.width;
+                    const capturedH = canvas.height;
+                    const ratio = capturedW / capturedH;
+                    
+                    // Auto-calculate width based on standard height (54mm) & ratio
+                    const targetW_mm = targetH_mm * ratio;
+                    // ----------------------------------
+
+                    // 6. ADD IMAGE TO PDF
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                    doc.addImage(imgData, 'JPEG', x, y, targetW_mm, targetH_mm);
+
+                    // Update Position (Move Down Only)
+                    y += targetH_mm + gap_mm;
+
+                    if (i % 2 === 0) {
+                        statusMsg.textContent = `Processing card ${i + 1} of ${cards.length}...`;
+                    }
+
+                } catch (err) {
+                    console.error("Error rendering card:", err);
+                    alert("Error generating PDF for card " + (i + 1));
+                } finally {
+                    // --- RESTORE ZOOM ---
+                    cards[i].style.transform = originalTransform;
+                    cards[i].style.transformOrigin = originalOrigin;
+                    // ----------------------------------------
+                }
+            }
+
+            // 8. SAVE FILE
+            const fileName = `ID_Cards_${new Date().toISOString().slice(0, 10)}.pdf`;
+            doc.save(fileName);
+
+            statusMsg.textContent = "PDF Downloaded!";
+        }
+
+        // ==========================================
+        // 8. HELPER: GET MEMBER VALUE (UPDATED MAPPING)
         // ==========================================
         function getMemberValue(caption, member) {
             // Normalize caption
@@ -1114,96 +1309,6 @@
             const cap = caption.trim().toUpperCase();
             return (cap === "PHOTO" || cap === "SIGNATURE" || cap === "QR CODE" || cap === "OR CODES");
         }
-
-        // ==========================================
-        // 7. DOWNLOAD PDF LOGIC (UPDATED - VERTICAL STACKING FIX)
-        // ==========================================
-        async function downloadPDF() {
-            const { jsPDF } = window.jspdf;
-            
-            // 1. Setup PDF Size (A4 Standard)
-            const doc = new jsPDF('p', 'mm', 'a4'); 
-            const pageWidth = 210;
-            const pageHeight = 297;
-            const margin = 10; 
-
-            // 2. Configuration of Layout
-            // Standard ID Height is 54mm. Width will be calculated dynamically to prevent stretching.
-            const targetH_mm = 54; 
-            const gap_mm = 5; 
-
-            // 3. Select all cards in workspace
-            const cards = document.querySelectorAll('.workspace .canvas-wrapper');
-            
-            if (cards.length === 0) {
-                alert("No IDs generated yet. Please click 'Load & Merge' first.");
-                return;
-            }
-
-            statusMsg.textContent = "Generating PDF... Please wait.";
-
-            // 4. Grid Layout Logic (Auto-Width)
-            const cardsPerPage = 1; 
-            
-            // Position variables
-            let x = margin;
-            let y = margin;
-
-            // Process cards one by one using async/await
-            for (let i = 0; i < cards.length; i++) {
-                // Check for New Page
-                if (i > 0 && (y + targetH_mm) > (pageHeight - margin)) {
-                    doc.addPage();
-                    y = margin;
-                    x = margin;
-                }
-
-                // --- FIX: REMOVE ZOOM TRANSFORM TEMPORARILY ---
-                const originalTransform = cards[i].style.transform;
-                const originalOrigin = cards[i].style.transformOrigin;
-                cards[i].style.transform = 'none'; 
-                // -------------------------------------------------
-
-                try {
-                    // 5. CAPTURE IMAGE
-                    const canvas = await html2canvas(cards[i], { scale: 2 });
-                    
-                    // --- FIX: CALCULATE ASPECT RATIO ---
-                    const capturedW = canvas.width;
-                    const capturedH = canvas.height;
-                    const ratio = capturedW / capturedH;
-                    const targetW_mm = targetH_mm * ratio;
-                    // ----------------------------------
-
-                    // 6. ADD IMAGE TO PDF
-                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                    doc.addImage(imgData, 'JPEG', x, y, targetW_mm, targetH_mm);
-
-                    // Update Position (Move Down Only)
-                    y += targetH_mm + gap_mm;
-
-                    if (i % 2 === 0) {
-                        statusMsg.textContent = `Processing card ${i + 1} of ${cards.length}...`;
-                    }
-
-                } catch (err) {
-                    console.error("Error rendering card:", err);
-                    alert("Error generating PDF for card " + (i + 1));
-                } finally {
-                    // --- RESTORE ZOOM ---
-                    cards[i].style.transform = originalTransform;
-                    cards[i].style.transformOrigin = originalOrigin;
-                    // ----------------------------------------
-                }
-            }
-
-            // 8. SAVE FILE
-            const fileName = `ID_Cards_${new Date().toISOString().slice(0, 10)}.pdf`;
-            doc.save(fileName);
-
-            statusMsg.textContent = "PDF Downloaded!";
-        }
-
     </script>
 </body>
 </html>
