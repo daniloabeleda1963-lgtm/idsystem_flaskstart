@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID PDF Generator - Data Merge FINAL (Mobile Safe Export - COORDINATE FIX)</title>
+    <title>ID PDF Generator - Data Merge FINAL (Mobile Safe Export - SIGNATURE BOX FIX)</title>
     
     <!-- PDF GENERATION LIBRARIES (ADDED) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -892,7 +892,7 @@
         }
 
         // ==========================================
-        // 5. LOAD AND MERGE LOGIC (THE MAGIC - STATIC LINE FIX)
+        // 5. LOAD AND MERGE LOGIC (THE MAGIC - SIGNATURE BOX FIX)
         // ==========================================
         
         const MERGE_KEYWORDS = [
@@ -975,6 +975,12 @@
                                     img.style.width = '100%'; img.style.height = '100%';
                                     img.style.objectFit = 'contain'; img.style.pointerEvents = 'none';
                                     el.appendChild(img);
+                                    
+                                    /* === FIX: SIGNATURE BORDER CLEANUP === */
+                                    el.style.border = "none";
+                                    el.style.background = "transparent";
+                                    el.style.padding = "0";
+                                    /* ========================================= */
                                 } else {
                                     el.innerText = fieldData.text; 
                                 }
@@ -994,6 +1000,12 @@
                                         img.style.width = '100%'; img.style.height = '100%';
                                         img.style.objectFit = 'contain';
                                         el.appendChild(img);
+
+                                        /* === FIX: SIGNATURE BORDER CLEANUP === */
+                                        el.style.border = "none";
+                                        el.style.background = "transparent";
+                                        el.style.padding = "0";
+                                        /* ========================================= */
                                     } else {
                                         el.innerText = dataVal;
                                     }
@@ -1022,6 +1034,12 @@
                                     img.style.width = '100%'; img.style.height = '100%';
                                     img.style.objectFit = 'contain';
                                     el.appendChild(img);
+
+                                    /* === FIX: SIGNATURE BORDER CLEANUP === */
+                                    el.style.border = "none";
+                                    el.style.background = "transparent";
+                                    el.style.padding = "0";
+                                    /* ========================================= */
                                 } else {
                                     el.innerText = dataVal;
                                 }
@@ -1039,7 +1057,7 @@
         }
 
         // ==========================================
-        // 6. EXPORT FOR PHONE (SERVER-DRIVEN BRIDGE - CSS FIX)
+        // 6. EXPORT FOR PHONE (OFFLINE MODE - SIGNATURE FIX)
         // ==========================================
         function exportForPhone() {
             const cards = document.querySelectorAll('.workspace .canvas-wrapper');
@@ -1057,7 +1075,30 @@
             });
             const membersJSON = JSON.stringify(membersList);
 
-            // 2. GENERATE PHONE HTML FILE (Lightweight)
+            // 2. FETCH LAYOUT DATA (Laptop Side) - Must work on Laptop
+            let savedLayout = null;
+            (async () => {
+                try {
+                    const response = await fetch(`${API_URL}/load_layout`);
+                    const result = await response.json();
+                    
+                    if (response.ok && result.data) {
+                        savedLayout = result.data;
+                        proceedExport(savedLayout, membersJSON);
+                    } else {
+                        alert("Could not load Layout from Server. Please ensure 'Save Layout' was clicked.");
+                    }
+                } catch (e) {
+                    alert("Error fetching layout: " + e.message);
+                    console.error(e);
+                }
+            })();
+        }
+
+        function proceedExport(layoutData, membersJSON) {
+            // 3. GENERATE PHONE HTML FILE (OFFLINE CAPABLE)
+            const layoutJSON = JSON.stringify(layoutData);
+
             const phoneHTML = `
             <!DOCTYPE html>
             <html lang="en">
@@ -1077,7 +1118,7 @@
                     .canvas-wrapper { position: relative; background: #fff; box-shadow: 0 10px 40px rgba(0,0,0,0.2); transform-origin: top center; }
                     .canvas-element {
                         position: absolute; cursor: move; background: rgba(37, 99, 235, 0.15);
-                        border: 1px dashed var(--primary-color); color: #1e3a8a;
+                        border:1px dashed var(--primary-color); color: #1e3a8a;
                         font-size: 12px; font-weight: bold; display: flex;
                         align-items: center; justify-content: center; text-align: center;
                         box-sizing: border-box; z-index: 100; overflow: hidden;
@@ -1098,14 +1139,17 @@
                 </style>
             </head>
             <body>
-                <!-- === CRITICAL FIX: EMBED DATA SCRIPT === -->
+                <!-- === CRITICAL FIX: EMBED BOTH DATA SCRIPTS === -->
+                <script id="layout-data-json" type="application/json">
+                    ${layoutJSON}
+                <\/script>
                 <script id="member-data-json" type="application/json">
                     ${membersJSON}
                 <\/script>
                 <!-- ========================================= -->
 
                 <div class="toolbar">
-                    <button class="btn btn-info" onclick="alert('Instructions: 1. Wait for Layout to Load. 2. Check if IDs are displayed below. 3. Click Download PDF.')">ℹ️ INFO</button>
+                    <button class="btn btn-info" onclick="alert('Instructions: 1. IDs are pre-loaded. 2. Click Download PDF.')">ℹ️ INFO</button>
                     <span id="toolbar-status" class="loader">Initializing...</span>
                     <button class="btn btn-dl" onclick="downloadPDFPhone()">⬇️ DOWNLOAD PDF</button>
                 </div>
@@ -1114,7 +1158,8 @@
                 </div>
                 
                 <script>
-                    // 1. Get Member Data from embedded script
+                    // 1. Get Data from embedded scripts (OFFLINE MODE)
+                    const LAYOUT_DATA = JSON.parse(document.getElementById('layout-data-json').textContent);
                     const MEMBER_DATA = JSON.parse(document.getElementById('member-data-json').textContent);
 
                     // 2. Helper Functions (Duplicated for Standalone)
@@ -1158,28 +1203,22 @@
                         "PHOTO", "SIGNATURE", "QR CODE", "OR CODES"
                     ];
 
-                    // 3. Main Logic: Fetch Layout & Render
-                    async function initApp() {
+                    // 3. Main Logic: Render (OFFLINE)
+                    function initApp() {
                         const toolbarStatus = document.getElementById('toolbar-status');
                         const container = document.getElementById('previewContainer');
 
-                        // Detect Server URL (Auto-fix for Deployment)
-                        const SERVER_URL = window.location.origin + '/';
-
                         try {
-                            toolbarStatus.textContent = "Fetching Layout from Server...";
+                            toolbarStatus.textContent = "Rendering IDs...";
                             
-                            // Fetch Layout from Server (Saves Memory)
-                            const response = await fetch(SERVER_URL + 'load_layout');
-                            const result = await response.json();
-                            
-                            if (!response.ok || !result.data) {
-                                container.innerHTML = '<h3 style="color:red">Error: Layout not found on Server.</h3><p>Please ensure app is deployed and "Save Layout" was clicked.</p>';
+                            // NO FETCH. Read embedded LAYOUT_DATA.
+                            const saved = LAYOUT_DATA;
+                            if (!saved) {
+                                container.innerHTML = '<h3 style="color:red">Error: Layout data not found.</h3><p>The layout was not embedded correctly.</p>';
                                 toolbarStatus.textContent = "Error.";
                                 return;
                             }
 
-                            const saved = result.data;
                             container.innerHTML = ""; // Clear Loading
 
                             // Render Cards
@@ -1219,6 +1258,11 @@
                                         // Render Logic
                                         if (fieldData.imgSrc) {
                                             el.innerHTML = \`<img src="\${fieldData.imgSrc}" style="width:100%; height:100%; object-fit:contain;">\`;
+                                            /* === FIX: BOX BORDER CLEANUP === */
+                                            el.style.border = "none";
+                                            el.style.background = "transparent";
+                                            el.style.padding = "0";
+                                            /* ========================================= */
                                         } else if (MERGE_KEYWORDS.includes(fieldText)) {
                                             const dataVal = getMemberValue(fieldData.text, member);
                                             if (isImageField(fieldData.text)) {
@@ -1228,7 +1272,7 @@
                                                 else if (fieldText === "QR CODE" || fieldText === "OR CODES") imgSrc = member.qr_code || "";
                                                 else imgSrc = "";
                                                 
-                                                /* === FIX: SIGNATURE BORDER / PAD === */
+                                                /* === FIX: SIGNATURE BOX TRANSPARENT === */
                                                 el.innerHTML = \`<img src="\${imgSrc}" style="width:100%; height:100%; object-fit:contain; border:none; background:transparent;">\`;
                                                 el.style.padding = "0"; 
                                                 el.style.border = "none"; 
