@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID PDF Generator - Data Merge FINAL (Mobile Safe Export - SIGNATURE BOX FIX)</title>
+    <title>ID PDF Generator - Data Merge FINAL (Mobile Safe Export - CREATE IMAGE BUTTON)</title>
     
     <!-- PDF GENERATION LIBRARIES (ADDED) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -366,9 +366,7 @@
                     🖼️ Upload Logo
                     <input type="file" id="logoUpload" accept="image/*" style="display: none;">
                 </label>
-                <button class="primary" style="background: #f59e0b; color: white; border: none;" onclick="addCustomTextbox()">
-                    ➕ Add Text
-                </button>
+                <!-- === REMOVED: ADD TEXT BUTTON === -->
                 <span id="statusMsg" style="font-size: 12px; color: #666;">Ready</span>
             </div>
 
@@ -393,7 +391,10 @@
                 <button class="primary" style="background: #8b5cf6;" onclick="loadAndMergeLayout()">📂 Load & Merge</button>
                 <button class="primary" style="background: #dc2626; color: white; border: none;" onclick="downloadPDF()">⬇️ Download PDF</button>
                 
-                <button class="primary btn-export-phone" onclick="exportForPhone()">📱 EXPORT FOR PHONE</button>
+                <!-- === UPDATED BUTTON: CREATE IMAGE (SCREENSHOT) === -->
+                <button class="primary" style="background: #f59e0b; color: white; border: none;" onclick="downloadFirstCardScreenshot()">📸 CREATE IMAGE</button>
+                
+                <button class="primary btn-export-phone" onclick="exportForPhone()">📱 EXPORT FOR PHONE (Data)</button>
             </div>
         </div>
 
@@ -1239,7 +1240,6 @@
                                         
                                         // Render Logic
                                         if (fieldData.imgSrc) {
-                                            // IMAGE SAFETY FIX (LOADING)
                                             el.innerHTML = \`<img src="\${fieldData.imgSrc}" style="width:100%; height:100%; object-fit:contain;" loading="lazy" decoding="async">\`;
                                             /* === FIX: BOX BORDER CLEANUP === */
                                             el.style.border = "none";
@@ -1453,6 +1453,72 @@
             const cap = caption.trim().toUpperCase();
             return (cap === "PHOTO" || cap === "SIGNATURE" || cap === "QR CODE" || cap === "OR CODES");
         }
+
+        // ==========================================
+        // 9. NEW FEATURE: CREATE IMAGE (SCREENSHOT FIRST CARD)
+        // ==========================================
+        async function downloadFirstCardScreenshot() {
+            const cards = document.querySelectorAll('.workspace .canvas-wrapper');
+
+            if (cards.length === 0) {
+                alert("Please click 'Load & Merge' first to generate ID cards.");
+                return;
+            }
+
+            // Get ONLY the first card
+            const firstCard = cards[0];
+
+            // Temporarily reset zoom for clean capture
+            const originalTransform = firstCard.style.transform;
+            const originalOrigin = firstCard.style.transformOrigin;
+            firstCard.style.transform = 'none';
+            firstCard.style.transformOrigin = 'top center';
+
+            try {
+                // === API KO NG GINAGAMIT (html2canvas) ===
+                // Convert the DOM element to canvas (Screenshot)
+                const canvas = await html2canvas(firstCard, {
+                    scale: 2, // High Quality for Phone
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+
+                // Create a download link
+                const link = document.createElement('a');
+                const dateStr = new Date().toISOString().slice(0, 10);
+                link.download = `ID_Screenshot_${dateStr}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                alert("Screenshot downloaded!");
+            } catch (err) {
+                console.error(err);
+                alert("Failed to capture screenshot.");
+            } finally {
+                // Restore original zoom
+                firstCard.style.transform = originalTransform;
+                firstCard.style.transformOrigin = originalOrigin;
+            }
+        }
+
+        // ==========================================
+        // 10. KEYBOARD EVENT LISTENER (VB6 STYLE CONTROLS)
+        // ==========================================
+        document.addEventListener('keydown', function(e) {
+            // === HOTKEY: CTRL + S to CREATE IMAGE ===
+            // Ctrl key = 17, Left Ctrl = 91. Cmd key = 93 (Mac)
+            if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+                e.preventDefault();
+                downloadFirstCardScreenshot();
+            }
+
+            // === HOTKEY: CTRL + P to PRINT ===
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+                e.preventDefault();
+                downloadPDF();
+            }
+        });
+
     </script>
 </body>
 </html>
