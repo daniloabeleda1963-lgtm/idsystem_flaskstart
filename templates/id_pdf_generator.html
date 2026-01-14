@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID PDF Generator - Data Merge FINAL (Mobile Safe Export - CREATE IMAGE BUTTON)</title>
+    <title>ID PDF Generator - Data Merge FINAL (Mobile Safe Export - DOUBLE CLICK FIX)</title>
     
     <!-- PDF GENERATION LIBRARIES (ADDED) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -121,6 +121,11 @@
             border: 1px solid #059669;
         }
         .btn-export-phone:hover { background: #059669; }
+        .btn-disabled {
+            background: #64748b; 
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
 
         /* --- TRANSFER LIST STYLES --- */
         .transfer-box {
@@ -366,7 +371,9 @@
                     🖼️ Upload Logo
                     <input type="file" id="logoUpload" accept="image/*" style="display: none;">
                 </label>
-                <!-- === REMOVED: ADD TEXT BUTTON === -->
+                <button class="primary" style="background: #f59e0b; color: white; border: none;" onclick="addCustomTextbox()">
+                    ➕ Add Text
+                </button>
                 <span id="statusMsg" style="font-size: 12px; color: #666;">Ready</span>
             </div>
 
@@ -1037,7 +1044,7 @@
         }
 
         // ==========================================
-        // 6. EXPORT FOR PHONE (OFFLINE MODE - SIGNATURE FIX)
+        // 6. EXPORT FOR PHONE (OFFLINE MODE - SIGNATURE FIX + DOWNLOAD FIX)
         // ==========================================
         function exportForPhone() {
             const cards = document.querySelectorAll('.workspace .canvas-wrapper');
@@ -1098,7 +1105,7 @@
                     .canvas-wrapper { position: relative; background: #fff; box-shadow: 0 10px 40px rgba(0,0,0,0.2); transform-origin: top center; }
                     .canvas-element {
                         position: absolute; cursor: move; background: rgba(37, 99, 235, 0.15);
-                        border:1px dashed var(--primary-color); color: #1e3a8a;
+                        border: 1px dashed var(--primary-color); color: #1e3a8a;
                         font-size: 12px; font-weight: bold; display: flex;
                         align-items: center; justify-content: center; text-align: center;
                         box-sizing: border-box; z-index: 100; overflow: hidden;
@@ -1115,6 +1122,7 @@
                     .btn-dl { background: #dc2626; color: white; }
                     .btn-dl:hover { background: #b91c1c; }
                     .btn-info { background: #f59e0b; color: black; font-size: 12px; padding: 12px; }
+                    .btn-disabled { background: #64748b; cursor: not-allowed; opacity: 0.6; }
                     .loader { font-size: 14px; color: white; font-weight: bold; }
                 </style>
             </head>
@@ -1131,7 +1139,7 @@
                 <div class="toolbar">
                     <button class="btn btn-info" onclick="alert('Instructions: 1. IDs are pre-loaded. 2. Click Download PDF.')">ℹ️ INFO</button>
                     <span id="toolbar-status" class="loader">Initializing...</span>
-                    <button class="btn btn-dl" onclick="downloadPDFPhone()">⬇️ DOWNLOAD PDF</button>
+                    <button id="btn-download-pdf" class="btn btn-dl" onclick="downloadPDFPhone()">⬇️ DOWNLOAD PDF</button>
                 </div>
                 <div class="preview-container" id="previewContainer">
                     <div style="color: #666;">Waiting for data...</div>
@@ -1293,37 +1301,62 @@
                         const cards = document.querySelectorAll('.canvas-wrapper');
                         if(cards.length === 0) return alert("No IDs to download.");
 
-                        for (let i = 0; i < cards.length; i++) {
-                            if (i > 0 && (y + targetH_mm) > (pageHeight - margin)) {
-                                doc.addPage();
-                                y = margin;
+                        // === FIX: GUARD CLAUSE (DOUBLE CLICK FIX) ===
+                        const btn = document.getElementById('btn-download-pdf');
+                        if (btn.classList.contains('btn-disabled')) return;
+                        btn.classList.add('btn-disabled');
+                        btn.textContent = "Processing...";
+                        // =========================================
+
+                        try {
+                            for (let i = 0; i < cards.length; i++) {
+                                if (i > 0 && (y + targetH_mm) > (pageHeight - margin)) {
+                                    doc.addPage();
+                                    y = margin;
+                                }
+
+                                // === FIX: SMART MAXWIDTH (LAPTOP SAFE FIX) ===
+                                // Only apply width restriction on Mobile. 
+                                // Laptop/Desktop (IS_MOBILE=false) has enough RAM to handle full width + scale: 2.
+                                // Applying max-width on Desktop causes layout thrash and "Coordinates gone".
+                                if (IS_MOBILE) {
+                                    const originalMaxWidth = cards[i].style.maxWidth;
+                                    cards[i].style.maxWidth = '360px';
+                                }
+                                // ================================================
+
+                                try {
+                                    // FIX: DYNAMIC SCALE BASED ON DEVICE
+                                    const canvas = await html2canvas(cards[i], { 
+                                        scale: IS_MOBILE ? 1 : 2,
+                                        useCORS: true,
+                                        backgroundColor: '#ffffff'
+                                    });
+                                    const props = doc.getImageProperties(canvas);
+                                    const ratio = props.width / props.height;
+                                    const targetW_mm = targetH_mm * ratio;
+                                    doc.addImage(canvas, 'JPEG', margin, y, targetW_mm, targetH_mm);
+                                    y += targetH_mm + gap_mm;
+
+                                    // ONE-CARD-AT-A-TIME (ANTI-CRASH LOOP)
+                                    await new Promise(r => setTimeout(r, 150));
+
+                                } catch(e) { 
+                                    alert("Error: " + e); 
+                                    // Ensure restoration even on error
+                                    if (IS_MOBILE) cards[i].style.maxWidth = '';
+                                } finally {
+                                    // Restore width (Mobile Only)
+                                    if (IS_MOBILE) cards[i].style.maxWidth = '';
+                                }
                             }
-
-                            // LIMIT CANVAS SIZE (PHONE SAFE FIX)
-                            const originalMaxWidth = cards[i].style.maxWidth;
-                            cards[i].style.maxWidth = '360px';
-
-                            try {
-                                // FIX: DYNAMIC SCALE BASED ON DEVICE
-                                const canvas = await html2canvas(cards[i], { 
-                                    scale: IS_MOBILE ? 1 : 2,
-                                    useCORS: true,
-                                    backgroundColor: '#ffffff'
-                                });
-                                const props = doc.getImageProperties(canvas);
-                                const ratio = props.width / props.height;
-                                const targetW_mm = targetH_mm * ratio;
-                                doc.addImage(canvas, 'JPEG', margin, y, targetW_mm, targetH_mm);
-                                y += targetH_mm + gap_mm;
-
-                                // ONE-CARD-AT-A-TIME (ANTI-CRASH LOOP)
-                                await new Promise(r => setTimeout(r, 150));
-
-                            } catch(e) { alert("Error: " + e); } finally {
-                                // Restore width
-                                cards[i].style.maxWidth = '';
-                            }
+                        } catch (err) {
+                            alert("Fatal Error: " + err);
+                        } finally {
+                            btn.classList.remove('btn-disabled');
+                            btn.textContent = "⬇️ DOWNLOAD PDF";
                         }
+
                         doc.save('ID_Cards.pdf');
                         alert("PDF Downloaded!");
                     }
@@ -1465,7 +1498,7 @@
                 return;
             }
 
-            // Get ONLY the first card
+            // Get ONLY first card
             const firstCard = cards[0];
 
             // Temporarily reset zoom for clean capture
@@ -1476,7 +1509,7 @@
 
             try {
                 // === API KO NG GINAGAMIT (html2canvas) ===
-                // Convert the DOM element to canvas (Screenshot)
+                // Convert DOM element to canvas (Screenshot)
                 const canvas = await html2canvas(firstCard, {
                     scale: 2, // High Quality for Phone
                     backgroundColor: '#ffffff',
