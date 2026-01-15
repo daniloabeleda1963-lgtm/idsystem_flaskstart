@@ -54,6 +54,66 @@ def vb6_replace(text):
     )
 
 # ==============================
+# 🆕 AUTO CLEANUP SCANNER (13H INTERVAL)
+# ==============================
+@app.before_request
+def cleanup_old_cards_scanner():
+    """
+    Automatic Scanner.
+    1. Check if 13 hours passed since last cleanup.
+    2. If Yes: Delete cards older than 24 hours.
+    3. If No: Skip.
+    """
+    # Huwag scan sa static files (css, js) para mabilis
+    if request.path.startswith('/static'):
+        return
+
+    try:
+        db = get_db()
+
+        # 1. KUNIN ANG LAST CLEANUP TIME SA 'idgenerate' TABLE
+        response = db.from_('idgenerate').select('last_card_cleanup').limit(1).execute()
+        
+        last_cleanup = None
+        if response.data and response.data[0]:
+            raw_time = response.data[0].get('last_card_cleanup')
+            if raw_time:
+                last_cleanup = datetime.fromisoformat(raw_time)
+
+        # 2. CALCULATE INTERVAL
+        now = datetime.now()
+        time_since_last_cleanup = timedelta(0)
+
+        if last_cleanup:
+            time_since_last_cleanup = now - last_cleanup
+
+        # 3. CONDITION: LANG MAG-SCAN KUNG 13 HOURS NA ANG NAKAKARAAN
+        if time_since_last_cleanup < timedelta(hours=13):
+            # Fresh pa ang scan, huwag gumulo sa system.
+            return 
+
+        print(f">>> SCANNING OLD CARDS... Last scan was {time_since_last_cleanup} ago.")
+
+        # 4. DELETE LOGIC: DELETE ANG > 24 HOURS
+        # Yung '2 hours pa lang' ay hindi dito mapupunta.
+        expiry_time = now - timedelta(hours=24)
+
+        delete_response = db.from_('members').update({
+            'generated_card_image': None,
+            'generated_at': None
+        }).lt('generated_at', expiry_time.isoformat()).execute()
+        
+        print(f">>> CLEANED UP CARDS OLDER THAN: {expiry_time}")
+
+        # 5. UPDATE LAST CLEANUP TIME (Reset Clock ng Scanner)
+        db.from_('idgenerate').update({
+            'last_card_cleanup': now.isoformat()
+        }).is_not('idnumber', None).execute()
+
+    except Exception as e:
+        print(f"Auto-cleanup error: {e}")
+
+# ==============================
 # Routes - Home & Navigation
 # ==============================
 @app.route('/')
@@ -668,6 +728,36 @@ def view_phone():
     Direct access for members to select name and download ID without Admin tools.
     """
     return render_template('view_phone.html')
+
+# ==============================
+# NEW: SAVE CARD IMAGE ROUTE (FOR TIME BOMB FEATURE)
+# ==============================
+@app.route('/save_card_image', methods=['POST'])
+def save_card_image():
+    """
+    I-save yung generated ID card image sa member.
+    Siya ang magtatakbo pagkatapos mag-merge sa Laptop.
+    """
+    try:
+        db = get_db()
+        data = request.json
+        member_id = data.get('member_id')
+        image_data = data.get('image_data') # Base64 string
+
+        if not member_id or not image_data:
+            return jsonify({'success': False, 'message': 'Missing data'}), 400
+
+        payload = {
+            'generated_card_image': image_data,
+            'generated_at': datetime.now().isoformat() # Save timestamp NOW
+        }
+
+        db.from_('members').update(payload).eq('id', member_id).execute()
+
+        return jsonify({'success': True, 'message': 'ID Card saved to database.'})
+    except Exception as e:
+        print(f"Save Card Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 # ==============================
 # Run App
