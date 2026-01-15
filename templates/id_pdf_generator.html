@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID PDF Generator - Data Merge FINAL (Mobile Safe Export - DOUBLE CLICK FIX)</title>
+    <title>ID PDF Generator - Data Merge FINAL</title>
     
-    <!-- PDF GENERATION LIBRARIES (ADDED) -->
+    <!-- PDF GENERATION LIBRARIES -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
@@ -317,7 +317,7 @@
     <div class="sidebar">
         <div class="sidebar-header">📐 ID Generator</div>
         
-        <!-- === NEW: MEMBERS DATA PANEL === -->
+        <!-- === MEMBERS DATA PANEL === -->
         <div class="admin-forms-panel" style="border-bottom: 1px solid #334155;">
             <div class="sidebar-group-title" style="color: #fff;">MEMBERS DATA</div>
             
@@ -342,7 +342,7 @@
             </div>
         </div>
 
-        <!-- === OFFICERS PANEL (CARBON COPY FROM ADMIN) === -->
+        <!-- === OFFICERS PANEL === -->
         <div class="admin-forms-panel">
             <div class="sidebar-group-title" style="color: #fff;">OFFICERS LIST</div>
             <select id="officerSelect" class="admin-select" onchange="updateDraggableOfficer()">
@@ -398,10 +398,19 @@
                 <button class="primary" style="background: #8b5cf6;" onclick="loadAndMergeLayout()">📂 Load & Merge</button>
                 <button class="primary" style="background: #dc2626; color: white; border: none;" onclick="downloadPDF()">⬇️ Download PDF</button>
                 
-                <!-- === UPDATED BUTTON: CREATE IMAGE (SCREENSHOT) === -->
                 <button class="primary" style="background: #f59e0b; color: white; border: none;" onclick="downloadFirstCardScreenshot()">📸 CREATE IMAGE</button>
                 
                 <button class="primary btn-export-phone" onclick="exportForPhone()">📱 EXPORT FOR PHONE (Data)</button>
+
+                <!-- ========================================== -->
+                <!-- NEW BUTTONS ADDED HERE (Rules #1 & #4) -->
+                <!-- ========================================== -->
+                <button class="primary" style="background: #10b981; color: white; border: none;" onclick="saveCardToSupabase()">
+                    💾 SAVE CARD
+                </button>
+                <button class="primary" style="background: #f97316; color: white; border: none;" onclick="openViewPhone()">
+                    📱 VIEW PHONE
+                </button>
             </div>
         </div>
 
@@ -413,7 +422,7 @@
         </div>
     </div>
 
-    <!-- MODAL (If needed for admin forms) -->
+    <!-- MODAL -->
     <div id="signatureModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
@@ -472,7 +481,6 @@
                     const option = document.createElement('option');
                     option.value = member.id; 
                     option.textContent = member.name; 
-                    // STORE FULL DATA IN DATASET FOR MERGING LATER
                     option.dataset.memberData = JSON.stringify(member);
                     listLeft.appendChild(option);
                 });
@@ -1328,7 +1336,7 @@
                                 try {
                                     // FIX: DYNAMIC SCALE BASED ON DEVICE
                                     const canvas = await html2canvas(cards[i], { 
-                                        scale: IS_MOBILE ? 1 : 2,
+                                        scale: IS_MOBILE ?1 : 2,
                                         useCORS: true,
                                         backgroundColor: '#ffffff'
                                     });
@@ -1535,11 +1543,95 @@
         }
 
         // ==========================================
-        // 10. KEYBOARD EVENT LISTENER (VB6 STYLE CONTROLS)
+        // 10. NEW: SAVE CARD TO SUPABASE (RULE #1 & #2)
+        // ==========================================
+        async function saveCardToSupabase() {
+            // 1. Validate: May selected members ba?
+            const selectedOptions = listRightElem.options;
+            if (selectedOptions.length === 0) {
+                alert("Please select members in 'Selected (For Print)' listbox first!");
+                return;
+            }
+
+            if (!confirm(`Save card for ${selectedOptions.length} member(s) to Supabase?\n\nNote: This updates the 'generated_card_image' field.`)) {
+                return;
+            }
+
+            statusMsg.textContent = "Saving to Cloud...";
+            
+            try {
+                // Iterate through all selected members
+                for (let i = 0; i < selectedOptions.length; i++) {
+                    const option = selectedOptions[i];
+                    const member = JSON.parse(option.dataset.memberData);
+                    
+                    // 2. Kunin ang card element (First card = index 0, Second card = index 1)
+                    const cards = document.querySelectorAll('.workspace .canvas-wrapper');
+                    
+                    if (!cards[i]) {
+                        console.error("Card not found for index " + i);
+                        continue;
+                    }
+
+                    const target = cards[i];
+
+                    // 3. Generate Image (Screenshot)
+                    // Remove transform muna para malinis
+                    const originalTransform = target.style.transform;
+                    const originalMargin = target.style.marginBottom;
+                    target.style.transform = 'none';
+                    target.style.marginBottom = '0';
+
+                    const canvasElem = await html2canvas(target, {
+                        scale: 2, // High Quality
+                        backgroundColor: '#ffffff',
+                        logging: false
+                    });
+
+                    // Restore
+                    target.style.transform = originalTransform;
+                    target.style.marginBottom = originalMargin;
+
+                    // 4. Convert to Base64
+                    const imgData = canvasElem.toDataURL("image/png");
+
+                    // 5. Send to Server (App.py)
+                    const response = await fetch('/save_card_image', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            member_id: member.id, // Database ID of member
+                            image_data: imgData
+                        })
+                    });
+
+                    // Munting delay para hindi mag-spike ang server request
+                    await new Promise(r => setTimeout(r, 500));
+
+                } // End Loop
+
+                alert("SUCCESS! ID Cards saved to Supabase.\n\nReady to view on Phone.");
+                statusMsg.textContent = "Saved to Cloud.";
+
+            } catch (error) {
+                console.error(error);
+                alert("Error saving card: " + error.message);
+                statusMsg.textContent = "Error.";
+            }
+        }
+
+        // ==========================================
+        // 11. NEW: OPEN VIEW PHONE (RULE #4)
+        // ==========================================
+        function openViewPhone() {
+            window.open('/view_phone', '_blank');
+        }
+
+        // ==========================================
+        // 12. KEYBOARD EVENT LISTENER (VB6 STYLE CONTROLS)
         // ==========================================
         document.addEventListener('keydown', function(e) {
             // === HOTKEY: CTRL + S to CREATE IMAGE ===
-            // Ctrl key = 17, Left Ctrl = 91. Cmd key = 93 (Mac)
             if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
                 e.preventDefault();
                 downloadFirstCardScreenshot();
