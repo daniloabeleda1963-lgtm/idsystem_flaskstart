@@ -23,13 +23,14 @@
             margin: 0;
             display: flex;
             flex-direction: row;
-            gap: 20px;
+            gap: 15px; /* Medyo binawas gap para maikli */
             justify-content: center;
+            flex-wrap: wrap;
         }
         nav a {
             color: white;
             text-decoration: none;
-            font-size: 16px;
+            font-size: 14px; /* Binawas ko font size medyo para mas fit */
             transition: color 0.3s;
         }
         nav a:hover {
@@ -88,8 +89,9 @@
 
         @media (max-width: 480px) {
             nav ul {
-                flex-direction: column;
-                align-items: center;
+                flex-direction: row; /* Horizontal pa rin pero small fonts */
+                gap: 10px;
+                font-size: 12px;
             }
             .modal-content {
                 width: 95%;
@@ -102,14 +104,18 @@
 
 <nav>
     <ul>
-        <li><a href="/">Home</a></li>
-        <li><a href="/members">Members</a></li>
-        <li><a href="/add_member">Add New Members</a></li>
-        <!-- Tinanggal na ang Contact dito -->
-        <li><a href="/about">About</a></li>
-        <li><a href="/login">Login</a></li>
-        <!-- Dinagdagan ng Admin -->
-        <li><a href="/admin">Admin</a></li>
+        <li><a href="/">🏠 Home</a></li>
+        <li><a href="/members">👥 Members</a></li>
+        <li><a href="/add_member">➕ Add</a></li>
+        
+        <!-- 🚨 SHORTENED CAPTIONS 🚨 -->
+        <li><a href="/view_phone">📱 ID View</a></li>
+        <li><a href="/id_pdf_generator">💻 PDF Print</a></li>
+        <!-- 🚨 END 🚨 -->
+
+        <li><a href="/about">ℹ️ About</a></li>
+        <li><a href="/login">🔒 Login</a></li>
+        <li><a href="/admin">⚙️ Admin</a></li>
     </ul>
 </nav>
 
