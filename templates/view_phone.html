@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID Card Generator (User Friendly)</title>
+    
+    <!-- PDF GENERATION LIBRARIES -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        /* === USER FRIENDLY STYLES === */
+        :root {
+            --primary-color: #2563eb;
+            --bg-color: #f3f4f6;
+            --sidebar-bg: #1e293b;
+            --sidebar-text: #e2e8f0;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* === BIG BUTTONS FOR CELPON === */
+        .action-container {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 100;
+        }
+        
+        .big-btn {
+            width: 100%;
+            padding: 18px 20px; /* Big Touch Target */
+            font-size: 18px; /* Big Text */
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        
+        .big-btn:active { transform: scale(0.98); }
+        
+        .btn-print { background: #2563eb; color: white; }
+        .btn-print:hover { background: #1d4ed8; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+        
+        .btn-save { background: #10b981; color: white; }
+        .btn-save:hover { background: #059669; box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+        
+        .btn-img { background: #f59e0b; color: white; }
+        .btn-img:hover { background: #d97706; box-shadow: 0 4px 12px rgba(245,158,11,0.3); }
+
+        /* === WORKSPACE === */
+        .workspace {
+            flex-grow: 1;
+            background: #e5e7eb;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 10px;
+            gap: 20px;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            background-color: #fff;
+            width: 800px; /* Default width, will change via JS */
+            height: 400px; /* Default height */
+            background-repeat: no-repeat;
+            background-size: contain;
+            background-position: top left;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            user-select: none;
+            flex-shrink: 0;
+            transform-origin: top center;
+        }
+
+        /* === SIMPLIFIED DROPDOWN === */
+        .member-select {
+            width: 100%;
+            max-width: 600px;
+            padding: 15px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            background: white;
+            margin-bottom: 10px;
+        }
+
+        /* === LOADING OVERLAY === */
+        #loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            z-index: 9999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid var(--primary-color);
+            border-radius: 50%;
+            width: 60px; height: 60px;
+            animation: spin 1s linear infinite;
+        }
+        .loading-text {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
+            font-weight: bold;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* === MOBILE ADJUSTMENTS === */
+        @media (max-width: 700px) {
+            .canvas-wrapper { width: 100% !important; }
+            .action-container { padding: 15px; }
+            .big-btn { font-size: 16px; padding: 15px; }
+        }
+
+        /* === FOOTER INFO === */
+        .footer-info {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 8px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- === LOADING OVERLAY === -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Generating ID... Please wait.</div>
+    </div>
+
+    <!-- === MAIN CONTENT === -->
+    <div class="workspace">
+        
+        <!-- SELECT MEMBER DROPDOWN (SIMPLIFIED) -->
+        <select id="memberSelect" class="member-select" onchange="switchMember()">
+            <option value="" disabled selected>-- Select Member ID --</option>
+            <!-- Options will be populated by JS -->
+        </select>
+
+        <!-- THE ID CARD CANVAS -->
+        <div id="editorCanvas" class="canvas-wrapper">
+            <!-- ID Card appears here -->
+        </div>
+
+        <!-- === USER FRIENDLY ACTION BUTTONS === -->
+        <div class="action-container">
+            
+            <!-- 1. DOWNLOAD PDF (MAIN ACTION) -->
+            <button class="big-btn btn-print" onclick="downloadPDF()">
+                ⬇️ DOWNLOAD PDF
+            </button>
+            
+            <!-- 2. CREATE IMAGE (SCREENSHOT) -->
+            <button class="big-btn btn-img" onclick="downloadScreenshot()">
+                📸 SAVE AS IMAGE
+            </button>
+
+            <!-- 3. LOAD DATA (FOR OFFICER / ADMIN) -->
+            <button class="big-btn btn-save" onclick="loadSavedData()">
+                🔄 REFRESH / RELOAD DATA
+            </button>
+
+            <div class="footer-info">
+                Status: <span id="statusText" style="color: green;">Ready</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = ''; // Empty for online or path
+        const canvas = document.getElementById('editorCanvas');
+        const memberSelect = document.getElementById('memberSelect');
+        const statusText = document.getElementById('statusText');
+        const loadingOverlay = document.getElementById('loading-overlay');
+
+        // Storage for loaded members
+        let allMembers = [];
+        let savedLayout = null;
+        let savedMemberData = null;
+
+        // ==========================================
+        // 1. INITIALIZATION & AUTO-LOAD
+        // ==========================================
+        window.addEventListener('DOMContentLoaded', async () => {
+            statusText.textContent = "Loading System...";
+            showLoading(true);
+
+            try {
+                // 1. Fetch Layout
+                await fetchLayout();
+
+                // 2. Fetch Members (Assuming we have access to member ID or just fetch all)
+                // NOTE: In a real scenario, you might get ID from URL params (e.g., /view/123)
+                // For simplicity, we just fetch all today.
+                await fetchMembers();
+
+                // 3. Load First Member (USER FRIENDLY)
+                if (allMembers.length > 0 && savedLayout) {
+                    renderCard(allMembers[0]);
+                    populateDropdown();
+                    statusText.textContent = "ID Ready.";
+                } else {
+                    statusText.textContent = "No data found. Please add members via Admin.";
+                }
+
+            } catch (error) {
+                console.error("Init Error:", error);
+                statusText.textContent = "Error loading data. Check connection.";
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        function showLoading(show) {
+            loadingOverlay.style.display = show ? 'flex' : 'none';
+        }
+
+        // ==========================================
+        // 2. DATA FETCHING LOGIC
+        // ==========================================
+        async function fetchLayout() {
+            try {
+                const response = await fetch(`${API_URL}/load_layout`);
+                const result = await response.json();
+                if (result.status === 'success' && result.data) {
+                    savedLayout = result.data;
+                    canvas.style.width = savedLayout.template.width;
+                    canvas.style.height = savedLayout.template.height;
+                    canvas.style.backgroundImage = savedLayout.template.backgroundImage;
+                }
+            } catch (e) {
+                console.error("Layout fetch failed", e);
+            }
+        }
+
+        async function fetchMembers() {
+            try {
+                // Fetch all members (Limit to 50 for performance on mobile)
+                const response = await fetch(`${API_URL}/api/members/json?limit=50`);
+                if (response.ok) {
+                    const data = await response.json();
+                    allMembers = Array.isArray(data) ? data : [];
+                }
+            } catch (e) {
+                console.error("Member fetch failed", e);
+            }
+        }
+
+        // ==========================================
+        // 3. UI LOGIC (DROPDOWN & RENDER)
+        // ==========================================
+        function populateDropdown() {
+            memberSelect.innerHTML = '<option value="" disabled>-- Select Member ID --</option>';
+            allMembers.forEach((member, index) => {
+                const option = document.createElement('option');
+                option.value = index; // Store index to access array
+                option.textContent = `${member.idnumb} - ${member.name}`;
+                memberSelect.appendChild(option);
+            });
+        }
+
+        function renderCard(member) {
+            if (!savedLayout || !savedLayout.template || !savedLayout.fields) return;
+
+            // Clear canvas
+            canvas.innerHTML = "";
+
+            // Render Fields
+            savedLayout.fields.forEach(fieldData => {
+                const el = document.createElement('div');
+                el.className = fieldData.className;
+                el.style.left = fieldData.left;
+                el.style.top = fieldData.top;
+                el.style.width = fieldData.width;
+                el.style.height = fieldData.height;
+                el.style.color = fieldData.color;
+                el.style.fontSize = fieldData.fontSize;
+                el.style.fontFamily = fieldData.fontFamily;
+                el.style.fontWeight = fieldData.fontWeight;
+
+                const fieldText = (fieldData.text || "").trim().toUpperCase();
+                const isCssObject = fieldData.className.includes('is-line') || 
+                                      fieldData.className.includes('is-box') || 
+                                      fieldData.className.includes('is-frosted');
+
+                if (!isCssObject) {
+                    el.style.borderColor = "transparent";
+                    el.style.border = "none";
+                    el.style.background = "transparent";
+                }
+
+                // --- MAPPING LOGIC ---
+                const dataVal = getMemberValue(fieldData.text, member);
+
+                if (fieldData.imgSrc) {
+                    el.innerHTML = `<img src="${fieldData.imgSrc}" style="width:100%; height:100%; object-fit:contain;">`;
+                } else if (isCssObject && ["PHOTO", "SIGNATURE", "QR CODE", "OR CODES"].includes(fieldText)) {
+                    if (fieldData.className.includes('is-image') || isImageField(fieldData.text)) {
+                        let imgSrc = "";
+                        if (fieldText === "PHOTO") imgSrc = member.photo_data || "";
+                        else if (fieldText === "SIGNATURE") imgSrc = member.signature || "";
+                        else if (fieldText === "QR CODE" || fieldText === "OR CODES") imgSrc = member.qr_code || "";
+                        
+                        el.innerHTML = `<img src="${imgSrc}" style="width:100%; height:100%; object-fit:contain;">`;
+                        el.style.border = "none"; el.style.background = "transparent"; el.style.padding = "0";
+                    }
+                } else if (fieldData.className.includes('is-box') && isCssObject) {
+                    // Standard text fields
+                    el.innerText = dataVal || fieldData.text;
+                } else {
+                    // Static labels (not in keywords)
+                    el.innerText = fieldData.text;
+                }
+                
+                canvas.appendChild(el);
+            });
+        }
+
+        function switchMember() {
+            const index = memberSelect.value;
+            if (index !== "") {
+                renderCard(allMembers[index]);
+                statusText.textContent = `Showing: ${allMembers[index].name}`;
+            }
+        }
+
+        function loadSavedData() {
+            showLoading(true);
+            // Simulate refresh
+            setTimeout(() => {
+                fetchLayout().then(() => {
+                    fetchMembers().then(() => {
+                        if (allMembers.length > 0) {
+                            renderCard(allMembers[0]);
+                            populateDropdown();
+                            statusText.textContent = "Data Refreshed.";
+                        } else {
+                            statusText.textContent = "No Data.";
+                        }
+                        showLoading(false);
+                    });
+                });
+            }, 500);
+        }
+
+        // ==========================================
+        // 4. HELPER MAPPING (Same as previous)
+        // ==========================================
+        function getMemberValue(caption, member) {
+            const cap = caption.trim().toUpperCase();
+            if (cap === "FULL NAME") return member.name || "";
+            if (cap === "PSEUDO NAME") return member.pseudo_name || "";
+            if (cap === "ID NUMBER") return member.idnumb || "";
+            if (cap === "DESIGNATION") return member.designation || "";
+            if (cap === "BLOOD TYPE") return member.blood_type || "";
+            if (cap === "ADDRESS" || cap === "HOME ADDRESS") return member.home_address || "";
+            if (cap === "EMERGENCY ADDRESS") return member.home_address || "";
+            if (cap === "CONTACT NO") return member.contact_no || "";
+            if (cap === "EMERGENCY NO") return member.emergency_contact_no || "";
+            if (cap === "DATE ISSUED") return member.issued_date || "";
+            if (cap === "VALID UNTIL") return member.valid_until || "";
+            if (cap === "CHAPTER") return member.chapter || "";
+            if (cap === "HEIGHT") return member.height || "";
+            if (cap === "WEIGHT") return member.weight || "";
+            if (cap === "OCCUPATION") return member.occupation || "";
+            if (cap === "EMERGENCY NAME") return member.emergency_person_name || "";
+            if (cap === "BIRTHDATE") return member.birthdate || "";
+            if (cap === "CIVIL STATUS") return member.civil_status || "";
+            const key = caption.trim().toLowerCase().replace(/ /g, '_');
+            if (member[key]) return member[key];
+            return "";
+        }
+
+        function isImageField(caption) {
+            const cap = caption.trim().toUpperCase();
+            return (cap === "PHOTO" || cap === "SIGNATURE" || cap === "QR CODE" || cap === "OR CODES");
+        }
+
+        // ==========================================
+        // 5. DOWNLOAD PDF LOGIC
+        // ==========================================
+        async function downloadPDF() {
+            if (!savedLayout) {
+                alert("Please save layout via Admin first.");
+                return;
+            }
+            
+            // Get current selected member (or first one if none selected)
+            const index = memberSelect.value;
+            const member = (index !== "") ? allMembers[index] : allMembers[0];
+            
+            if (!member) {
+                alert("No member data available.");
+                return;
+            }
+
+            showLoading(true);
+            statusText.textContent = "Generating PDF...";
+
+            try {
+                // Reset zoom for clean render
+                const originalTransform = canvas.style.transform;
+                canvas.style.transform = 'none';
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                
+                const canvasElem = await html2canvas(canvas, { 
+                    scale: 2, // High quality
+                    useCORS: true,
+                    backgroundColor: '#ffffff'
+                });
+                
+                const capturedW = canvasElem.width;
+                const capturedH = canvasElem.height;
+                const ratio = capturedW / capturedH;
+                const targetH_mm = 54; // Standard ID height
+                const targetW_mm = targetH_mm * ratio;
+                const margin = 10;
+                
+                doc.addImage(canvasElem.toDataURL('image/jpeg', 0.95), 'JPEG', margin, margin, targetW_mm, targetH_mm);
+                
+                doc.save(`ID_${member.idnumb}.pdf`);
+                
+                // Restore Zoom
+                canvas.style.transform = originalTransform;
+                statusText.textContent = "PDF Downloaded!";
+
+            } catch (err) {
+                console.error(err);
+                alert("Error generating PDF: " + err.message);
+                statusText.textContent = "Error generating PDF.";
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // ==========================================
+        // 6. CREATE IMAGE LOGIC
+        // ==========================================
+        async function downloadScreenshot() {
+            if (!savedLayout) {
+                alert("Please save layout via Admin first.");
+                return;
+            }
+
+            const index = memberSelect.value;
+            const member = (index !== "") ? allMembers[index] : allMembers[0];
+
+            if (!member) {
+                alert("No member data available.");
+                return;
+            }
+
+            showLoading(true);
+            statusText.textContent = "Taking Photo...";
+
+            try {
+                // Reset zoom
+                const originalTransform = canvas.style.transform;
+                canvas.style.transform = 'none';
+
+                const canvasElem = await html2canvas(canvas, { 
+                    scale: 2,
+                    backgroundColor: '#ffffff'
+                });
+
+                // Create Link
+                const link = document.createElement('a');
+                link.download = `ID_${member.idnumb}.png`;
+                link.href = canvasElem.toDataURL('image/png');
+                link.click();
+
+                canvas.style.transform = originalTransform;
+                statusText.textContent = "Image Saved!";
+
+            } catch (err) {
+                console.error(err);
+                alert("Error capturing screenshot: " + err.message);
+                statusText.textContent = "Error.";
+            } finally {
+                showLoading(false);
+            }
+        }
+
+    </script>
+</body>
+</html>
