@@ -33,10 +33,11 @@
             background: white;
             padding: 20px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            display: flex;
+            display: flex; /* Default Visible */
             flex-direction: column;
             gap: 15px;
             z-index: 100;
+            transition: opacity 0.3s;
         }
         
         .big-btn {
@@ -85,8 +86,8 @@
             position: relative;
             background-color: #fff;
             width: 100%;
-            max-width: 400px; /* Standard ID width */
-            /* Height is automatic based on image aspect ratio */
+            max-width: 400px; /* Default limit */
+            height: auto;
             background-repeat: no-repeat;
             background-size: contain;
             background-position: top center;
@@ -106,6 +107,33 @@
             border-radius: 8px;
             background: white;
             margin-bottom: 10px;
+        }
+
+        /* === BACK BUTTON (FIXED: Clean Arrow) === */
+        #backButton {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 200;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%; /* Circle */
+            background: #ef4444;
+            color: white;
+            border: none;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            display: none; /* Hidden initially */
+            align-items: center;
+            justify-content: center;
+            /* Animation */
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
         }
 
         /* === LOADING OVERLAY === */
@@ -149,6 +177,9 @@
 </head>
 <body>
 
+    <!-- === FLOATING BACK BUTTON (Visible only in Clean Mode) === -->
+    <button id="backButton" onclick="backToSearch()">🔙</button>
+
     <!-- === LOADING OVERLAY === -->
     <div id="loading-overlay">
         <div class="spinner"></div>
@@ -158,41 +189,36 @@
     <!-- === MAIN CONTENT === -->
     <div class="workspace">
         
-        <!-- SELECT MEMBER DROPDOWN (SIMPLIFIED) -->
-        <!-- Note: ONCHANGE Logic will trigger search -->
-        <select id="memberSelect" class="member-select" onchange="searchMember()">
-            <option value="" disabled selected>-- Select Member ID (Start Typing) --</option>
+        <!-- SELECT MEMBER DROPDOWN -->
+        <select id="memberSelect" class="member-select" onchange="searchMember()" oninput="smartFilter()">
+            <option value="" disabled selected>-- Start Typing Name or ID --</option>
             <!-- Options will be populated by JS -->
         </select>
 
-        <!-- === UPDATED: IMAGE DISPLAY AREA === -->
-        <!-- This div will ONLY contain an <img> tag. No complex rendering. -->
+        <!-- === IMAGE DISPLAY AREA === -->
         <div id="idImageContainer" class="image-container">
             <img id="idCardImg" src="" style="width:100%; height:auto; display:block;" alt="ID Card">
         </div>
 
         <!-- === USER FRIENDLY ACTION BUTTONS === -->
-        <div class="action-container">
+        <div class="action-container" id="actionContainer">
             
             <!-- 1. REFRESH / LOAD DATA -->
             <button class="big-btn btn-save" onclick="loadSavedData()">
                 🔄 REFRESH / RELOAD DATA
             </button>
 
-            <!-- 2. SCREENSHOT / SAVE IMAGE -->
-            <!-- Since we are displaying a static image, we can just link to it -->
-            <button class="big-btn btn-img" onclick="openImageLink()">
-                📸 OPEN / SAVE IMAGE
+            <!-- 2. DOWNLOAD IMAGE (FIXED: Direct Download, not Open) -->
+            <button class="big-btn btn-img" onclick="downloadImageFile()">
+                📸 SAVE IMAGE
             </button>
 
-            <!-- ========================================== -->
-            <!-- NEW BUTTON: DOWNLOAD PDF (ADDED HERE) -->
-            <!-- ========================================== -->
+            <!-- 3. DOWNLOAD PDF (FIXED: Full Size Capture) -->
             <button class="big-btn btn-print" onclick="downloadPDFImage()">
                 ⬇️ DOWNLOAD PDF
             </button>
 
-            <!-- 3. BACK TO HOME -->
+            <!-- 4. BACK TO HOME -->
             <button class="big-btn btn-merge" onclick="goHome()">
                 🏠 BACK TO HOME
             </button>
@@ -210,6 +236,8 @@
         const idCardImg = document.getElementById('idCardImg');
         const statusText = document.getElementById('statusText');
         const loadingOverlay = document.getElementById('loading-overlay');
+        const actionContainer = document.getElementById('actionContainer');
+        const backButton = document.getElementById('backButton');
 
         // State
         let allMembers = [];
@@ -224,7 +252,7 @@
 
             try {
                 await fetchMembers();
-                statusText.textContent = "Ready. Select a member.";
+                statusText.textContent = "Ready. Start typing name.";
             } catch (error) {
                 console.error("Init Error:", error);
                 statusText.textContent = "Error loading data.";
@@ -256,7 +284,7 @@
         }
 
         function populateDropdown() {
-            memberSelect.innerHTML = '<option value="" disabled selected>-- Select Member ID (Start Typing) --</option>';
+            memberSelect.innerHTML = '<option value="" disabled selected>-- Start Typing Name or ID --</option>';
             allMembers.forEach((member, index) => {
                 const option = document.createElement('option');
                 option.value = index; 
@@ -281,7 +309,28 @@
         }
 
         // ==========================================
-        // 3. SEARCH MEMBER LOGIC (NEW APPROACH)
+        // 3. SMART FILTER LOGIC
+        // ==========================================
+        function smartFilter() {
+            const query = memberSelect.value.toLowerCase();
+            const options = memberSelect.options;
+
+            // Loop through all options (skip first disabled placeholder)
+            for (let i = 1; i < options.length; i++) {
+                const text = options[i].text.toLowerCase();
+                
+                // If query matches part of name, SHOW IT.
+                // Else, HIDE IT.
+                if (text.includes(query)) {
+                    options[i].style.display = "";
+                } else {
+                    options[i].style.display = "none";
+                }
+            }
+        }
+
+        // ==========================================
+        // 4. SEARCH / SHOW CARD LOGIC (Clean Mode)
         // ==========================================
         async function searchMember() {
             const index = memberSelect.value;
@@ -301,19 +350,23 @@
             statusText.textContent = `Searching for ${member.name}...`;
 
             try {
-                // === THE KEY LOGIC: CHECK IF GENERATED CARD EXISTS ===
-                // We check the 'generated_card_image' field from our database
+                // === CHECK IF GENERATED CARD EXISTS ===
                 if (member.generated_card_image) {
-                    // CASE A: Card already generated. Show it immediately!
+                    // SUCCESS: Show Image + CLEAN MODE
                     idCardImg.src = member.generated_card_image;
                     idImageContainer.style.display = 'block';
-                    statusText.textContent = `Found ID for ${member.name}. Ready to print.`;
+                    statusText.textContent = `Found ID for ${member.name}.`;
                     currentImageUrl = member.generated_card_image;
+
+                    // === CLEAN MODE: HIDE BUTTONS, SHOW ARROW ===
+                    actionContainer.style.display = 'none';
+                    memberSelect.style.display = 'none';
+                    backButton.style.display = 'flex'; // Show Arrow
                 } else {
-                    // CASE B: No card generated yet.
+                    // FAIL: No card generated.
                     idImageContainer.style.display = 'none';
-                    statusText.textContent = `No ID generated yet for ${member.name}. Please ask Admin to generate.`;
-                    alert(`Member found: ${member.name}\n\nBut ID card image has NOT been generated yet.\n\nPlease contact to Admin (Laptop) to click "SAVE CARD" first.`);
+                    statusText.textContent = `No ID generated yet.`;
+                    alert(`Member found: ${member.name}\n\nBut ID card image has NOT been generated yet.\n\nPlease contact Admin to click "SAVE CARD".`);
                     currentImageUrl = "";
                 }
 
@@ -325,25 +378,71 @@
             }
         }
 
+        function backToSearch() {
+            // Show controls again
+            actionContainer.style.display = 'flex';
+            memberSelect.style.display = 'block';
+            backButton.style.display = 'none'; // Hide Arrow
+            
+            // Clear Image
+            idImageContainer.style.display = 'none';
+            idCardImg.src = "";
+            statusText.textContent = "Ready. Select a member.";
+        }
+
         // ==========================================
-        // 4. HELPER: OPEN IMAGE LINK
+        // 5. DOWNLOAD IMAGE FUNCTION (FIXED: Direct Download)
         // ==========================================
-        function openImageLink() {
-            if (currentImageUrl) {
-                // Opens the image in a new tab (or downloads depending on browser)
-                window.open(currentImageUrl, '_blank');
-            } else {
-                alert("No image to save.");
+        async function downloadImageFile() {
+            if (!currentImageUrl) {
+                alert("No ID card image loaded yet.");
+                return;
+            }
+
+            showLoading(true);
+            statusText.textContent = "Downloading...";
+
+            try {
+                // 1. Fetch the image as Blob
+                const response = await fetch(currentImageUrl);
+                if (!response.ok) throw new Error("Network response was not ok");
+                
+                const blob = await response.blob();
+                
+                // 2. Create a temporary link to trigger download
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                
+                // 3. Set filename
+                const timestamp = new Date().toISOString().slice(0,19).replace(/[-T:]/g,"");
+                link.download = `ID_Card_${timestamp}.png`;
+                
+                // 4. Trigger click
+                document.body.appendChild(link);
+                link.click();
+                
+                // 5. Cleanup
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+                
+                statusText.textContent = "Image Saved! (Check Gallery)";
+
+            } catch (error) {
+                console.error("Download Error:", error);
+                alert("Error downloading image: " + error.message);
+                statusText.textContent = "Error.";
+            } finally {
+                showLoading(false);
             }
         }
 
         // ==========================================
-        // 5. NEW: DOWNLOAD PDF FUNCTION
+        // 6. DOWNLOAD PDF FUNCTION (FIXED: Full Size Capture)
         // ==========================================
         async function downloadPDFImage() {
-            // Check if image is loaded
             if (!currentImageUrl) {
-                alert("No ID card image loaded yet. Please select a member first.");
+                alert("No ID card image loaded yet.");
                 return;
             }
 
@@ -351,48 +450,65 @@
             statusText.textContent = "Generating PDF...";
 
             try {
-                // 1. Create a temporary image element to capture the dimensions
-                // We need to make sure the image is loaded before capturing
-                const imgElem = idCardImg;
+                // === FIX 1: REMOVE WIDTH CONSTRAINTS ===
+                // Before capturing, we remove max-width so we capture the FULL image size
+                // This fixes the "maliit sa canvas" issue
+                const originalMaxWidth = idImageContainer.style.maxWidth;
+                const originalWidth = idImageContainer.style.width;
                 
-                // Wait for image to ensure it's fully rendered
+                idImageContainer.style.maxWidth = 'none'; // Remove 400px limit
+                idImageContainer.style.width = 'auto'; // Let it grow to natural size
+
+                // === FIX 2: WAIT FOR IMAGE TO RENDER ===
+                const imgElem = idCardImg;
                 if (!imgElem.complete) {
                     await new Promise(resolve => imgElem.onload = resolve);
                 }
 
-                // 2. Use html2canvas on the CONTAINER div
-                // We target the container so we capture the white background and shadow
+                // 3. Capture with HIGH QUALITY
+                // Since we removed the width limit, this will capture the full res image
                 const canvas = await html2canvas(idImageContainer, {
-                    scale: 2, // High Quality
+                    scale: 2, // Keep scale 2 for quality
                     backgroundColor: '#ffffff',
                     logging: false,
                     useCORS: true
                 });
 
-                // 3. Generate PDF
+                // 4. Restore styles
+                idImageContainer.style.maxWidth = originalMaxWidth;
+                idImageContainer.style.width = originalWidth;
+
+                // 5. Setup PDF
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('p', 'mm', 'a4');
                 
-                // Calculate dimensions to fit A4
-                const pageWidth = 210;
+                const pageWidth = 210; // A4
                 const pageHeight = 297;
                 const margin = 10;
 
+                // 6. Calculate Fit
                 const imgWidth = canvas.width;
                 const imgHeight = canvas.height;
                 const ratio = imgWidth / imgHeight;
 
-                // Set a target height (e.g., 80mm or full width)
-                const targetHeight_mm = 80; 
-                const targetWidth_mm = targetHeight_mm * ratio;
+                const availableWidth = pageWidth - (margin * 2);
+                const availableHeight = pageHeight - (margin * 2);
 
-                // Center image on page
+                let targetWidth_mm = availableWidth;
+                let targetHeight_mm = targetWidth_mm / ratio;
+
+                // If height is too big, base on height
+                if (targetHeight_mm > availableHeight) {
+                    targetHeight_mm = availableHeight;
+                    targetWidth_mm = targetHeight_mm * ratio;
+                }
+
+                // Center
                 const x = (pageWidth - targetWidth_mm) / 2;
                 const y = (pageHeight - targetHeight_mm) / 2;
 
                 doc.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', x, y, targetWidth_mm, targetHeight_mm);
-                
-                doc.save(`ID_Card_${new Date().toISOString().slice(0,10)}.pdf`);
+                doc.save(`ID_Card_FullSize.pdf`);
                 statusText.textContent = "PDF Downloaded!";
 
             } catch (error) {
