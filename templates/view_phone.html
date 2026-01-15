@@ -41,8 +41,8 @@
         
         .big-btn {
             width: 100%;
-            padding: 18px 20px; /* Big Touch Target */
-            font-size: 18px; /* Big Text */
+            padding: 18px 20px;
+            font-size: 18px;
             font-weight: bold;
             border: none;
             border-radius: 12px;
@@ -65,6 +65,9 @@
         .btn-img { background: #f59e0b; color: white; }
         .btn-img:hover { background: #d97706; box-shadow: 0 4px 12px rgba(245,158,11,0.3); }
 
+        .btn-merge { background: #8b5cf6; color: white; }
+        .btn-merge:hover { background: #7c3aed; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); }
+
         /* === WORKSPACE === */
         .workspace {
             flex-grow: 1;
@@ -77,18 +80,20 @@
             gap: 20px;
         }
 
-        .canvas-wrapper {
+        /* === UPDATED: SIMPLE IMAGE CONTAINER === */
+        .image-container {
             position: relative;
             background-color: #fff;
-            width: 800px; /* Default width, will change via JS */
-            height: 400px; /* Default height */
+            width: 100%;
+            max-width: 400px; /* Standard ID width */
+            /* Height is automatic based on image aspect ratio */
             background-repeat: no-repeat;
             background-size: contain;
-            background-position: top left;
+            background-position: top center;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             user-select: none;
-            flex-shrink: 0;
-            transform-origin: top center;
+            margin: 0 auto;
+            display: none; /* Hidden by default until loaded */
         }
 
         /* === SIMPLIFIED DROPDOWN === */
@@ -108,7 +113,7 @@
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255,255,255,0.9);
             z-index: 9999;
             flex-direction: column;
             align-items: center;
@@ -129,13 +134,6 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* === MOBILE ADJUSTMENTS === */
-        @media (max-width: 700px) {
-            .canvas-wrapper { width: 100% !important; }
-            .action-container { padding: 15px; }
-            .big-btn { font-size: 16px; padding: 15px; }
-        }
-
         /* === FOOTER INFO === */
         .footer-info {
             text-align: center;
@@ -154,39 +152,49 @@
     <!-- === LOADING OVERLAY === -->
     <div id="loading-overlay">
         <div class="spinner"></div>
-        <div class="loading-text">Generating ID... Please wait.</div>
+        <div class="loading-text">Searching... Please wait.</div>
     </div>
 
     <!-- === MAIN CONTENT === -->
     <div class="workspace">
         
         <!-- SELECT MEMBER DROPDOWN (SIMPLIFIED) -->
-        <select id="memberSelect" class="member-select" onchange="switchMember()">
-            <option value="" disabled selected>-- Select Member ID --</option>
+        <!-- Note: ONCHANGE Logic will trigger search -->
+        <select id="memberSelect" class="member-select" onchange="searchMember()">
+            <option value="" disabled selected>-- Select Member ID (Start Typing) --</option>
             <!-- Options will be populated by JS -->
         </select>
 
-        <!-- THE ID CARD CANVAS -->
-        <div id="editorCanvas" class="canvas-wrapper">
-            <!-- ID Card appears here -->
+        <!-- === UPDATED: IMAGE DISPLAY AREA === -->
+        <!-- This div will ONLY contain an <img> tag. No complex rendering. -->
+        <div id="idImageContainer" class="image-container">
+            <img id="idCardImg" src="" style="width:100%; height:auto; display:block;" alt="ID Card">
         </div>
 
         <!-- === USER FRIENDLY ACTION BUTTONS === -->
         <div class="action-container">
             
-            <!-- 1. DOWNLOAD PDF (MAIN ACTION) -->
-            <button class="big-btn btn-print" onclick="downloadPDF()">
-                ⬇️ DOWNLOAD PDF
-            </button>
-            
-            <!-- 2. CREATE IMAGE (SCREENSHOT) -->
-            <button class="big-btn btn-img" onclick="downloadScreenshot()">
-                📸 SAVE AS IMAGE
-            </button>
-
-            <!-- 3. LOAD DATA (FOR OFFICER / ADMIN) -->
+            <!-- 1. REFRESH / LOAD DATA -->
             <button class="big-btn btn-save" onclick="loadSavedData()">
                 🔄 REFRESH / RELOAD DATA
+            </button>
+
+            <!-- 2. SCREENSHOT / SAVE IMAGE -->
+            <!-- Since we are displaying a static image, we can just link to it -->
+            <button class="big-btn btn-img" onclick="openImageLink()">
+                📸 OPEN / SAVE IMAGE
+            </button>
+
+            <!-- ========================================== -->
+            <!-- NEW BUTTON: DOWNLOAD PDF (ADDED HERE) -->
+            <!-- ========================================== -->
+            <button class="big-btn btn-print" onclick="downloadPDFImage()">
+                ⬇️ DOWNLOAD PDF
+            </button>
+
+            <!-- 3. BACK TO HOME -->
+            <button class="big-btn btn-merge" onclick="goHome()">
+                🏠 BACK TO HOME
             </button>
 
             <div class="footer-info">
@@ -196,45 +204,30 @@
     </div>
 
     <script>
-        const API_URL = ''; // Empty for online or path
-        const canvas = document.getElementById('editorCanvas');
+        const API_URL = ''; 
         const memberSelect = document.getElementById('memberSelect');
+        const idImageContainer = document.getElementById('idImageContainer');
+        const idCardImg = document.getElementById('idCardImg');
         const statusText = document.getElementById('statusText');
         const loadingOverlay = document.getElementById('loading-overlay');
 
-        // Storage for loaded members
+        // State
         let allMembers = [];
-        let savedLayout = null;
-        let savedMemberData = null;
+        let currentImageUrl = "";
 
         // ==========================================
-        // 1. INITIALIZATION & AUTO-LOAD
+        // 1. INITIALIZATION (LOAD MEMBERS LIST)
         // ==========================================
         window.addEventListener('DOMContentLoaded', async () => {
             statusText.textContent = "Loading System...";
             showLoading(true);
 
             try {
-                // 1. Fetch Layout
-                await fetchLayout();
-
-                // 2. Fetch Members (Assuming we have access to member ID or just fetch all)
-                // NOTE: In a real scenario, you might get ID from URL params (e.g., /view/123)
-                // For simplicity, we just fetch all today.
                 await fetchMembers();
-
-                // 3. Load First Member (USER FRIENDLY)
-                if (allMembers.length > 0 && savedLayout) {
-                    renderCard(allMembers[0]);
-                    populateDropdown();
-                    statusText.textContent = "ID Ready.";
-                } else {
-                    statusText.textContent = "No data found. Please add members via Admin.";
-                }
-
+                statusText.textContent = "Ready. Select a member.";
             } catch (error) {
                 console.error("Init Error:", error);
-                statusText.textContent = "Error loading data. Check connection.";
+                statusText.textContent = "Error loading data.";
             } finally {
                 showLoading(false);
             }
@@ -245,181 +238,112 @@
         }
 
         // ==========================================
-        // 2. DATA FETCHING LOGIC
+        // 2. FETCH MEMBERS
         // ==========================================
-        async function fetchLayout() {
-            try {
-                const response = await fetch(`${API_URL}/load_layout`);
-                const result = await response.json();
-                if (result.status === 'success' && result.data) {
-                    savedLayout = result.data;
-                    canvas.style.width = savedLayout.template.width;
-                    canvas.style.height = savedLayout.template.height;
-                    canvas.style.backgroundImage = savedLayout.template.backgroundImage;
-                }
-            } catch (e) {
-                console.error("Layout fetch failed", e);
-            }
-        }
-
         async function fetchMembers() {
             try {
-                // Fetch all members (Limit to 50 for performance on mobile)
+                // Fetch first 50 members only for speed
                 const response = await fetch(`${API_URL}/api/members/json?limit=50`);
                 if (response.ok) {
                     const data = await response.json();
                     allMembers = Array.isArray(data) ? data : [];
+                    populateDropdown();
                 }
             } catch (e) {
                 console.error("Member fetch failed", e);
+                alert("Error fetching members.");
             }
         }
 
-        // ==========================================
-        // 3. UI LOGIC (DROPDOWN & RENDER)
-        // ==========================================
         function populateDropdown() {
-            memberSelect.innerHTML = '<option value="" disabled>-- Select Member ID --</option>';
+            memberSelect.innerHTML = '<option value="" disabled selected>-- Select Member ID (Start Typing) --</option>';
             allMembers.forEach((member, index) => {
                 const option = document.createElement('option');
-                option.value = index; // Store index to access array
-                option.textContent = `${member.idnumb} - ${member.name}`;
+                option.value = index; 
+                // Display Name and ID Number for easier search
+                option.textContent = `${member.name} (${member.idnumb || member.id})`;
                 memberSelect.appendChild(option);
             });
         }
 
-        function renderCard(member) {
-            if (!savedLayout || !savedLayout.template || !savedLayout.fields) return;
-
-            // Clear canvas
-            canvas.innerHTML = "";
-
-            // Render Fields
-            savedLayout.fields.forEach(fieldData => {
-                const el = document.createElement('div');
-                el.className = fieldData.className;
-                el.style.left = fieldData.left;
-                el.style.top = fieldData.top;
-                el.style.width = fieldData.width;
-                el.style.height = fieldData.height;
-                el.style.color = fieldData.color;
-                el.style.fontSize = fieldData.fontSize;
-                el.style.fontFamily = fieldData.fontFamily;
-                el.style.fontWeight = fieldData.fontWeight;
-
-                const fieldText = (fieldData.text || "").trim().toUpperCase();
-                const isCssObject = fieldData.className.includes('is-line') || 
-                                      fieldData.className.includes('is-box') || 
-                                      fieldData.className.includes('is-frosted');
-
-                if (!isCssObject) {
-                    el.style.borderColor = "transparent";
-                    el.style.border = "none";
-                    el.style.background = "transparent";
-                }
-
-                // --- MAPPING LOGIC ---
-                const dataVal = getMemberValue(fieldData.text, member);
-
-                if (fieldData.imgSrc) {
-                    el.innerHTML = `<img src="${fieldData.imgSrc}" style="width:100%; height:100%; object-fit:contain;">`;
-                } else if (isCssObject && ["PHOTO", "SIGNATURE", "QR CODE", "OR CODES"].includes(fieldText)) {
-                    if (fieldData.className.includes('is-image') || isImageField(fieldData.text)) {
-                        let imgSrc = "";
-                        if (fieldText === "PHOTO") imgSrc = member.photo_data || "";
-                        else if (fieldText === "SIGNATURE") imgSrc = member.signature || "";
-                        else if (fieldText === "QR CODE" || fieldText === "OR CODES") imgSrc = member.qr_code || "";
-                        
-                        el.innerHTML = `<img src="${imgSrc}" style="width:100%; height:100%; object-fit:contain;">`;
-                        el.style.border = "none"; el.style.background = "transparent"; el.style.padding = "0";
-                    }
-                } else if (fieldData.className.includes('is-box') && isCssObject) {
-                    // Standard text fields
-                    el.innerText = dataVal || fieldData.text;
-                } else {
-                    // Static labels (not in keywords)
-                    el.innerText = fieldData.text;
-                }
-                
-                canvas.appendChild(el);
-            });
-        }
-
-        function switchMember() {
-            const index = memberSelect.value;
-            if (index !== "") {
-                renderCard(allMembers[index]);
-                statusText.textContent = `Showing: ${allMembers[index].name}`;
-            }
-        }
-
         function loadSavedData() {
             showLoading(true);
-            // Simulate refresh
             setTimeout(() => {
-                fetchLayout().then(() => {
-                    fetchMembers().then(() => {
-                        if (allMembers.length > 0) {
-                            renderCard(allMembers[0]);
-                            populateDropdown();
-                            statusText.textContent = "Data Refreshed.";
-                        } else {
-                            statusText.textContent = "No Data.";
-                        }
-                        showLoading(false);
-                    });
+                fetchMembers().then(() => {
+                    statusText.textContent = "Data Refreshed.";
+                    showLoading(false);
                 });
             }, 500);
         }
 
-        // ==========================================
-        // 4. HELPER MAPPING (Same as previous)
-        // ==========================================
-        function getMemberValue(caption, member) {
-            const cap = caption.trim().toUpperCase();
-            if (cap === "FULL NAME") return member.name || "";
-            if (cap === "PSEUDO NAME") return member.pseudo_name || "";
-            if (cap === "ID NUMBER") return member.idnumb || "";
-            if (cap === "DESIGNATION") return member.designation || "";
-            if (cap === "BLOOD TYPE") return member.blood_type || "";
-            if (cap === "ADDRESS" || cap === "HOME ADDRESS") return member.home_address || "";
-            if (cap === "EMERGENCY ADDRESS") return member.home_address || "";
-            if (cap === "CONTACT NO") return member.contact_no || "";
-            if (cap === "EMERGENCY NO") return member.emergency_contact_no || "";
-            if (cap === "DATE ISSUED") return member.issued_date || "";
-            if (cap === "VALID UNTIL") return member.valid_until || "";
-            if (cap === "CHAPTER") return member.chapter || "";
-            if (cap === "HEIGHT") return member.height || "";
-            if (cap === "WEIGHT") return member.weight || "";
-            if (cap === "OCCUPATION") return member.occupation || "";
-            if (cap === "EMERGENCY NAME") return member.emergency_person_name || "";
-            if (cap === "BIRTHDATE") return member.birthdate || "";
-            if (cap === "CIVIL STATUS") return member.civil_status || "";
-            const key = caption.trim().toLowerCase().replace(/ /g, '_');
-            if (member[key]) return member[key];
-            return "";
-        }
-
-        function isImageField(caption) {
-            const cap = caption.trim().toUpperCase();
-            return (cap === "PHOTO" || cap === "SIGNATURE" || cap === "QR CODE" || cap === "OR CODES");
+        function goHome() {
+            window.location.href = '/';
         }
 
         // ==========================================
-        // 5. DOWNLOAD PDF LOGIC
+        // 3. SEARCH MEMBER LOGIC (NEW APPROACH)
         // ==========================================
-        async function downloadPDF() {
-            if (!savedLayout) {
-                alert("Please save layout via Admin first.");
+        async function searchMember() {
+            const index = memberSelect.value;
+            
+            // Clear previous image if no selection
+            if (index === "" || index === null) {
+                idImageContainer.style.display = 'none';
+                idCardImg.src = "";
+                statusText.textContent = "Select a member.";
                 return;
             }
-            
-            // Get current selected member (or first one if none selected)
-            const index = memberSelect.value;
-            const member = (index !== "") ? allMembers[index] : allMembers[0];
-            
-            if (!member) {
-                alert("No member data available.");
+
+            const member = allMembers[index];
+            if (!member) return;
+
+            showLoading(true);
+            statusText.textContent = `Searching for ${member.name}...`;
+
+            try {
+                // === THE KEY LOGIC: CHECK IF GENERATED CARD EXISTS ===
+                // We check the 'generated_card_image' field from our database
+                if (member.generated_card_image) {
+                    // CASE A: Card already generated. Show it immediately!
+                    idCardImg.src = member.generated_card_image;
+                    idImageContainer.style.display = 'block';
+                    statusText.textContent = `Found ID for ${member.name}. Ready to print.`;
+                    currentImageUrl = member.generated_card_image;
+                } else {
+                    // CASE B: No card generated yet.
+                    idImageContainer.style.display = 'none';
+                    statusText.textContent = `No ID generated yet for ${member.name}. Please ask Admin to generate.`;
+                    alert(`Member found: ${member.name}\n\nBut ID card image has NOT been generated yet.\n\nPlease contact to Admin (Laptop) to click "SAVE CARD" first.`);
+                    currentImageUrl = "";
+                }
+
+            } catch (error) {
+                console.error(error);
+                statusText.textContent = "Error searching.";
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // ==========================================
+        // 4. HELPER: OPEN IMAGE LINK
+        // ==========================================
+        function openImageLink() {
+            if (currentImageUrl) {
+                // Opens the image in a new tab (or downloads depending on browser)
+                window.open(currentImageUrl, '_blank');
+            } else {
+                alert("No image to save.");
+            }
+        }
+
+        // ==========================================
+        // 5. NEW: DOWNLOAD PDF FUNCTION
+        // ==========================================
+        async function downloadPDFImage() {
+            // Check if image is loaded
+            if (!currentImageUrl) {
+                alert("No ID card image loaded yet. Please select a member first.");
                 return;
             }
 
@@ -427,86 +351,53 @@
             statusText.textContent = "Generating PDF...";
 
             try {
-                // Reset zoom for clean render
-                const originalTransform = canvas.style.transform;
-                canvas.style.transform = 'none';
+                // 1. Create a temporary image element to capture the dimensions
+                // We need to make sure the image is loaded before capturing
+                const imgElem = idCardImg;
+                
+                // Wait for image to ensure it's fully rendered
+                if (!imgElem.complete) {
+                    await new Promise(resolve => imgElem.onload = resolve);
+                }
 
+                // 2. Use html2canvas on the CONTAINER div
+                // We target the container so we capture the white background and shadow
+                const canvas = await html2canvas(idImageContainer, {
+                    scale: 2, // High Quality
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    useCORS: true
+                });
+
+                // 3. Generate PDF
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('p', 'mm', 'a4');
                 
-                const canvasElem = await html2canvas(canvas, { 
-                    scale: 2, // High quality
-                    useCORS: true,
-                    backgroundColor: '#ffffff'
-                });
-                
-                const capturedW = canvasElem.width;
-                const capturedH = canvasElem.height;
-                const ratio = capturedW / capturedH;
-                const targetH_mm = 54; // Standard ID height
-                const targetW_mm = targetH_mm * ratio;
+                // Calculate dimensions to fit A4
+                const pageWidth = 210;
+                const pageHeight = 297;
                 const margin = 10;
+
+                const imgWidth = canvas.width;
+                const imgHeight = canvas.height;
+                const ratio = imgWidth / imgHeight;
+
+                // Set a target height (e.g., 80mm or full width)
+                const targetHeight_mm = 80; 
+                const targetWidth_mm = targetHeight_mm * ratio;
+
+                // Center image on page
+                const x = (pageWidth - targetWidth_mm) / 2;
+                const y = (pageHeight - targetHeight_mm) / 2;
+
+                doc.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', x, y, targetWidth_mm, targetHeight_mm);
                 
-                doc.addImage(canvasElem.toDataURL('image/jpeg', 0.95), 'JPEG', margin, margin, targetW_mm, targetH_mm);
-                
-                doc.save(`ID_${member.idnumb}.pdf`);
-                
-                // Restore Zoom
-                canvas.style.transform = originalTransform;
+                doc.save(`ID_Card_${new Date().toISOString().slice(0,10)}.pdf`);
                 statusText.textContent = "PDF Downloaded!";
 
-            } catch (err) {
-                console.error(err);
-                alert("Error generating PDF: " + err.message);
-                statusText.textContent = "Error generating PDF.";
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        // ==========================================
-        // 6. CREATE IMAGE LOGIC
-        // ==========================================
-        async function downloadScreenshot() {
-            if (!savedLayout) {
-                alert("Please save layout via Admin first.");
-                return;
-            }
-
-            const index = memberSelect.value;
-            const member = (index !== "") ? allMembers[index] : allMembers[0];
-
-            if (!member) {
-                alert("No member data available.");
-                return;
-            }
-
-            showLoading(true);
-            statusText.textContent = "Taking Photo...";
-
-            try {
-                // Reset zoom
-                const originalTransform = canvas.style.transform;
-                canvas.style.transform = 'none';
-
-                const canvasElem = await html2canvas(canvas, { 
-                    scale: 2,
-                    backgroundColor: '#ffffff'
-                });
-
-                // Create Link
-                const link = document.createElement('a');
-                link.download = `ID_${member.idnumb}.png`;
-                link.href = canvasElem.toDataURL('image/png');
-                link.click();
-
-                canvas.style.transform = originalTransform;
-                statusText.textContent = "Image Saved!";
-
-            } catch (err) {
-                console.error(err);
-                alert("Error capturing screenshot: " + err.message);
-                statusText.textContent = "Error.";
+            } catch (error) {
+                console.error(error);
+                alert("Error generating PDF: " + error.message);
             } finally {
                 showLoading(false);
             }
