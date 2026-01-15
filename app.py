@@ -653,6 +653,22 @@ def display_id(member_id):
 def id_pdf_generator():
     return render_template('id_pdf_generator.html')
 
+@app.route('/phone_viewer')
+def phone_viewer():
+    """Displays all member ID cards in phone view"""
+    return render_template('phone_viewer.html')
+
+# ==============================
+# NEW: VIEW PHONE (CELPHONE ONLY / USER FRIENDLY)
+# ==============================
+@app.route('/view_phone')
+def view_phone():
+    """
+    Celphone Only ID Viewer (User Friendly).
+    Direct access for members to select name and download ID without Admin tools.
+    """
+    return render_template('view_phone.html')
+
 # ==============================
 # Run App
 # ==============================
