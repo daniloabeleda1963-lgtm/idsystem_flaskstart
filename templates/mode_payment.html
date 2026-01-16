@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mode of Payment</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-top: 0;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .payment-options {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .option-label {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #333;
+            transition: background 0.2s;
+        }
+
+        .option-label:hover {
+            background-color: #f0f9ff;
+        }
+
+        .option-label input[type="radio"] {
+            margin-right: 15px;
+            transform: scale(1.2);
+        }
+
+        /* GCash Details */
+        .gcash-details {
+            display: none;
+            background: #fff;
+            border: 1px dashed #007bff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        /* FINAL: MALAKING QR CODE (250px) */
+        .gcash-details img {
+            width: 250px;
+            height: 250px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto 10px auto;
+            border: 2px solid #ccc;
+        }
+
+        .gcash-info {
+            font-size: 0.9rem;
+            color: #555;
+            margin: 5px 0;
+        }
+
+        /* Confirm Button */
+        .btn-confirm {
+            background-color: #2563eb;
+            color: white;
+            padding: 15px;
+            width: 100%;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn-confirm:hover {
+            background-color: #1d4ed8;
+        }
+
+        .back-link {
+            display: block;
+            margin-top: 20px;
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        
+        .error-msg {
+            color: red;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        /* Password Input Styling */
+        .hidden-password-group {
+            display: none;
+            margin-top: 10px;
+            width: 100%;
+        }
+        .password-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #10b981;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Mode of Payment</h1>
+
+        {% if error %}
+            <p class="error-msg">{{ error }}</p>
+        {% endif %}
+
+        <form method="POST" action="/mode_payment.html">
+            
+            <input type="hidden" name="pay_method" id="selectedMethod" required>
+
+            <div class="payment-options">
+                
+                <!-- CASH -->
+                <label class="option-label">
+                    <input type="radio" name="opt" value="cash" onclick="selectPayment('cash')">
+                    <span>Cash</span>
+                </label>
+
+                <!-- GCASH -->
+                <label class="option-label">
+                    <input type="radio" name="opt" value="gcash" onclick="selectPayment('gcash')">
+                    <span>GCash</span>
+                </label>
+
+                <!-- GCash Details (Lalabas pag na-click ang GCash) -->
+                <div id="gcashDetails" class="gcash-details">
+                    <!-- FINAL: Direct path para siguradong lumabas -->
+                    <img src="/static/images/qrcode.jpg" alt="GCash QR Code">
+                    
+                    <p class="gcash-info" style="font-weight: bold;">DA***O A.</p>
+                    <p class="gcash-info">Mobile No: +63 907 041 ......</p>
+                    <p class="gcash-info">User ID: ........6WAQP3</p>
+                    <p style="font-size: 0.8rem; color: red;">Transfer fees may apply.</p>
+                </div>
+
+                <!-- BANK TRANSFER -->
+                <label class="option-label">
+                    <input type="radio" name="opt" value="bank" onclick="selectPayment('bank')">
+                    <span>Bank Transfer</span>
+                </label>
+
+                <!-- ADMIN ACCESS BUTTON (Lalabas lang kapag Admin ang Role) -->
+                {% if role == 'admin' %}
+                    <label class="option-label" style="border-color: #10b981; background-color: #ecfdf5;" onclick="showAdminAccess()">
+                        <input type="radio" name="opt" value="admin_access">
+                        <span style="color: #10b981;">👑 Admin Access (Free)</span>
+                    </label>
+                    
+                    <!-- Password Field para sa Admin Access -->
+                    <div id="adminFreeInput" class="hidden-password-group">
+                        <input type="password" name="admin_free_pass" class="password-input" placeholder="Enter admin123">
+                    </div>
+                {% endif %}
+
+            </div>
+
+            <button type="submit" class="btn-confirm">Confirm Payment</button>
+
+        </form>
+
+        <a href="/admin" class="back-link">&larr; Bumalik sa Admin</a>
+    </div>
+
+    <script>
+        function selectPayment(method) {
+            document.getElementById('selectedMethod').value = method;
+            const gcashDiv = document.getElementById('gcashDetails');
+            
+            if (method === 'gcash') {
+                gcashDiv.style.display = 'block';
+            } else {
+                gcashDiv.style.display = 'none';
+            }
+        }
+
+        function showAdminAccess() {
+            document.getElementById('selectedMethod').value = 'admin_access';
+            document.getElementById('adminFreeInput').style.display = 'block';
+            document.getElementById('gcashDetails').style.display = 'none';
+        }
+    </script>
+
+</body>
+</html>
