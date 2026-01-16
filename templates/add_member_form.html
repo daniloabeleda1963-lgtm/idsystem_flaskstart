@@ -1014,14 +1014,15 @@
                     
                     // --- NEW LOGIC: GENERATE QR CODE & UPDATE ID TABLE ---
                     
-                    //1. Generate QR Code using ID Number
+                    //1. Generate QR Code using ID Number and Full Name
                     const currentId = idNoField.value;
+                    const fullName = document.getElementById('name_field').value; // GET FULLNAME
                     const qrField = document.getElementById('qr_code_field');
                     
-                    if (currentId && qrField && typeof QRious !== 'undefined') {
+                    if (currentId && fullName && qrField && typeof QRious !== 'undefined') {
                         try {
                             const qr = new QRious({
-                                value: currentId,
+                                value: currentId + ' | ' + fullName, // COMBINE ID AND NAME
                                 size: 200,
                                 level: 'H'
                             });
