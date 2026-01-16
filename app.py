@@ -3,6 +3,8 @@
 # ==============================
 import os
 import re
+import io         # ADDED: Needed for image stream handling
+import base64     # ADDED: Needed for base64 decoding
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from dotenv import load_dotenv
@@ -54,7 +56,7 @@ def vb6_replace(text):
     )
 
 # ==============================
-# 🆕 AUTO CLEANUP SCANNER (13H INTERVAL)
+# 🆕 AUTO CLEANUP SCANNER (13H INTERVAL + STORAGE CLEANUP)
 # ==============================
 @app.before_request
 def cleanup_old_cards_scanner():
@@ -62,11 +64,11 @@ def cleanup_old_cards_scanner():
     Automatic Scanner.
     1. Check if 13 hours passed since last cleanup.
     2. If Yes: Delete cards older than 24 hours.
-    3. If No: Skip.
+    3. Also: Delete associated files from Supabase Storage.
+    4. Update last cleanup time.
     """
     # Huwag scan sa static files (css, js) para mabilis
-    if request.path.startswith('/static'):
-        return
+    if request.path.startswith('/static'): return
 
     try:
         db = get_db()
@@ -89,26 +91,58 @@ def cleanup_old_cards_scanner():
 
         # 3. CONDITION: LANG MAG-SCAN KUNG 13 HOURS NA ANG NAKAKARAAN
         if time_since_last_cleanup < timedelta(hours=13):
-            # Fresh pa ang scan, huwag gumulo sa system.
-            return 
+            return # Fresh pa ang scan, huwag gumulo sa system.
 
         print(f">>> SCANNING OLD CARDS... Last scan was {time_since_last_cleanup} ago.")
 
-        # 4. DELETE LOGIC: DELETE ANG > 24 HOURS
+        # 4. DELETE LOGIC: DELETE ANG > 24 HOURS + STORAGE CLEANUP
         # Yung '2 hours pa lang' ay hindi dito mapupunta.
         expiry_time = now - timedelta(hours=24)
 
-        delete_response = db.from_('members').update({
-            'generated_card_image': None,
-            'generated_at': None
-        }).lt('generated_at', expiry_time.isoformat()).execute()
+        # === NEW: SELECT MUNA PARA MAKUHA NG FILENAME (RULE #6) ===
+        to_delete_response = db.from_('members').select('id', 'generated_card_image') \
+            .lt('generated_at', expiry_time.isoformat()).execute()
         
-        print(f">>> CLEANED UP CARDS OLDER THAN: {expiry_time}")
+        if to_delete_response.data:
+            ids_to_clear = []
+            files_to_remove = []
+            
+            for record in to_delete_response.data:
+                url = record.get('generated_card_image')
+                db_id = record.get('id')
+                
+                if db_id: ids_to_clear.append(db_id)
+                
+                # EXTRACT FILENAME FROM URL
+                # URL Example: https://xyz.supabase.co/storage/v1/object/public/public_id_cards/guardian_ids/123_2023.png
+                if url:
+                    try:
+                        if '/public_id_cards/' in url:
+                            filename = url.split(f'/public_id_cards/')[-1]
+                            if filename: files_to_remove.append(filename)
+                    except:
+                        pass
+
+            # === ACTION 1: DELETE FROM SUPABASE STORAGE ===
+            if files_to_remove:
+                try:
+                    # Automatic deletion mula sa Storage
+                    supabase.storage.from_('public_id_cards').remove(files_to_remove)
+                    print(f">>> DELETED {len(files_to_remove)} FILES FROM STORAGE.")
+                except Exception as e:
+                    print(f">>> Error deleting from storage: {e}")
+
+            # === ACTION 2: UPDATE DATABASE (NULLIFY) ===
+            if ids_to_clear:
+                db.from_('members').update({
+                    'generated_card_image': None,
+                    'generated_at': None
+                }).in_('id', ids_to_clear).execute()
+                
+                print(f">>> CLEANED UP {len(ids_to_clear)} EXPIRED CARDS (Database + Storage).")
 
         # 5. UPDATE LAST CLEANUP TIME (Reset Clock ng Scanner)
-        db.from_('idgenerate').update({
-            'last_card_cleanup': now.isoformat()
-        }).is_not('idnumber', None).execute()
+        db.from_('idgenerate').update({'last_card_cleanup': now.isoformat()}).execute()
 
     except Exception as e:
         print(f"Auto-cleanup error: {e}")
@@ -730,31 +764,68 @@ def view_phone():
     return render_template('view_phone.html')
 
 # ==============================
-# NEW: SAVE CARD IMAGE ROUTE (FOR TIME BOMB FEATURE)
+# NEW: SAVE CARD IMAGE ROUTE (UPDATED FOR STORAGE)
 # ==============================
 @app.route('/save_card_image', methods=['POST'])
 def save_card_image():
     """
-    I-save yung generated ID card image sa member.
-    Siya ang magtatakbo pagkatapos mag-merge sa Laptop.
+    UPDATED VERSION FOR SUPABASE STORAGE + TIME BOMB.
+    I-upload sa 'public_id_cards' bucket, tapos i-save ang URL sa 'members' table.
     """
     try:
         db = get_db()
         data = request.json
         member_id = data.get('member_id')
-        image_data = data.get('image_data') # Base64 string
+        image_data = data.get('image_data') 
 
         if not member_id or not image_data:
             return jsonify({'success': False, 'message': 'Missing data'}), 400
 
+        # --- STEP 1: DECODE BASE64 ---
+        # Tanggalin ang prefix "data:image/png;base64,"
+        if "base64," in image_data:
+            base64_string = image_data.split("base64,")[1]
+        else:
+            base64_string = image_data
+            
+        # Decode binary
+        image_bytes = base64.b64decode(base64_string)
+        
+        # --- STEP 2: UPLOAD TO SUPABASE STORAGE ---
+        bucket_name = "public_id_cards" 
+        
+        # Create unique filename: memberid_timestamp.png
+        filename = f"guardian_ids/{member_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.png"
+        
+        # Upload stream
+        file_stream = io.BytesIO(image_bytes)
+        
+        # Upload Logic
+        upload_response = supabase.storage \
+            .from_(bucket_name) \
+            .upload(filename, file_stream)
+            
+        # Handle Error kung existing na
+        if hasattr(upload_response, 'error') and upload_response.error:
+            # Kung error ay "already exists", ok lang. Pero kung iba, alert.
+            if 'already exists' not in str(upload_response.error).lower():
+                print(f"Storage Upload Error: {upload_response.error}")
+                return jsonify({'success': False, 'message': 'Storage upload failed'}), 500
+
+        # --- STEP 3: GET PUBLIC URL ---
+        image_url_data = supabase.storage.from_(bucket_name).get_public_url(filename)
+
+        # --- STEP 4: SAVE URL TO DATABASE ---
+        # Ito ay nag-i-save lang ng maliit na string, hindi ng malaking image.
         payload = {
-            'generated_card_image': image_data,
-            'generated_at': datetime.now().isoformat() # Save timestamp NOW
+            'generated_card_image': image_url_data, 
+            'generated_at': datetime.now().isoformat() # Time Bomb trigger
         }
 
         db.from_('members').update(payload).eq('id', member_id).execute()
 
-        return jsonify({'success': True, 'message': 'ID Card saved to database.'})
+        return jsonify({'success': True, 'message': 'ID Card saved to Database & Storage.'})
+
     except Exception as e:
         print(f"Save Card Error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
