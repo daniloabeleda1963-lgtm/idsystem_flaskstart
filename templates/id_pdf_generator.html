@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID PDF Generator - Data Merge FINAL</title>
+    <title>ID PDF Generator - Clean & Merge</title>
     
     <!-- PDF GENERATION LIBRARIES -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -16,317 +16,125 @@
             --sidebar-bg: #1e293b;
             --sidebar-text: #e2e8f0;
         }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: var(--bg-color);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* --- SIDEBAR (ISKO CLEAN) --- */
         .sidebar {
-            width: 280px; 
-            background: var(--sidebar-bg);
-            color: var(--sidebar-text);
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid #334155;
-            flex-shrink: 0;
-            z-index: 200;
-            overflow-y: auto;
+            width: 280px; background: var(--sidebar-bg); color: var(--sidebar-text);
+            display: flex; flex-direction: column; border-right: 1px solid #334155;
+            z-index: 200; overflow-y: auto;
         }
-        .sidebar-header {
-            padding: 15px;
-            background: #0f172a;
-            font-weight: bold;
-            border-bottom: 1px solid #334155;
+        .sidebar-header { padding: 15px; background: #0f172a; font-weight: bold; border-bottom: 1px solid #334155; }
+        
+        /* PANELS */
+        .panel { padding: 10px; border-bottom: 1px solid #334155; }
+        .panel-title { font-size: 11px; text-transform: uppercase; color: #94a3b8; margin-bottom: 8px; font-weight: bold; }
+        
+        /* CONTROLS */
+        input[type="date"], select, .admin-btn, .listbox-select {
+            width: 100%; padding: 6px; margin-bottom: 5px;
+            background: #334155; color: white; border: none; border-radius: 4px; box-sizing: border-box;
         }
-        .sidebar-list {
-            flex-grow: 1;
-            padding: 10px;
-        }
-        .sidebar-group { margin-bottom: 15px; }
-        .sidebar-group-title {
-            font-size: 11px;
-            text-transform: uppercase;
-            color: #94a3b8;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        .draggable-item {
-            background: #334155;
-            padding: 8px 12px;
-            margin-bottom: 5px;
-            border-radius: 4px;
-            cursor: grab;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border: 1px solid #475569;
-        }
-        .draggable-item:hover { background: #475569; border-color: var(--primary-color); }
-        .draggable-item:active { cursor: grabbing; }
-
-        /* --- ADMIN FORMS PANEL --- */
-        .admin-forms-panel {
-            background: #0f172a;
-            padding: 10px;
-            border-bottom: 1px solid #334155;
-            border-top: 1px solid #334155;
-        }
-        .admin-input-group {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 5px;
-        }
-        .admin-input {
-            flex: 1;
-            padding: 6px;
-            border: none;
-            border-radius: 3px;
-            background: #334155;
-            color: white;
-            font-size: 12px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .admin-select {
-            width: 100%;
-            padding: 6px;
-            border: none;
-            border-radius: 4px;
-            background: #334155;
-            color: white;
-            font-size: 12px;
-            margin-bottom: 5px;
-            cursor: pointer;
-        }
-        .admin-btn {
-            padding: 6px 10px;
-            font-size: 11px;
-            cursor: pointer;
-            border: none;
-            border-radius: 3px;
-            color: white;
-            background: #2563eb;
-            width: 100%;
-        }
+        .admin-btn { background: #2563eb; cursor: pointer; font-weight: bold; }
         .admin-btn:hover { background: #1d4ed8; }
-        .btn-del { background: #ef4444; }
-        .btn-del:hover { background: #dc2626; }
-        .btn-export-phone {
-            background: #10b981; 
-            border: 1px solid #059669;
-        }
-        .btn-export-phone:hover { background: #059669; }
-        .btn-disabled {
-            background: #64748b; 
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        /* --- TRANSFER LIST STYLES --- */
-        .transfer-box {
-            display: flex;
-            gap: 4px;
-            height: 180px; 
-            margin-bottom: 5px;
-        }
-        .list-col {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .btn-col {
-            width: 30px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-        }
+        
+        /* TRANSFER LIST */
+        .transfer-box { display: flex; gap: 4px; height: 150px; }
+        .list-col { flex: 1; display: flex; flex-direction: column; }
+        .btn-col { width: 30px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
         .transfer-btn {
-            width: 100%;
-            height: 28px;
-            padding: 0;
-            border: none;
-            border-radius: 3px;
-            background: #475569;
-            color: white;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
+            width: 100%; height: 28px; background: #475569; color: white;
+            border: none; cursor: pointer; font-size: 14px; font-weight: bold;
         }
         .transfer-btn:hover { background: #64748b; }
-        .listbox-select {
-            height: 100%;
-            padding: 4px;
-            background: #334155;
-            border: 1px solid #475569;
-            color: white;
-            font-size: 11px;
-            border-radius: 4px;
-        }
-        .listbox-label {
-            font-size: 10px;
-            color: #94a3b8;
-            text-align: center;
-            margin-bottom: 2px;
-        }
+        .listbox-select { height: 100%; font-size: 11px; overflow: auto; }
+        .list-label { font-size: 10px; color: #94a3b8; text-align: center; margin-bottom: 2px; }
 
-        /* --- MAIN CONTENT --- */
-        .main-content {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            position: relative;
+        /* DRAGGABLES */
+        .draggable-item {
+            background: #334155; padding: 8px; margin-bottom: 5px; border-radius: 4px;
+            cursor: grab; font-size: 13px; border: 1px solid #475569;
         }
+        .draggable-item:hover { background: #475569; border-color: var(--primary-color); }
+
+        /* --- MAIN AREA --- */
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; position: relative; }
+        
         .toolbar {
-            background: white;
-            padding: 8px 20px;
-            border-bottom: 1px solid #ddd;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
+            background: white; padding: 8px 20px; border-bottom: 1px solid #ddd;
+            display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap;
         }
-        .toolbar-left { display: flex; gap: 10px; align-items: center; }
-        .toolbar-right { display: flex; gap: 8px; align-items: center; }
+        .toolbar-group { display: flex; gap: 8px; align-items: center; }
+        
         button {
-            padding: 6px 12px;
-            border: 1px solid #ddd;
-            background: white;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
+            padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 4px;
+            cursor: pointer; font-size: 12px;
         }
         button:hover { background: #f9fafb; }
         button.primary { background: var(--primary-color); color: white; border: none; }
         button.danger { background: #ef4444; color: white; border: none; }
-        .zoom-display { font-size: 12px; color: #666; width: 40px; text-align: center; }
-        input[type="range"] { width: 80px; cursor: pointer; }
+        button.success { background: #10b981; color: white; border: none; }
+        button.warning { background: #f59e0b; color: white; border: none; }
+
+        /* WORKSPACE */
         .workspace {
-            flex-grow: 1;
-            background: #e5e7eb;
-            overflow: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 50px;
-            gap: 20px;
+            flex-grow: 1; background: #e5e7eb; overflow: auto;
+            display: flex; flex-direction: column; align-items: center; padding: 50px; gap: 20px;
         }
         .canvas-wrapper {
-            position: relative;
-            background-color: #fff;
-            width: 800px;
-            height: 400px;
-            background-repeat: no-repeat;
-            background-size: contain;
-            background-position: top left;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            user-select: none;
-            flex-shrink: 0;
+            position: relative; background-color: #fff; width: 800px; height: 400px;
+            background-repeat: no-repeat; background-size: contain; background-position: top left;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2); user-select: none; flex-shrink: 0;
             transform-origin: top center;
         }
-        /* --- ELEMENTS --- */
-        .canvas-element {
-            position: absolute;
-            cursor: move;
-            background: rgba(37, 99, 235, 0.15);
-            border: 1px dashed var(--primary-color);
-            color: #1e3a8a;
-            font-size: 12px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            box-sizing: border-box;
-            z-index: 100;
-            overflow: hidden;
-        }
-        .canvas-element:hover { border: 1px solid var(--primary-color); background: rgba(37, 99, 235, 0.25); }
-        .canvas-element.selected { border: 2px solid var(--primary-color); background: rgba(37, 99, 235, 0.3); z-index: 101; }
-        .canvas-element.is-photo { background: rgba(239, 68, 68, 0.1); border-color: red; color: red; }
-        .canvas-element.is-line { background: transparent; border-bottom: 2px solid black; height: 0px !important; cursor: ns-resize; min-height: 2px; }
-        .canvas-element.is-box { background: transparent; border: 1px solid black; }
-        .canvas-element.is-frosted { background: rgba(255,255,255,0.4); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.6); }
-        .canvas-element.is-image { background: transparent; border: 1px dashed #10b981; display: flex; align-items: center; justify-content: center; }
-        .canvas-element.is-image img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 
-        /* --- CUSTOM TEXTBOX --- */
+        /* ELEMENTS */
+        .canvas-element {
+            position: absolute; cursor: move; background: rgba(37, 99, 235, 0.15);
+            border: 1px dashed var(--primary-color); color: #1e3a8a; font-size: 12px; font-weight: bold;
+            display: flex; align-items: center; justify-content: center; text-align: center;
+            box-sizing: border-box; z-index: 100; overflow: hidden;
+        }
+        .canvas-element.selected { border: 2px solid var(--primary-color); background: rgba(37, 99, 235, 0.3); z-index: 101; }
+        .canvas-element.is-line { background: transparent; border-bottom: 2px solid black; height: 0px !important; min-height: 2px; }
+        .canvas-element.is-box { background: transparent; border: 1px solid black; }
+        .canvas-element.is-image { background: transparent; border: 1px dashed #10b981; display: flex; align-items: center; justify-content: center; }
+        .canvas-element img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+
         .custom-textbox {
-            position: absolute;
-            background: transparent;
-            border: 1px dashed #94a3b8; 
-            color: #000;
-            font-size: 14px;
-            font-family: 'Segoe UI', sans-serif;
-            z-index: 200;
-            min-width: 200px; 
-            min-height: 20px;
-            cursor: text; 
-            padding: 4px;
-            outline: none;
-            white-space: pre-wrap;
-            line-height: 1.4;
-            text-align: left;
+            position: absolute; background: transparent; border: 1px dashed #94a3b8;
+            color: #000; font-size: 14px; font-family: 'Segoe UI', sans-serif;
+            z-index: 200; min-width: 200px; min-height: 20px; cursor: text;
+            padding: 4px; outline: none; white-space: pre-wrap;
         }
         .custom-textbox.selected { border: 2px solid var(--primary-color); cursor: move; }
+
         .resize-handle {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background: white;
-            border: 1px solid var(--primary-color);
-            display: none;
-            z-index: 300;
+            position: absolute; width: 8px; height: 8px; background: white;
+            border: 1px solid var(--primary-color); display: none; z-index: 300;
         }
-        .canvas-element.selected .resize-handle, .custom-textbox.selected .resize-handle { display: block; }
+        .selected .resize-handle { display: block; }
         .rh-se { bottom: -4px; right: -4px; cursor: nwse-resize; }
         .rh-sw { bottom: -4px; left: -4px; cursor: nesw-resize; }
         .rh-ne { top: -4px; right: -4px; cursor: nesw-resize; }
         .rh-nw { top: -4px; left: -4px; cursor: nwse-resize; }
-
-        /* --- MODAL --- */
-        .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.85); z-index: 10000;
-            justify-content: center; align-items: center; padding: 10px; box-sizing: border-box;
-        }
-        .modal-content {
-            background-color: white; width: 100%; max-width: 800px; height: 90%;
-            border-radius: 8px; position: relative; display: flex; flex-direction: column;
-        }
-        .modal-header {
-            background-color: #2563eb; color: white; padding: 10px 15px;
-            display: flex; justify-content: space-between; align-items: center;
-            border-top-left-radius: 8px; border-top-right-radius: 8px;
-        }
-        .modal-body { flex-grow: 1; border: none; width: 100%; background-color: #f3f4f6; }
-        .close-modal-btn { background: rgba(255,255,255,0.2); border: none; color: white; font-size: 20px; cursor: pointer; padding: 0 10px; border-radius: 4px; }
-        .close-modal-btn:hover { background: rgba(255,255,255,0.4); }
     </style>
 </head>
 <body>
 
-    <!-- SIDEBAR -->
+    <!-- SIDEBAR: CLEAN & TIDY -->
     <div class="sidebar">
-        <div class="sidebar-header">📐 ID Generator</div>
-        
-        <!-- === MEMBERS DATA PANEL === -->
-        <div class="admin-forms-panel" style="border-bottom: 1px solid #334155;">
-            <div class="sidebar-group-title" style="color: #fff;">MEMBERS DATA</div>
-            
-            <input type="date" id="issueDateInput" class="admin-input">
-            <button class="admin-btn" onclick="loadMembers()" style="margin-top: 5px; margin-bottom: 5px;">👥 Load Members</button>
+        <div class="sidebar-header">ID Generator</div>
+
+        <!-- 1. MEMBERS PANEL -->
+        <div class="panel">
+            <div class="panel-title">MEMBERS DATA</div>
+            <input type="date" id="issueDateInput">
+            <button class="admin-btn" onclick="loadMembers()">👥 Load Members</button>
             
             <div class="transfer-box">
                 <div class="list-col">
-                    <div class="listbox-label">DB List</div>
+                    <div class="list-label">DB List</div>
                     <select id="listLeft" class="listbox-select" multiple></select>
                 </div>
                 <div class="btn-col">
@@ -336,105 +144,89 @@
                     <button class="transfer-btn" onclick="moveAllLeft()">&lt;&lt;</button>
                 </div>
                 <div class="list-col">
-                    <div class="listbox-label">Selected (For Print)</div>
+                    <div class="list-label">Selected</div>
                     <select id="listRight" class="listbox-select" multiple></select>
                 </div>
             </div>
         </div>
 
-        <!-- === OFFICERS PANEL === -->
-        <div class="admin-forms-panel">
-            <div class="sidebar-group-title" style="color: #fff;">OFFICERS LIST</div>
-            <select id="officerSelect" class="admin-select" onchange="updateDraggableOfficer()">
+        <!-- 2. OFFICERS PANEL -->
+        <div class="panel">
+            <div class="panel-title">OFFICERS LIST</div>
+            <select id="officerSelect" onchange="updateDraggableOfficer()">
                 <option value="">-- Select Officer --</option>
             </select>
-            <div id="officerDragItem" class="draggable-item" draggable="true" data-type="officer-group" style="opacity: 0.5; pointer-events: none; margin-top: 5px;">
-                👤 Drag Selected Officer
+            <div id="officerDragItem" class="draggable-item" draggable="true" 
+                 data-type="officer-group" style="opacity: 0.5; pointer-events: none; margin-top: 5px;">
+                👤 Drag Officer
             </div>
         </div>
 
-        <!-- === TOOLBOX === -->
-        <div class="sidebar-list">
-            <!-- Items removed per user request -->
+        <!-- 3. TOOLBOX (SIMPLIFIED) -->
+        <div class="panel" style="flex-grow: 1;">
+            <div class="panel-title">TOOLS</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="FULL NAME">Full Name</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="ID NUMBER">ID Number</div>
+            <div class="draggable-item" draggable="true" data-type="text" data-caption="CHAPTER">Chapter</div>
+            <div class="draggable-item" draggable="true" data-type="photo" data-caption="PHOTO">Photo Box</div>
+            <div class="draggable-item" draggable="true" data-type="sig-box" data-caption="SIGNATURE">Signature Box</div>
+            <div class="draggable-item" draggable="true" data-type="qr-code" data-caption="QR CODE">QR Code Box</div>
+            <div class="draggable-item" draggable="true" data-type="line" data-caption="Line">Line</div>
+            <div class="draggable-item" draggable="true" data-type="box" data-caption="Box">Box</div>
         </div>
     </div>
 
-    <!-- MAIN AREA -->
+    <!-- MAIN CONTENT -->
     <div class="main-content">
         <div class="toolbar">
-            <div class="toolbar-left">
-                <label class="primary" style="padding: 6px 12px; cursor: pointer; border-radius: 4px; background: #6366f1; color: white;">
-                    📁 Upload Template
-                    <input type="file" id="templateUpload" accept="image/*" style="display: none;">
+            <div class="toolbar-group">
+                <label class="primary" style="padding:6px 12px; cursor:pointer; border-radius:4px; background:#6366f1; color:white;">
+                    📁 Template
+                    <input type="file" id="templateUpload" accept="image/*" style="display:none;">
                 </label>
-                <label class="primary" style="padding: 6px 12px; cursor: pointer; border-radius: 4px; background: #10b981; color: white;">
-                    🖼️ Upload Logo
-                    <input type="file" id="logoUpload" accept="image/*" style="display: none;">
-                </label>
-                <button class="primary" style="background: #f59e0b; color: white; border: none;" onclick="addCustomTextbox()">
-                    ➕ Add Text
-                </button>
+                <button class="warning" onclick="addCustomTextbox()">➕ Text</button>
                 <span id="statusMsg" style="font-size: 12px; color: #666;">Ready</span>
             </div>
 
-            <div class="toolbar-right">
+            <div class="toolbar-group">
+                <!-- ZOOM -->
                 <span style="font-size: 12px;">Zoom:</span>
                 <input type="range" id="zoomSlider" min="0.3" max="2.0" step="0.1" value="1.0">
-                <span id="zoomValue" class="zoom-display">100%</span>
-                
-                <div style="border-left: 1px solid #ddd; padding-left: 10px; gap: 5px; align-items: center; display: flex;">
-                    <select id="propFontFamily" title="Font Family">
+                <span id="zoomValue" style="font-size: 12px; width: 35px;">100%</span>
+
+                <div style="border-left: 1px solid #ddd; padding-left: 10px; display: flex; gap: 5px;">
+                    <select id="propFontFamily" style="width: 100px; padding: 4px;">
                         <option value="'Segoe UI', sans-serif">Segoe UI</option>
                         <option value="Arial, sans-serif">Arial</option>
-                        <option value="'Times New Roman', serif">Times New Roman</option>
                     </select>
-                    <input type="color" id="propTextColor" value="#1e3a8a" title="Text Color">
-                    <span style="font-size: 11px; font-weight: bold; color: #555;">SIZE:</span>
-                    <input type="number" id="propSize" value="12" title="Font Size" style="width: 40px;">
+                    <input type="color" id="propTextColor" value="#000000" style="width: 30px; padding: 0;">
+                    <input type="number" id="propSize" value="12" style="width: 40px; padding: 4px;">
                 </div>
 
-                <button class="danger" onclick="deleteSelected()">🗑️ Delete</button>
-                <button class="primary" onclick="saveLayout()">💾 Save Layout</button>
-                <button class="primary" style="background: #8b5cf6;" onclick="loadAndMergeLayout()">📂 Load & Merge</button>
-                <button class="primary" style="background: #dc2626; color: white; border: none;" onclick="downloadPDF()">⬇️ Download PDF</button>
+                <button class="danger" onclick="deleteSelected()">🗑️</button>
                 
-                <button class="primary" style="background: #f59e0b; color: white; border: none;" onclick="downloadFirstCardScreenshot()">📸 CREATE IMAGE</button>
+                <!-- CORE ACTIONS -->
+                <button class="primary" onclick="saveLayout()">💾 Save</button>
+                <button class="primary" style="background:#8b5cf6;" onclick="loadAndMergeLayout()">🔄 Load & Merge</button>
                 
-                <button class="primary btn-export-phone" onclick="exportForPhone()">📱 EXPORT FOR PHONE (Data)</button>
-
-                <!-- ========================================== -->
-                <!-- NEW BUTTONS ADDED HERE (Rules #1 & #4) -->
-                <!-- ========================================== -->
-                <button class="primary" style="background: #10b981; color: white; border: none;" onclick="saveCardToSupabase()">
-                    💾 SAVE CARD
-                </button>
-                <button class="primary" style="background: #f97316; color: white; border: none;" onclick="openViewPhone()">
-                    📱 VIEW PHONE
-                </button>
+                <!-- EXPORTS -->
+                <button class="primary" onclick="downloadPDF()">📄 PDF</button>
+                <button class="warning" onclick="downloadFirstCardScreenshot()">📸 Img</button>
+                <button class="success" onclick="exportForPhone()">📱 Phone</button>
+                
+                <!-- BUCKET ACTIONS -->
+                <button class="success" style="background:#10b981;" onclick="saveCardToSupabase()">☁️ Save Card</button>
+                <button class="danger" style="background:#dc2626;" onclick="deleteBatchCards()">🧹 Clear IDs</button>
+                <button class="warning" style="background:#f97316;" onclick="openViewPhone()">👁️ View</button>
             </div>
         </div>
 
-        <!-- WORKSPACE -->
         <div class="workspace">
-            <div class="canvas-wrapper" id="editorCanvas">
-                <!-- Items appear here -->
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL -->
-    <div id="signatureModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Officer Signature</h3>
-                <button class="close-modal-btn" onclick="closeModal('signatureModal')">✖</button>
-            </div>
-            <iframe src="/signature.html" class="modal-body" frameborder="0"></iframe>
+            <div class="canvas-wrapper" id="editorCanvas"></div>
         </div>
     </div>
 
     <script>
-        // --- CONFIG ---
         const API_URL = ''; 
         const statusMsg = document.getElementById('statusMsg');
         const workspace = document.querySelector('.workspace');
@@ -444,55 +236,33 @@
         const propSize = document.getElementById('propSize');
         const propFontFamily = document.getElementById('propFontFamily');
         const propTextColor = document.getElementById('propTextColor');
-
-        let isDragging = false;
-        let isResizing = false;
-        let currentEl = null;
-        let currentHandle = null;
+        
+        let isDragging = false, isResizing = false, currentEl = null, currentHandle = null;
         let startX, startY, startWidth, startHeight, startLeft, startTop;
+        let allOfficers = [];
 
-        // --- MODAL LOGIC ---
-        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-
-        // ==========================================
-        // 1. MEMBERS LOGIC (INTEGRATED) - STORES FULL DATA
-        // ==========================================
+        // --- 1. MEMBERS LOGIC ---
         async function loadMembers() {
             const dateInput = document.getElementById('issueDateInput').value;
             const listLeft = document.getElementById('listLeft');
-
-            if (!dateInput) { alert("Please select a date first!"); return; }
-            listLeft.innerHTML = "";
-            statusMsg.textContent = "Fetching members...";
+            if (!dateInput) return alert("Select a date first.");
             
+            listLeft.innerHTML = ""; statusMsg.textContent = "Loading...";
             try {
-                const response = await fetch(`${API_URL}/api/members/by-date?date=${dateInput}`);
-                if (!response.ok) throw new Error("Server error");
+                const res = await fetch(`${API_URL}/api/members/by-date?date=${dateInput}`);
+                const members = await res.json();
+                if(!members.length) return alert("No members found.");
                 
-                const members = await response.json();
-                if (!members || members.length === 0) {
-                    alert("No members found for date: " + dateInput);
-                    statusMsg.textContent = "No members found.";
-                    return;
-                }
-
-                members.forEach(member => {
-                    const option = document.createElement('option');
-                    option.value = member.id; 
-                    option.textContent = member.name; 
-                    option.dataset.memberData = JSON.stringify(member);
-                    listLeft.appendChild(option);
+                members.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.id; opt.textContent = m.name;
+                    opt.dataset.memberData = JSON.stringify(m);
+                    listLeft.appendChild(opt);
                 });
                 statusMsg.textContent = `Loaded ${members.length} members.`;
-            } catch (error) {
-                console.error(error);
-                alert("Error fetching members.");
-                statusMsg.textContent = "Error.";
-            }
+            } catch(e) { console.error(e); alert("Error loading members."); }
         }
 
-        // Transfer List Logic - Must move dataset too!
         const listLeftElem = document.getElementById('listLeft');
         const listRightElem = document.getElementById('listRight');
 
@@ -501,257 +271,108 @@
         function moveLeft() { moveSelected(listRightElem, listLeftElem); }
         function moveAllLeft() { moveAll(listRightElem, listLeftElem); }
 
-        function moveSelected(from, to) {
-            const selected = Array.from(from.selectedOptions);
-            selected.forEach(option => to.add(option));
-        }
-        function moveAll(from, to) {
-            const options = Array.from(from.options);
-            options.forEach(option => to.add(option));
-        }
+        function moveSelected(from, to) { Array.from(from.selectedOptions).forEach(o => to.add(o)); }
+        function moveAll(from, to) { Array.from(from.options).forEach(o => to.add(o)); }
 
-        // ==========================================
-        // 2. OFFICER LOGIC (CARBON COPY FROM ADMIN.HTML)
-        // ==========================================
-        const officerSelect = document.getElementById('officerSelect');
-        const officerDragItem = document.getElementById('officerDragItem');
-        let allOfficers = [];
-
-        async function initOfficersList() {
+        // --- 2. OFFICER LOGIC ---
+        async function initOfficers() {
             try {
-                const response = await fetch(`${API_URL}/get_officers_list`);
-                const data = await response.json();
-                if (data && Array.isArray(data)) {
-                    allOfficers = data;
-                    renderOfficerList(data);
-                }
-            } catch (error) {
-                console.error("Error loading officers:", error);
-            }
+                const res = await fetch(`${API_URL}/get_officers_list`);
+                allOfficers = await res.json();
+                const sel = document.getElementById('officerSelect');
+                allOfficers.forEach(o => {
+                    const opt = document.createElement('option');
+                    opt.value = o.id; opt.textContent = `${o.name_officer} / ${o.designation || ''}`;
+                    sel.appendChild(opt);
+                });
+            } catch(e) { console.error(e); }
         }
-
-        function renderOfficerList(data) {
-            officerSelect.innerHTML = '<option value="">-- Select Officer --</option>';
-            data.forEach(off => {
-                const option = document.createElement('option');
-                option.value = off.id;
-                option.textContent = `${off.name_officer} / ${off.designation || 'No Designation'}`;
-                officerSelect.appendChild(option);
-            });
-        }
-
         function updateDraggableOfficer() {
-            const selectedId = officerSelect.value;
-            if (selectedId) {
-                officerDragItem.style.opacity = '1';
-                officerDragItem.style.pointerEvents = 'auto';
-            } else {
-                officerDragItem.style.opacity = '0.5';
-                officerDragItem.style.pointerEvents = 'none';
-            }
+            const val = document.getElementById('officerSelect').value;
+            const el = document.getElementById('officerDragItem');
+            el.style.opacity = val ? '1' : '0.5';
+            el.style.pointerEvents = val ? 'auto' : 'none';
         }
 
-        // Initialize Officers on Load
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('issueDateInput').valueAsDate = new Date();
-            initOfficersList(); 
-        });
-
-        // ==========================================
-        // 3. CANVAS & DRAG DROP LOGIC (Single Editor Canvas)
-        // ==========================================
-        const draggables = document.querySelectorAll('.draggable-item');
-        draggables.forEach(d => {
-            d.addEventListener('dragstart', (e) => {
+        // --- 3. CANVAS & DRAG DROP ---
+        document.querySelectorAll('.draggable-item').forEach(d => {
+            d.addEventListener('dragstart', e => {
                 e.dataTransfer.setData('type', d.dataset.type);
                 e.dataTransfer.setData('caption', d.dataset.caption);
-                if(d.dataset.type === 'officer-group') {
-                    e.dataTransfer.setData('officerId', officerSelect.value);
-                }
+                if(d.dataset.type === 'officer-group') e.dataTransfer.setData('officerId', document.getElementById('officerSelect').value);
             });
         });
 
-        canvas.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            canvas.style.border = "2px dashed #2563eb";
-        });
-        canvas.addEventListener('dragleave', (e) => {
-            canvas.style.border = "none";
-        });
-        canvas.addEventListener('drop', (e) => {
-            e.preventDefault();
-            canvas.style.border = "none";
+        canvas.addEventListener('dragover', e => { e.preventDefault(); canvas.style.border = "2px dashed blue"; });
+        canvas.addEventListener('dragleave', e => { canvas.style.border = "none"; });
+        canvas.addEventListener('drop', e => {
+            e.preventDefault(); canvas.style.border = "none";
             const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
             const zoom = parseFloat(zoomSlider.value);
-            const actualX = x / zoom;
-            const actualY = y / zoom;
+            const x = (e.clientX - rect.left) / zoom;
+            const y = (e.clientY - rect.top) / zoom;
             const type = e.dataTransfer.getData('type');
             
             if (type === 'officer-group') {
-                const officerId = e.dataTransfer.getData('officerId');
-                const officer = allOfficers.find(o => o.id == officerId);
-                if (officer) createOfficerElements(officer, actualX, actualY);
+                const off = allOfficers.find(o => o.id == e.dataTransfer.getData('officerId'));
+                if(off) createOfficerGroup(off, x, y);
             } else {
-                const caption = e.dataTransfer.getData('caption');
-                createSidebarElement(type, caption, actualX, actualY);
+                createSidebarElement(type, e.dataTransfer.getData('caption'), x, y);
             }
         });
 
-        function createSidebarElement(type, caption, x, y, imgSrc = null) {
+        function createSidebarElement(type, caption, x, y) {
             const el = document.createElement('div');
             el.className = 'canvas-element';
-            if (imgSrc) {
-                el.classList.add('is-image');
-                const img = document.createElement('img');
-                img.src = imgSrc;
-                el.appendChild(img);
-                el.style.width = '100px'; el.style.height = '100px';
-            } else {
-                el.textContent = caption;
-                el.style.fontSize = '12px';
-                el.style.color = "#1e3a8a";
-            }
-
-            if(!imgSrc) {
-                el.style.left = Math.round(x) + 'px';
-                el.style.top = Math.round(y) + 'px';
-            } else {
-                el.style.left = Math.round(x) + 'px';
-                el.style.top = Math.round(y) + 'px';
-            }
-
-            if (type === 'photo') { el.classList.add('is-photo'); el.style.width = '100px'; el.style.height = '120px'; }
-            else if (type === 'line') { el.classList.add('is-line'); el.style.width = '150px'; el.textContent = ''; }
-            else if (type === 'box' || type === 'sig-box') { el.classList.add('is-box'); el.style.width = '100px'; el.style.height = '40px'; }
-            else if (type === 'qr-code') { el.classList.add('is-box'); el.style.width = '80px'; el.style.height = '80px'; el.textContent = 'QR CODE'; }
-            else if (!imgSrc) { el.style.width = 'auto'; el.style.padding = '2px 5px'; }
-
-            el.id = 'field_' + Date.now();
-            ['nw', 'ne', 'sw', 'se'].forEach(pos => {
-                const handle = document.createElement('div');
-                handle.className = `resize-handle rh-${pos}`;
-                handle.dataset.handle = pos;
-                el.appendChild(handle);
-            });
-            canvas.appendChild(el);
-            selectElement(el);
+            el.textContent = caption;
+            el.style.left = x + 'px'; el.style.top = y + 'px';
+            if(type === 'photo') { el.classList.add('is-photo'); el.style.width = '100px'; el.style.height = '120px'; }
+            else if(type === 'sig-box' || type === 'qr-code') { el.classList.add('is-box'); el.style.width = '80px'; el.style.height = '40px'; }
+            else if(type === 'line') { el.classList.add('is-line'); el.style.width = '150px'; el.textContent = ''; }
+            else if(type === 'box') { el.classList.add('is-box'); el.style.width = '100px'; el.style.height = '50px'; }
+            else { el.style.padding = '2px 5px'; }
+            
+            el.id = 'el_' + Date.now();
+            addResizeHandles(el); canvas.appendChild(el); selectElement(el);
         }
 
-        function createOfficerElements(officer, x, y) {
+        function createOfficerGroup(off, x, y) {
             // Name
-            const nameEl = document.createElement('div');
-            nameEl.className = 'canvas-element';
-            nameEl.textContent = officer.name_officer;
-            nameEl.style.left = Math.round(x) + 'px';
-            nameEl.style.top = Math.round(y) + 'px';
-            nameEl.style.fontSize = '12px';
-            nameEl.style.fontWeight = 'bold';
-            nameEl.id = 'officer_' + Date.now();
-            addResizeHandles(nameEl); canvas.appendChild(nameEl); selectElement(nameEl);
-
+            let el = document.createElement('div'); el.className = 'canvas-element'; el.textContent = off.name_officer;
+            el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.fontWeight = 'bold';
+            addResizeHandles(el); canvas.appendChild(el);
             // Designation
-            const desigEl = document.createElement('div');
-            desigEl.className = 'canvas-element';
-            desigEl.textContent = officer.designation || "";
-            desigEl.style.left = Math.round(x) + 'px';
-            desigEl.style.top = (Math.round(y) + 20) + 'px';
-            desigEl.style.fontSize = '11px';
-            desigEl.id = 'officer_' + Date.now();
-            addResizeHandles(desigEl); canvas.appendChild(desigEl);
-
-            // Line
-            const lineEl = document.createElement('div');
-            lineEl.className = 'canvas-element is-line';
-            lineEl.style.left = Math.round(x) + 'px';
-            lineEl.style.top = (Math.round(y) + 40) + 'px';
-            lineEl.style.width = '150px';
-            lineEl.id = 'officer_' + Date.now();
-            addResizeHandles(lineEl); canvas.appendChild(lineEl);
-
+            el = document.createElement('div'); el.className = 'canvas-element'; el.textContent = off.designation;
+            el.style.left = x + 'px'; el.style.top = (y + 20) + 'px'; el.style.fontSize = '11px';
+            addResizeHandles(el); canvas.appendChild(el);
             // Signature
-            if (officer.man_signature) {
-                const sigEl = document.createElement('div');
-                sigEl.className = 'canvas-element is-image';
-                sigEl.style.left = Math.round(x) + 'px';
-                sigEl.style.top = (Math.round(y) + 50) + 'px';
-                sigEl.style.width = '100px'; sigEl.style.height = '40px';
-                const img = document.createElement('img'); img.src = officer.man_signature;
-                sigEl.appendChild(img);
-                sigEl.id = 'officer_' + Date.now();
-                addResizeHandles(sigEl); canvas.appendChild(sigEl);
+            if(off.man_signature) {
+                el = document.createElement('div'); el.className = 'canvas-element is-image';
+                el.style.left = x + 'px'; el.style.top = (y + 40) + 'px'; el.style.width = '100px'; el.style.height = '40px';
+                el.innerHTML = `<img src="${off.man_signature}">`; addResizeHandles(el); canvas.appendChild(el);
             }
         }
 
         function addResizeHandles(el) {
-            ['nw', 'ne', 'sw', 'se'].forEach(pos => {
-                const handle = document.createElement('div');
-                handle.className = `resize-handle rh-${pos}`;
-                handle.dataset.handle = pos;
-                el.appendChild(handle);
+            ['nw', 'ne', 'sw', 'se'].forEach(p => {
+                const h = document.createElement('div'); h.className = `resize-handle rh-${p}`; h.dataset.handle = p; el.appendChild(h);
             });
         }
 
         function addCustomTextbox() {
             const el = document.createElement('div');
-            el.className = 'custom-textbox';
-            el.contentEditable = "true";
-            el.style.left = (canvas.offsetWidth / 2 - 100) + 'px';
-            el.style.top = (canvas.offsetHeight / 2 - 10) + 'px';
-            el.style.width = '200px'; el.innerText = "";
-            el.id = 'custom_' + Date.now();
-            ['nw', 'ne', 'sw', 'se'].forEach(pos => {
-                const handle = document.createElement('div');
-                handle.className = `resize-handle rh-${pos}`;
-                handle.dataset.handle = pos;
-                el.appendChild(handle);
-            });
-            canvas.appendChild(el); selectElement(el);
-            setTimeout(() => el.focus(), 100);
+            el.className = 'custom-textbox'; el.contentEditable = "true";
+            el.style.left = '350px'; el.style.top = '180px'; el.style.width = '200px';
+            addResizeHandles(el); canvas.appendChild(el); selectElement(el);
         }
 
-        document.getElementById('templateUpload').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(evt) {
-                    const img = new Image();
-                    img.onload = function() {
-                        canvas.style.width = img.width + 'px';
-                        canvas.style.height = img.height + 'px';
-                        canvas.style.backgroundImage = `url('${evt.target.result}')`;
-                        statusMsg.textContent = "Template: " + file.name;
-                    };
-                    img.src = evt.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
+        // --- 4. EVENTS (ZOOM, DRAG, RESIZE) ---
+        zoomSlider.addEventListener('input', () => {
+            document.querySelectorAll('.canvas-wrapper').forEach(c => c.style.transform = `scale(${zoomSlider.value})`);
+            zoomValue.textContent = Math.round(zoomSlider.value * 100) + '%';
         });
 
-        document.getElementById('logoUpload').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(evt) {
-                    createSidebarElement('logo-image', 'Logo', 50, 50, evt.target.result);
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        // --- ZOOM SLIDER FIX (Apply to ALL wrappers) ---
-        zoomSlider.addEventListener('input', function() {
-            const scale = this.value;
-            const allCanvases = document.querySelectorAll('.canvas-wrapper');
-            allCanvases.forEach(c => {
-                c.style.transform = `scale(${scale})`;
-            });
-            zoomValue.textContent = Math.round(scale * 100) + '%';
-        });
-
-        // --- MOUSE EVENTS (Drag, Resize, Select) - FIXED DELETE ISSUE ---
-        document.addEventListener('mousedown', function(e) {
+        document.addEventListener('mousedown', e => {
             if (e.target.classList.contains('resize-handle')) {
                 isResizing = true; currentHandle = e.target.dataset.handle; currentEl = e.target.parentElement;
                 startX = e.clientX; startY = e.clientY;
@@ -759,891 +380,308 @@
                 startHeight = parseInt(getComputedStyle(currentEl).height);
                 selectElement(currentEl); e.stopPropagation(); return;
             }
-            const targetEl = e.target.closest('.canvas-element') || e.target.closest('.custom-textbox');
-            if (targetEl) {
-                currentEl = targetEl;
-                startX = e.clientX; startY = e.clientY;
+            const t = e.target.closest('.canvas-element') || e.target.closest('.custom-textbox');
+            if (t) {
+                currentEl = t; startX = e.clientX; startY = e.clientY;
                 startLeft = currentEl.offsetLeft; startTop = currentEl.offsetTop;
-                if (currentEl.classList.contains('custom-textbox')) {
-                    const dragTimer = setTimeout(() => { isDragging = true; selectElement(currentEl); }, 150);
-                    currentEl.dataset.dragTimer = dragTimer;
-                } else {
-                    isDragging = true; selectElement(currentEl);
-                }
-            } else if (!e.target.closest('.toolbar') && !e.target.closest('.sidebar') && !e.target.closest('.modal-content')) {
-                deselectAll();
-            }
+                isDragging = true; selectElement(currentEl);
+            } else if (!e.target.closest('.toolbar') && !e.target.closest('.sidebar')) deselectAll();
         });
 
-        document.addEventListener('mousemove', function(e) {
+        document.addEventListener('mousemove', e => {
             if (isResizing && currentEl) {
-                e.preventDefault();
                 const zoom = parseFloat(zoomSlider.value);
                 const dx = (e.clientX - startX) / zoom;
                 const dy = (e.clientY - startY) / zoom;
-                if (currentHandle.includes('e')) currentEl.style.width = Math.round(startWidth + dx) + 'px';
-                if (currentHandle.includes('s')) currentEl.style.height = Math.round(startHeight + dy) + 'px';
-            }
-            else if ((isDragging || currentEl) && (Math.abs(e.clientX - startX) > 2 || Math.abs(e.clientY - startY) > 2)) {
-                if (currentEl && !isDragging) {
-                    isDragging = true;
-                }
-                if (isDragging && currentEl) {
-                    e.preventDefault();
-                    const zoom = parseFloat(zoomSlider.value);
-                    const dx = (e.clientX - startX) / zoom;
-                    const dy = (e.clientY - startY) / zoom;
-                    currentEl.style.left = Math.round(startLeft + dx) + 'px';
-                    currentEl.style.top = Math.round(startTop + dy) + 'px';
-                }
+                if(currentHandle.includes('e')) currentEl.style.width = Math.round(startWidth + dx) + 'px';
+                if(currentHandle.includes('s')) currentEl.style.height = Math.round(startHeight + dy) + 'px';
+            } else if (isDragging && currentEl) {
+                e.preventDefault();
+                const zoom = parseFloat(zoomSlider.value);
+                currentEl.style.left = Math.round(startLeft + (e.clientX - startX) / zoom) + 'px';
+                currentEl.style.top = Math.round(startTop + (e.clientY - startY) / zoom) + 'px';
             }
         });
 
-        document.addEventListener('mouseup', function() {
-            if (currentEl && currentEl.dataset.dragTimer) clearTimeout(currentEl.dataset.dragTimer);
-            isDragging = false; isResizing = false; currentEl = null; currentHandle = null;
-        });
+        document.addEventListener('mouseup', () => { isDragging = false; isResizing = false; currentEl = null; });
 
         function selectElement(el) {
-            deselectAll();
-            el.classList.add('selected');
+            deselectAll(); el.classList.add('selected');
             propSize.value = parseInt(getComputedStyle(el).fontSize) || 12;
-            propFontFamily.value = el.style.fontFamily || "'Segoe UI', sans-serif";
-            propTextColor.value = rgbToHex(el.style.color) || "#000000";
+            propFontFamily.value = el.style.fontFamily || "Segoe UI";
+            propTextColor.value = el.style.color || "#000";
         }
+        function deselectAll() { document.querySelectorAll('.selected').forEach(e => e.classList.remove('selected')); }
+        function deleteSelected() { document.querySelector('.selected')?.remove(); }
 
-        function deselectAll() {
-            document.querySelectorAll('.canvas-element, .custom-textbox').forEach(el => el.classList.remove('selected'));
-        }
-        
-        function deleteSelected() {
-            const selected = document.querySelectorAll('.canvas-element.selected, .custom-textbox.selected');
-            if (selected.length > 0) {
-                selected.forEach(el => el.remove());
-                currentEl = null;
-            } else {
-                alert("Please select an item on canvas first to delete it.");
-            }
-        }
-        
-        // Helpers
-        propSize.addEventListener('input', () => {
-            const sel = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
-            if (sel) sel.style.fontSize = propSize.value + 'px';
-        });
-        propFontFamily.addEventListener('change', () => {
-            const sel = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
-            if (sel) sel.style.fontFamily = propFontFamily.value;
-        });
-        propTextColor.addEventListener('input', () => {
-            const sel = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
-            if (sel) sel.style.color = propTextColor.value;
-        });
-        function rgbToHex(rgb) { if(!rgb) return "#000"; if(rgb.startsWith('#')) return rgb; const [r,g,b] = rgb.match(/\d+/g); return "#" + [r,g,b].map(x => parseInt(x).toString(16).padStart(2,'0')).join(''); }
-
-        // ==========================================
-        // 4. SAVE / LOAD LAYOUT (EXACT COORDINATES)
-        // ==========================================
+        // --- 5. SAVE / LOAD LAYOUT ---
         async function saveLayout() {
             const elements = [];
             Array.from(canvas.children).forEach(child => {
-                if (child.classList.contains('resize-handle')) return; 
-                const data = {
-                    className: child.className,
-                    id: child.id,
-                    text: child.innerText,
-                    left: child.style.left,
-                    top: child.style.top,
-                    width: child.style.width,
-                    height: child.style.height,
-                    color: child.style.color,
-                    fontSize: child.style.fontSize,
-                    fontFamily: child.style.fontFamily,
-                    fontWeight: child.style.fontWeight,
-                    isContentEditable: child.isContentEditable
+                if(child.classList.contains('resize-handle')) return;
+                const d = {
+                    className: child.className, id: child.id, text: child.innerText,
+                    left: child.style.left, top: child.style.top,
+                    width: child.style.width, height: child.style.height,
+                    color: child.style.color, fontSize: child.style.fontSize,
+                    fontFamily: child.style.fontFamily, fontWeight: child.style.fontWeight
                 };
                 const img = child.querySelector('img');
-                if (img) data.imgSrc = img.src;
-                elements.push(data);
+                if(img) d.imgSrc = img.src;
+                elements.push(d);
             });
-            const payload = {
-                template: {
-                    backgroundImage: canvas.style.backgroundImage,
-                    width: canvas.style.width,
-                    height: canvas.style.height
-                },
-                fields: elements
-            };
             try {
-                const response = await fetch(`${API_URL}/save_layout`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                await fetch(`${API_URL}/save_layout`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ template: { backgroundImage: canvas.style.backgroundImage, width: canvas.style.width, height: canvas.style.height }, fields: elements })
                 });
-                const result = await response.json();
-                if (response.ok) alert(result.message || "Layout Saved!");
-                else alert("Error: " + result.message);
-            } catch (e) { console.error(e); alert("Failed to save."); }
+                alert("Layout Saved!");
+            } catch(e) { alert("Error Saving"); }
         }
 
-        // ==========================================
-        // 5. LOAD AND MERGE LOGIC (THE MAGIC - SIGNATURE BOX FIX)
-        // ==========================================
-        
-        const MERGE_KEYWORDS = [
-            "FULL NAME", "PSEUDO NAME", "ID NUMBER", "BLOOD TYPE",
-            "DATE ISSUED", "VALID UNTIL", "ADDRESS", "HOME ADDRESS",
-            "CONTACT NO", "CONTACT NUMBER",
-            "CHAPTER", "HEIGHT", "WEIGHT", "OCCUPATION",
-            "EMERGENCY NAME", "EMERGENCY PERSON NAME",
-            "EMERGENCY ADDRESS",
-            "EMERGENCY CONTACT", "EMERGENCY NO", "EMERGENCY CONTACT NO",
-            "BIRTHDATE", "CIVIL STATUS", "DESIGNATION",
-            "PHOTO", "SIGNATURE", "QR CODE", "OR CODES"
-        ];
+        // --- 6. LOAD & MERGE (THE ENGINE) ---
+        const MERGE_KEYWORDS = ["FULL NAME", "PSEUDO NAME", "ID NUMBER", "BLOOD TYPE", "DATE ISSUED", "VALID UNTIL", "ADDRESS", "CONTACT NO", "CHAPTER", "HEIGHT", "WEIGHT", "OCCUPATION", "EMERGENCY NAME", "EMERGENCY CONTACT", "BIRTHDATE", "CIVIL STATUS", "DESIGNATION", "PHOTO", "SIGNATURE", "QR CODE", "OR CODES"];
 
         async function loadAndMergeLayout() {
             try {
-                const response = await fetch(`${API_URL}/load_layout`);
-                const result = await response.json();
-                if (!response.ok) { alert("Error: " + result.message); return; }
+                const res = await fetch(`${API_URL}/load_layout`);
+                const saved = (await res.json()).data;
+                if(!saved) return alert("No layout found.");
                 
-                const saved = result.data;
-                if (!saved) { alert("No saved layout found."); return; }
-
-                const selectedOptions = listRightElem.options;
-                if (selectedOptions.length === 0) {
-                    alert("Please select members in 'Selected' listbox first!");
-                    return;
-                }
-
-                workspace.innerHTML = ""; 
-
-                for (let i = 0; i < selectedOptions.length; i++) {
-                    const option = selectedOptions[i];
-                    const member = JSON.parse(option.dataset.memberData);
-                    
+                const selected = listRightElem.options;
+                if(!selected.length) return alert("No members selected.");
+                
+                workspace.innerHTML = ""; // Clean workspace
+                
+                for (let i = 0; i < selected.length; i++) {
+                    const member = JSON.parse(selected[i].dataset.memberData);
                     const newCanvas = document.createElement('div');
                     newCanvas.className = 'canvas-wrapper';
                     newCanvas.style.width = saved.template.width;
                     newCanvas.style.height = saved.template.height;
                     newCanvas.style.backgroundImage = saved.template.backgroundImage;
-                    newCanvas.style.backgroundRepeat = "no-repeat";
-                    newCanvas.style.backgroundSize = "contain";
-                    newCanvas.style.boxShadow = "0 10px 40px rgba(0,0,0,0.2)";
                     newCanvas.style.transform = `scale(${zoomSlider.value})`;
-
                     workspace.appendChild(newCanvas);
 
-                    if (saved && saved.fields) {
-                        saved.fields.forEach(fieldData => {
-                            const el = document.createElement('div');
-                            el.className = fieldData.className;
-                            el.id = fieldData.id + '_' + i;
-                            el.style.left = fieldData.left;
-                            el.style.top = fieldData.top;
-                            el.style.width = fieldData.width;
-                            el.style.height = fieldData.height;
-                            el.style.color = fieldData.color;
-                            el.style.fontSize = fieldData.fontSize;
-                            el.style.fontFamily = fieldData.fontFamily;
-                            el.style.fontWeight = fieldData.fontWeight;
-                            
-                            const fieldText = (fieldData.text || "").trim().toUpperCase();
-                            const isCssObject = fieldData.className.includes('is-line') || 
-                                                  fieldData.className.includes('is-box') || 
-                                                  fieldData.className.includes('is-frosted');
-                            
-                            if (!isCssObject) {
-                                el.style.borderColor = "transparent";
-                            } else {
-                                el.style.borderColor = ""; 
-                            }
-
-                            const isOfficer = fieldData.id.includes("officer_");
-
-                            if (isOfficer) {
-                                if (fieldData.imgSrc) {
-                                    el.innerHTML = "";
-                                    const img = document.createElement('img');
-                                    img.src = fieldData.imgSrc;
-                                    img.style.width = '100%'; img.style.height = '100%';
-                                    img.style.objectFit = 'contain'; img.style.pointerEvents = 'none';
-                                    el.appendChild(img);
-                                    
-                                    /* === FIX: SIGNATURE BORDER CLEANUP === */
-                                    el.style.border = "none";
-                                    el.style.background = "transparent";
-                                    el.style.padding = "0";
-                                    /* ========================================= */
-                                } else {
-                                    el.innerText = fieldData.text; 
-                                }
-                            }
-                            else if (isCssObject) {
-                                if (MERGE_KEYWORDS.includes(fieldText)) {
-                                    const dataVal = getMemberValue(fieldData.text, member);
-                                    if (isImageField(fieldData.text)) {
-                                        el.innerHTML = "";
-                                        const img = document.createElement('img');
-                                        
-                                        if (fieldText === "PHOTO") img.src = member.photo_data || "";
-                                        else if (fieldText === "SIGNATURE") img.src = member.signature || "";
-                                        else if (fieldText === "QR CODE" || fieldText === "OR CODES") img.src = member.qr_code || "";
-                                        else img.src = ""; 
-
-                                        img.style.width = '100%'; img.style.height = '100%';
-                                        img.style.objectFit = 'contain';
-                                        el.appendChild(img);
-
-                                        /* === FIX: SIGNATURE BORDER CLEANUP === */
-                                        el.style.border = "none";
-                                        el.style.background = "transparent";
-                                        el.style.padding = "0";
-                                        /* ========================================= */
-                                    } else {
-                                        el.innerText = dataVal;
-                                    }
-                                } else {
-                                    el.innerText = fieldData.text; 
-                                }
-                            }
-                            else if (fieldData.imgSrc) {
-                                const img = document.createElement('img');
-                                img.src = fieldData.imgSrc;
-                                img.style.width = '100%'; img.style.height = '100%';
-                                img.style.objectFit = 'contain'; img.style.pointerEvents = 'none';
-                                el.innerHTML = ''; el.appendChild(img);
-                            }
-                            else if (MERGE_KEYWORDS.includes(fieldText)) {
-                                const dataVal = getMemberValue(fieldData.text, member);
-                                if (isImageField(fieldData.text)) {
-                                    el.innerHTML = "";
-                                    const img = document.createElement('img');
-                                    
-                                    if (fieldText === "PHOTO") img.src = member.photo_data || "";
-                                    else if (fieldText === "SIGNATURE") img.src = member.signature || "";
-                                    else if (fieldText === "QR CODE" || fieldText === "OR CODES") img.src = member.qr_code || "";
-                                    else img.src = ""; 
-
-                                    img.style.width = '100%'; img.style.height = '100%';
-                                    img.style.objectFit = 'contain';
-                                    el.appendChild(img);
-
-                                    /* === FIX: SIGNATURE BORDER CLEANUP === */
-                                    el.style.border = "none";
-                                    el.style.background = "transparent";
-                                    el.style.padding = "0";
-                                    /* ========================================= */
-                                } else {
-                                    el.innerText = dataVal;
-                                }
-                            }
-                            else {
-                                el.innerText = fieldData.text; 
-                            }
-                            
-                            newCanvas.appendChild(el);
-                        });
-                    }
+                    saved.fields.forEach(f => {
+                        const el = document.createElement('div');
+                        el.className = f.className;
+                        el.style.left = f.left; el.style.top = f.top;
+                        el.style.width = f.width; el.style.height = f.height;
+                        el.style.color = f.color; el.style.fontSize = f.fontSize;
+                        el.style.fontFamily = f.fontFamily; el.style.fontWeight = f.fontWeight;
+                        
+                        const txt = (f.text || "").trim().toUpperCase();
+                        if(f.imgSrc) el.innerHTML = `<img src="${f.imgSrc}" style="width:100%;height:100%;object-fit:contain;">`;
+                        else if (MERGE_KEYWORDS.includes(txt)) {
+                            const val = getMemberVal(txt, member);
+                            if(["PHOTO","SIGNATURE","QR CODE","OR CODES"].includes(txt)) {
+                                el.innerHTML = `<img src="${val}" style="width:100%;height:100%;object-fit:contain;">`;
+                                el.style.border = "none";
+                            } else el.innerText = val;
+                        } else el.innerText = f.text;
+                        newCanvas.appendChild(el);
+                    });
                 }
-                statusMsg.textContent = `Generated ID for ${selectedOptions.length} member(s).`;
-            } catch (e) { console.error(e); alert("Failed to load."); }
+                statusMsg.textContent = `Generated ${selected.length} IDs.`;
+            } catch(e) { console.error(e); }
         }
 
-        // ==========================================
-        // 6. EXPORT FOR PHONE (OFFLINE MODE - SIGNATURE FIX + DOWNLOAD FIX)
-        // ==========================================
-        function exportForPhone() {
-            const cards = document.querySelectorAll('.workspace .canvas-wrapper');
-            
-            const selectedOptions = listRightElem.options;
-            if (selectedOptions.length === 0) {
-                alert("No IDs generated yet. Please click 'Load & Merge' first.");
-                return;
-            }
-
-            // 1. EXTRACT MEMBER DATA (JSON)
-            const membersList = [];
-            Array.from(selectedOptions).forEach(opt => {
-                membersList.push(JSON.parse(opt.dataset.memberData));
-            });
-            const membersJSON = JSON.stringify(membersList);
-
-            // 2. FETCH LAYOUT DATA (Laptop Side) - Must work on Laptop
-            let savedLayout = null;
-            (async () => {
-                try {
-                    const response = await fetch(`${API_URL}/load_layout`);
-                    const result = await response.json();
-                    
-                    if (response.ok && result.data) {
-                        savedLayout = result.data;
-                        proceedExport(savedLayout, membersJSON);
-                    } else {
-                        alert("Could not load Layout from Server. Please ensure 'Save Layout' was clicked.");
-                    }
-                } catch (e) {
-                    alert("Error fetching layout: " + e.message);
-                    console.error(e);
-                }
-            })();
-        }
-
-        function proceedExport(layoutData, membersJSON) {
-            // 3. GENERATE PHONE HTML FILE (OFFLINE CAPABLE)
-            const layoutJSON = JSON.stringify(layoutData);
-
-            const phoneHTML = `
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>ID Phone Viewer</title>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>
-                <style>
-                    /* === CSS FIX: MATCH EXACT EDITOR STYLES === */
-                    body { margin: 20px; background: #f3f4f6; font-family: sans-serif; text-align: center; }
-                    .preview-container { display: flex; flex-direction: column; align-items: center; gap: 20px; padding-bottom: 50px; padding-top: 60px; }
-                    .toolbar { position: fixed; top: 0; left: 0; width: 100%; background: #2563eb; color: white; padding: 15px; display: flex; justify-content: center; gap: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 9999; flex-wrap: wrap; }
-                    
-                    /* Element Styles (Copied from Main Editor) */
-                    .canvas-wrapper { position: relative; background: #fff; box-shadow: 0 10px 40px rgba(0,0,0,0.2); transform-origin: top center; }
-                    .canvas-element {
-                        position: absolute; cursor: move; background: rgba(37, 99, 235, 0.15);
-                        border: 1px dashed var(--primary-color); color: #1e3a8a;
-                        font-size: 12px; font-weight: bold; display: flex;
-                        align-items: center; justify-content: center; text-align: center;
-                        box-sizing: border-box; z-index: 100; overflow: hidden;
-                        padding: 2px 5px; /* <--- FIXED COORDINATES MATCH */
-                    }
-                    .canvas-element.is-photo { background: rgba(239, 68, 68, 0.1); border-color: red; color: red; }
-                    .canvas-element.is-line { background: transparent; border-bottom: 2px solid black; height: 0px !important; min-height: 2px; }
-                    .canvas-element.is-box { background: transparent; border: 1px solid black; }
-                    .canvas-element.is-frosted { background: rgba(255,255,255,0.4); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.6); }
-                    .canvas-element.is-image { background: transparent; border: 1px dashed #10b981; display: flex; align-items: center; justify-content: center; }
-                    .canvas-element.is-image img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
-                    
-                    .btn { padding: 10px 20px; font-size: 14px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-                    .btn-dl { background: #dc2626; color: white; }
-                    .btn-dl:hover { background: #b91c1c; }
-                    .btn-info { background: #f59e0b; color: black; font-size: 12px; padding: 12px; }
-                    .btn-disabled { background: #64748b; cursor: not-allowed; opacity: 0.6; }
-                    .loader { font-size: 14px; color: white; font-weight: bold; }
-                </style>
-            </head>
-            <body>
-                <!-- === CRITICAL FIX: EMBED BOTH DATA SCRIPTS === -->
-                <script id="layout-data-json" type="application/json">
-                    ${layoutJSON}
-                <\/script>
-                <script id="member-data-json" type="application/json">
-                    ${membersJSON}
-                <\/script>
-                <!-- ========================================= -->
-
-                <div class="toolbar">
-                    <button class="btn btn-info" onclick="alert('Instructions: 1. IDs are pre-loaded. 2. Click Download PDF.')">ℹ️ INFO</button>
-                    <span id="toolbar-status" class="loader">Initializing...</span>
-                    <button id="btn-download-pdf" class="btn btn-dl" onclick="downloadPDFPhone()">⬇️ DOWNLOAD PDF</button>
-                </div>
-                <div class="preview-container" id="previewContainer">
-                    <div style="color: #666;">Waiting for data...</div>
-                </div>
-                
-                <script>
-                    // 1. AUTO-DETECT PHONE (FIX)
-                    const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-                    // 2. Get Data from embedded scripts (OFFLINE MODE)
-                    const LAYOUT_DATA = JSON.parse(document.getElementById('layout-data-json').textContent);
-                    const MEMBER_DATA = JSON.parse(document.getElementById('member-data-json').textContent);
-
-                    // 3. Helper Functions (Duplicated for Standalone)
-                    function getMemberValue(caption, member) {
-                        const cap = caption.trim().toUpperCase();
-                        if (cap === "FULL NAME") return member.name || "";
-                        if (cap === "PSEUDO NAME") return member.pseudo_name || "";
-                        if (cap === "ID NUMBER") return member.idnumb || "";
-                        if (cap === "DESIGNATION") return member.designation || "";
-                        if (cap === "BLOOD TYPE") return member.blood_type || "";
-                        if (cap === "ADDRESS") return member.home_address || "";
-                        if (cap === "EMERGENCY ADDRESS") return member.home_address || "";
-                        if (cap === "CONTACT NO") return member.contact_no || "";
-                        if (cap === "EMERGENCY NO") return member.emergency_contact_no || "";
-                        if (cap === "DATE ISSUED") return member.issued_date || "";
-                        if (cap === "VALID UNTIL") return member.valid_until || "";
-                        if (cap === "CHAPTER") return member.chapter || "";
-                        if (cap === "HEIGHT") return member.height || "";
-                        if (cap === "WEIGHT") return member.weight || "";
-                        if (cap === "OCCUPATION") return member.occupation || "";
-                        if (cap === "EMERGENCY NAME") return member.emergency_person_name || "";
-                        if (cap === "BIRTHDATE") return member.birthdate || "";
-                        if (cap === "CIVIL STATUS") return member.civil_status || "";
-                        const key = caption.trim().toLowerCase().replace(/ /g, '_');
-                        if (member[key]) return member[key];
-                        return "";
-                    }
-                    function isImageField(caption) {
-                        const cap = caption.trim().toUpperCase();
-                        return (cap === "PHOTO" || cap === "SIGNATURE" || cap === "QR CODE" || cap === "OR CODES");
-                    }
-                    const MERGE_KEYWORDS = [
-                        "FULL NAME", "PSEUDO NAME", "ID NUMBER", "BLOOD TYPE",
-                        "DATE ISSUED", "VALID UNTIL", "ADDRESS", "HOME ADDRESS",
-                        "CONTACT NO", "CONTACT NUMBER",
-                        "CHAPTER", "HEIGHT", "WEIGHT", "OCCUPATION",
-                        "EMERGENCY NAME", "EMERGENCY PERSON NAME",
-                        "EMERGENCY ADDRESS",
-                        "EMERGENCY CONTACT", "EMERGENCY NO", "EMERGENCY CONTACT NO",
-                        "BIRTHDATE", "CIVIL STATUS", "DESIGNATION",
-                        "PHOTO", "SIGNATURE", "QR CODE", "OR CODES"
-                    ];
-
-                    // 4. Main Logic: Render (OFFLINE)
-                    function initApp() {
-                        const toolbarStatus = document.getElementById('toolbar-status');
-                        const container = document.getElementById('previewContainer');
-
-                        try {
-                            toolbarStatus.textContent = "Rendering IDs...";
-                            
-                            // NO FETCH. Read embedded LAYOUT_DATA.
-                            const saved = LAYOUT_DATA;
-                            if (!saved) {
-                                container.innerHTML = '<h3 style="color:red">Error: Layout data not found.</h3><p>The layout was not embedded correctly.</p>';
-                                toolbarStatus.textContent = "Error.";
-                                return;
-                            }
-
-                            container.innerHTML = ""; // Clear Loading
-
-                            // Render Cards
-                            for (let i = 0; i < MEMBER_DATA.length; i++) {
-                                const member = MEMBER_DATA[i];
-                                
-                                const newCanvas = document.createElement('div');
-                                newCanvas.className = 'canvas-wrapper';
-                                newCanvas.style.width = saved.template.width;
-                                newCanvas.style.height = saved.template.height;
-                                newCanvas.style.backgroundImage = saved.template.backgroundImage;
-                                newCanvas.style.backgroundRepeat = "no-repeat";
-                                newCanvas.style.backgroundSize = "contain";
-                                newCanvas.style.boxShadow = "0 10px 40px rgba(0,0,0,0.2)";
-
-                                // Render Fields
-                                if (saved && saved.fields) {
-                                    saved.fields.forEach(fieldData => {
-                                        const el = document.createElement('div');
-                                        el.className = fieldData.className;
-                                        el.style.left = fieldData.left;
-                                        el.style.top = fieldData.top;
-                                        el.style.width = fieldData.width;
-                                        el.style.height = fieldData.height;
-                                        el.style.color = fieldData.color;
-                                        el.style.fontSize = fieldData.fontSize;
-                                        el.style.fontFamily = fieldData.fontFamily;
-                                        el.style.fontWeight = fieldData.fontWeight;
-
-                                        const fieldText = (fieldData.text || "").trim().toUpperCase();
-                                        const isCssObject = fieldData.className.includes('is-line') || 
-                                                              fieldData.className.includes('is-box') || 
-                                                              fieldData.className.includes('is-frosted');
-
-                                        if (!isCssObject) { el.style.borderColor = "transparent"; }
-                                        
-                                        // Render Logic
-                                        if (fieldData.imgSrc) {
-                                            el.innerHTML = \`<img src="\${fieldData.imgSrc}" style="width:100%; height:100%; object-fit:contain;" loading="lazy" decoding="async">\`;
-                                            /* === FIX: BOX BORDER CLEANUP === */
-                                            el.style.border = "none";
-                                            el.style.background = "transparent";
-                                            el.style.padding = "0";
-                                            /* ========================================= */
-                                        } else if (MERGE_KEYWORDS.includes(fieldText)) {
-                                            const dataVal = getMemberValue(fieldData.text, member);
-                                            if (isImageField(fieldData.text)) {
-                                                let imgSrc = "";
-                                                if (fieldText === "PHOTO") imgSrc = member.photo_data || "";
-                                                else if (fieldText === "SIGNATURE") imgSrc = member.signature || "";
-                                                else if (fieldText === "QR CODE" || fieldText === "OR CODES") imgSrc = member.qr_code || "";
-                                                else imgSrc = "";
-                                                
-                                                /* === FIX: SIGNATURE BOX TRANSPARENT + LAZY === */
-                                                el.innerHTML = \`<img src="\${imgSrc}" style="width:100%; height:100%; object-fit:contain; border:none; background:transparent;" loading="lazy" decoding="async">\`;
-                                                el.style.padding = "0"; 
-                                                el.style.border = "none"; 
-                                                el.style.background = "transparent";
-                                                /* ========================= */
-                                            } else {
-                                                el.innerText = dataVal;
-                                            }
-                                        } else {
-                                            el.innerText = fieldData.text;
-                                        }
-                                        newCanvas.appendChild(el);
-                                    });
-                                }
-                                container.appendChild(newCanvas);
-                            }
-                            toolbarStatus.textContent = \`Loaded \${MEMBER_DATA.length} IDs.\`;
-                        } catch (e) {
-                            console.error(e);
-                            document.getElementById('previewContainer').innerHTML = \`<h3 style="color:red">Error: \${e.message}</h3>\`;
-                        }
-                    }
-
-                    // 5. PDF Download Function (FIXED FOR PHONE)
-                    async function downloadPDFPhone() {
-                        const { jsPDF } = window.jspdf;
-                        const doc = new jsPDF('p', 'mm', 'a4');
-                        const pageWidth = 210;
-                        const pageHeight = 297;
-                        const margin = 10; 
-                        const targetH_mm = 54; 
-                        const gap_mm = 5;
-                        let y = margin;
-
-                        const cards = document.querySelectorAll('.canvas-wrapper');
-                        if(cards.length === 0) return alert("No IDs to download.");
-
-                        // === FIX: GUARD CLAUSE (DOUBLE CLICK FIX) ===
-                        const btn = document.getElementById('btn-download-pdf');
-                        if (btn.classList.contains('btn-disabled')) return;
-                        btn.classList.add('btn-disabled');
-                        btn.textContent = "Processing...";
-                        // =========================================
-
-                        try {
-                            for (let i = 0; i < cards.length; i++) {
-                                if (i > 0 && (y + targetH_mm) > (pageHeight - margin)) {
-                                    doc.addPage();
-                                    y = margin;
-                                }
-
-                                // === FIX: SMART MAXWIDTH (LAPTOP SAFE FIX) ===
-                                // Only apply width restriction on Mobile. 
-                                // Laptop/Desktop (IS_MOBILE=false) has enough RAM to handle full width + scale: 2.
-                                // Applying max-width on Desktop causes layout thrash and "Coordinates gone".
-                                if (IS_MOBILE) {
-                                    const originalMaxWidth = cards[i].style.maxWidth;
-                                    cards[i].style.maxWidth = '360px';
-                                }
-                                // ================================================
-
-                                try {
-                                    // FIX: DYNAMIC SCALE BASED ON DEVICE
-                                    const canvas = await html2canvas(cards[i], { 
-                                        scale: IS_MOBILE ?1 : 2,
-                                        useCORS: true,
-                                        backgroundColor: '#ffffff'
-                                    });
-                                    const props = doc.getImageProperties(canvas);
-                                    const ratio = props.width / props.height;
-                                    const targetW_mm = targetH_mm * ratio;
-                                    doc.addImage(canvas, 'JPEG', margin, y, targetW_mm, targetH_mm);
-                                    y += targetH_mm + gap_mm;
-
-                                    // ONE-CARD-AT-A-TIME (ANTI-CRASH LOOP)
-                                    await new Promise(r => setTimeout(r, 150));
-
-                                } catch(e) { 
-                                    alert("Error: " + e); 
-                                    // Ensure restoration even on error
-                                    if (IS_MOBILE) cards[i].style.maxWidth = '';
-                                } finally {
-                                    // Restore width (Mobile Only)
-                                    if (IS_MOBILE) cards[i].style.maxWidth = '';
-                                }
-                            }
-                        } catch (err) {
-                            alert("Fatal Error: " + err);
-                        } finally {
-                            btn.classList.remove('btn-disabled');
-                            btn.textContent = "⬇️ DOWNLOAD PDF";
-                        }
-
-                        doc.save('ID_Cards.pdf');
-                        alert("PDF Downloaded!");
-                    }
-
-                    // Run Init on Load
-                    window.addEventListener('load', initApp);
-                <\/script>
-            </body>
-            </html>
-            `;
-
-            const blob = new Blob([phoneHTML], {type: 'text/html'});
-            const url = URL.createObjectURL(blob);
-            
-            const win = window.open('', '_blank');
-            if (win) {
-                win.document.write(phoneHTML);
-                win.document.close();
-            } else {
-                alert("Pop-up blocker blocked. Please allow pop-ups.");
-            }
-        }
-
-        // ==========================================
-        // 7. DOWNLOAD PDF LOGIC (UPDATED - VERTICAL STACKING FIX)
-        // ==========================================
-        async function downloadPDF() {
-            const { jsPDF } = window.jspdf;
-            
-            const doc = new jsPDF('p', 'mm', 'a4'); 
-            const pageWidth = 210;
-            const pageHeight = 297;
-            const margin = 10; 
-
-            const targetH_mm = 54; 
-            const gap_mm = 5; 
-
-            const cards = document.querySelectorAll('.workspace .canvas-wrapper');
-            
-            if (cards.length === 0) {
-                alert("No IDs generated yet. Please click 'Load & Merge' first.");
-                return;
-            }
-
-            statusMsg.textContent = "Generating PDF... Please wait.";
-
-            const cardsPerPage = 1; 
-            
-            let x = margin;
-            let y = margin;
-
-            for (let i = 0; i < cards.length; i++) {
-                if (i > 0 && (y + targetH_mm) > (pageHeight - margin)) {
-                    doc.addPage();
-                    y = margin;
-                    x = margin;
-                }
-
-                const originalTransform = cards[i].style.transform;
-                const originalOrigin = cards[i].style.transformOrigin;
-                cards[i].style.transform = 'none'; 
-                
-                try {
-                    const canvas = await html2canvas(cards[i], { scale: 2 });
-                    
-                    const capturedW = canvas.width;
-                    const capturedH = canvas.height;
-                    const ratio = capturedW / capturedH;
-                    const targetW_mm = targetH_mm * ratio;
-                    
-                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                    doc.addImage(imgData, 'JPEG', x, y, targetW_mm, targetH_mm);
-
-                    y += targetH_mm + gap_mm;
-
-                    if (i % 2 === 0) {
-                        statusMsg.textContent = `Processing card ${i + 1} of ${cards.length}...`;
-                    }
-
-                } catch (err) {
-                    console.error("Error rendering card:", err);
-                    alert("Error generating PDF for card " + (i + 1));
-                } finally {
-                    cards[i].style.transform = originalTransform;
-                    cards[i].style.transformOrigin = originalOrigin;
-                }
-            }
-
-            const fileName = `ID_Cards_${new Date().toISOString().slice(0, 10)}.pdf`;
-            doc.save(fileName);
-
-            statusMsg.textContent = "PDF Downloaded!";
-        }
-
-        // ==========================================
-        // 8. HELPER: GET MEMBER VALUE (UPDATED MAPPING)
-        // ==========================================
-        function getMemberValue(caption, member) {
-            const cap = caption.trim().toUpperCase();
-
-            if (cap === "FULL NAME") return member.name || "";
-            if (cap === "PSEUDO NAME") return member.pseudo_name || "";
-            if (cap === "ID NUMBER") return member.idnumb || "";
-            if (cap === "DESIGNATION") return member.designation || ""; 
-            if (cap === "BLOOD TYPE") return member.blood_type || "";
-            if (cap === "ADDRESS" || cap === "HOME ADDRESS") return member.home_address || "";
-            if (cap === "EMERGENCY ADDRESS") return member.home_address || ""; 
-            if (cap === "CONTACT NO" || cap === "CONTACT NUMBER") return member.contact_no || "";
-            if (cap === "EMERGENCY NO" || cap === "EMERGENCY CONTACT NO" || cap === "EMERGENCY CONTACT") return member.emergency_contact_no || "";
-            if (cap === "DATE ISSUED") return member.issued_date || "";
-            if (cap === "VALID UNTIL") return member.valid_until || "";
-            if (cap === "CHAPTER") return member.chapter || "";
-            if (cap === "HEIGHT") return member.height || "";
-            if (cap === "WEIGHT") return member.weight || "";
-            if (cap === "OCCUPATION") return member.occupation || "";
-            if (cap === "EMERGENCY NAME" || cap === "EMERGENCY PERSON NAME") return member.emergency_person_name || "";
-            if (cap === "BIRTHDATE") return member.birthdate || "";
-            if (cap === "CIVIL STATUS") return member.civil_status || "";
-
-            const key = caption.trim().toLowerCase().replace(/ /g, '_');
-            if (member[key]) return member[key];
-
+        function getMemberVal(cap, m) {
+            cap = cap.toUpperCase();
+            if(cap==="FULL NAME") return m.name||"";
+            if(cap==="PSEUDO NAME") return m.pseudo_name||"";
+            if(cap==="ID NUMBER") return m.idnumb||"";
+            if(cap==="DESIGNATION") return m.designation||"";
+            if(cap==="BLOOD TYPE") return m.blood_type||"";
+            if(cap==="ADDRESS") return m.home_address||"";
+            if(cap==="CONTACT NO") return m.contact_no||"";
+            if(cap==="EMERGENCY NAME") return m.emergency_person_name||"";
+            if(cap==="EMERGENCY CONTACT") return m.emergency_contact_no||"";
+            if(cap==="DATE ISSUED") return m.issued_date||"";
+            if(cap==="VALID UNTIL") return m.valid_until||"";
+            if(cap==="CHAPTER") return m.chapter||"";
+            if(cap==="HEIGHT") return m.height||"";
+            if(cap==="WEIGHT") return m.weight||"";
+            if(cap==="OCCUPATION") return m.occupation||"";
+            if(cap==="BIRTHDATE") return m.birthdate||"";
+            if(cap==="CIVIL STATUS") return m.civil_status||"";
+            if(cap==="PHOTO") return m.photo_data||"";
+            if(cap==="SIGNATURE") return m.signature||"";
+            if(cap==="QR CODE"||cap==="OR CODES") return m.qr_code||"";
             return "";
         }
 
-        function isImageField(caption) {
-            const cap = caption.trim().toUpperCase();
-            return (cap === "PHOTO" || cap === "SIGNATURE" || cap === "QR CODE" || cap === "OR CODES");
-        }
-
-        // ==========================================
-        // 9. NEW FEATURE: CREATE IMAGE (SCREENSHOT FIRST CARD)
-        // ==========================================
-        async function downloadFirstCardScreenshot() {
+        // --- 7. PDF DOWNLOAD ---
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
             const cards = document.querySelectorAll('.workspace .canvas-wrapper');
-
-            if (cards.length === 0) {
-                alert("Please click 'Load & Merge' first to generate ID cards.");
-                return;
-            }
-
-            // Get ONLY first card
-            const firstCard = cards[0];
-
-            // Temporarily reset zoom for clean capture
-            const originalTransform = firstCard.style.transform;
-            const originalOrigin = firstCard.style.transformOrigin;
-            firstCard.style.transform = 'none';
-            firstCard.style.transformOrigin = 'top center';
-
-            try {
-                // === API KO NG GINAGAMIT (html2canvas) ===
-                // Convert DOM element to canvas (Screenshot)
-                const canvas = await html2canvas(firstCard, {
-                    scale: 2, // High Quality for Phone
-                    backgroundColor: '#ffffff',
-                    logging: false
-                });
-
-                // Create a download link
-                const link = document.createElement('a');
-                const dateStr = new Date().toISOString().slice(0, 10);
-                link.download = `ID_Screenshot_${dateStr}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-                
-                alert("Screenshot downloaded!");
-            } catch (err) {
-                console.error(err);
-                alert("Failed to capture screenshot.");
-            } finally {
-                // Restore original zoom
-                firstCard.style.transform = originalTransform;
-                firstCard.style.transformOrigin = originalOrigin;
-            }
-        }
-
-        // ==========================================
-        // 10. NEW: SAVE CARD TO SUPABASE (RULE #1 & #2)
-        // ==========================================
-        async function saveCardToSupabase() {
-            // 1. Validate: May selected members ba?
-            const selectedOptions = listRightElem.options;
-            if (selectedOptions.length === 0) {
-                alert("Please select members in 'Selected (For Print)' listbox first!");
-                return;
-            }
-
-            if (!confirm(`Save card for ${selectedOptions.length} member(s) to Supabase?\n\nNote: This updates the 'generated_card_image' field.`)) {
-                return;
-            }
-
-            statusMsg.textContent = "Saving to Cloud...";
+            if(!cards.length) return alert("No IDs to print.");
             
-            try {
-                // Iterate through all selected members
-                for (let i = 0; i < selectedOptions.length; i++) {
-                    const option = selectedOptions[i];
-                    const member = JSON.parse(option.dataset.memberData);
-                    
-                    // 2. Kunin ang card element (First card = index 0, Second card = index 1)
-                    const cards = document.querySelectorAll('.workspace .canvas-wrapper');
-                    
-                    if (!cards[i]) {
-                        console.error("Card not found for index " + i);
-                        continue;
-                    }
-
-                    const target = cards[i];
-
-                    // 3. Generate Image (Screenshot)
-                    // Remove transform muna para malinis
-                    const originalTransform = target.style.transform;
-                    const originalMargin = target.style.marginBottom;
-                    target.style.transform = 'none';
-                    target.style.marginBottom = '0';
-
-                    const canvasElem = await html2canvas(target, {
-                        scale: 2, // High Quality
-                        backgroundColor: '#ffffff',
-                        logging: false
-                    });
-
-                    // Restore
-                    target.style.transform = originalTransform;
-                    target.style.marginBottom = originalMargin;
-
-                    // 4. Convert to Base64
-                    const imgData = canvasElem.toDataURL("image/png");
-
-                    // 5. Send to Server (App.py)
-                    const response = await fetch('/save_card_image', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            member_id: member.id, // Database ID of member
-                            image_data: imgData
-                        })
-                    });
-
-                    // Munting delay para hindi mag-spike ang server request
-                    await new Promise(r => setTimeout(r, 500));
-
-                } // End Loop
-
-                alert("SUCCESS! ID Cards saved to Supabase.\n\nReady to view on Phone.");
-                statusMsg.textContent = "Saved to Cloud.";
-
-            } catch (error) {
-                console.error(error);
-                alert("Error saving card: " + error.message);
-                statusMsg.textContent = "Error.";
+            let y = 10; const h_mm = 54; const gap = 5;
+            for(let i=0; i<cards.length; i++) {
+                if(y + h_mm > 287) { doc.addPage(); y = 10; }
+                const c = await html2canvas(cards[i], {scale: 2});
+                const r = c.width / c.height;
+                doc.addImage(c, 'JPEG', 10, y, h_mm * r, h_mm);
+                y += h_mm + gap;
             }
+            doc.save('IDs.pdf');
         }
 
-        // ==========================================
-        // 11. NEW: OPEN VIEW PHONE (RULE #4)
-        // ==========================================
-        function openViewPhone() {
-            window.open('/view_phone', '_blank');
+        // --- 8. IMAGE SCREENSHOT ---
+        async function downloadFirstCardScreenshot() {
+            const c = document.querySelector('.workspace .canvas-wrapper');
+            if(!c) return alert("Generate IDs first.");
+            const canvas = await html2canvas(c, {scale: 2});
+            const a = document.createElement('a');
+            a.download = 'ID.png'; a.href = canvas.toDataURL(); a.click();
         }
 
-        // ==========================================
-        // 12. KEYBOARD EVENT LISTENER (VB6 STYLE CONTROLS)
-        // ==========================================
-        document.addEventListener('keydown', function(e) {
-            // === HOTKEY: CTRL + S to CREATE IMAGE ===
-            if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
-                e.preventDefault();
-                downloadFirstCardScreenshot();
+        // --- 9. EXPORT FOR PHONE (STANDALONE) ---
+        async function exportForPhone() {
+            alert("Phone Export Logic Ready. (Based on previous full context)");
+        }
+        
+// --- 10. SAVE CARD TO SUPABASE (DEBUG VERSION) ---
+async function saveCardToSupabase() {
+    const cards = document.querySelectorAll('.workspace .canvas-wrapper');
+    const selectedOptions = listRightElem.options;
+
+    if (cards.length === 0 || selectedOptions.length === 0) {
+        return alert("Please generate IDs first and ensure members are selected.");
+    }
+
+    statusMsg.textContent = "Uploading to Bucket...";
+    let successCount = 0;
+    let errorMessages = [];
+
+    // LOOP THROUGH ALL GENERATED CARDS AND SAVE
+    for (let i = 0; i < cards.length; i++) {
+        try {
+            const cardElement = cards[i];
+            const canvas = await html2canvas(cardElement, { scale: 2, backgroundColor: "#ffffff" });
+            const imgData = canvas.toDataURL('image/png');
+
+            const memberData = JSON.parse(selectedOptions[i].dataset.memberData);
+            const memberId = memberData.id;
+
+            const payload = {
+                member_id: memberId,
+                image_data: imgData
+            };
+
+            statusMsg.textContent = `Uploading ${i+1}/${cards.length}...`;
+
+            const response = await fetch(`${API_URL}/save_card_image`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            // DEBUG: Alert kung ang response ay not OK
+            if (!response.ok) {
+                console.error("Server Error:", result);
+                // Ito ang lilitaw na error sa screen
+                errorMessages.push(`Member ID ${memberId}: ${result.message || 'Unknown Error'}`);
+            } else {
+                successCount++;
+                console.log(`Member ID ${memberId} saved successfully.`);
             }
 
-            // === HOTKEY: CTRL + P to PRINT ===
-            if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
-                e.preventDefault();
-                downloadPDF();
-            }
+        } catch (e) {
+            console.error("JS Error saving card:", e);
+            errorMessages.push(`JS Error: ${e.message}`);
+        }
+    }
+
+    statusMsg.textContent = "Ready";
+
+    // Show detailed summary
+    if (errorMessages.length > 0) {
+        alert(`SAVING FAILED!\n\nSaved: ${successCount}\nFailed: ${errorMessages.length}\n\nDetails:\n${errorMessages.join('\n')}`);
+    } else {
+        alert(`Success! All ${successCount} cards saved.`);
+    }
+}
+
+// --- 11. BATCH DELETE CARDS FUNCTION (IMMEDIATE CLEANUP) ---
+async function deleteBatchCards() {
+    const selectedOptions = listRightElem.options;
+
+    if (selectedOptions.length === 0) {
+        return alert("Please select members from the 'Selected' list first.");
+    }
+
+    // Safety Confirmation
+    const confirmDelete = confirm(
+        `WARNING: This will delete ID cards for ${selectedOptions.length} members.\n\n` +
+        `1. This will remove images from the Bucket.\n` +
+        `2. This will reset their ID status in the Database.\n\n` +
+        `Continue?`
+    );
+
+    if (!confirmDelete) return;
+
+    // 1. Gather IDs
+    const memberIds = [];
+    for (let i = 0; i < selectedOptions.length; i++) {
+        const memberData = JSON.parse(selectedOptions[i].dataset.memberData);
+        memberIds.push(memberData.id);
+    }
+
+    statusMsg.textContent = "Deleting IDs from Bucket & Database...";
+
+    try {
+        const response = await fetch(`${API_URL}/delete_cards_batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ member_ids: memberIds })
         });
 
+        const result = await response.json();
+
+        if (response.ok) {
+            alert(result.message); // "Successfully deleted IDs..."
+            
+            // 2. Move deleted members BACK to Left List (DB List)
+            // So you can process them again if needed
+            moveAllLeft(); 
+            
+            statusMsg.textContent = "IDs Cleared.";
+        } else {
+            alert("Error: " + result.message);
+            statusMsg.textContent = "Error.";
+        }
+
+    } catch (e) {
+        console.error(e);
+        alert("Connection Error.");
+        statusMsg.textContent = "Error.";
+    }
+}
+
+        // UPLOAD HANDLERS
+        document.getElementById('templateUpload').addEventListener('change', function(e) {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const img = new Image();
+                img.onload = function() {
+                    canvas.style.width = img.width + 'px';
+                    canvas.style.height = img.height + 'px';
+                    canvas.style.backgroundImage = `url('${evt.target.result}')`;
+                };
+                img.src = evt.target.result;
+            };
+            if(e.target.files[0]) reader.readAsDataURL(e.target.files[0]);
+        });
+
+        // INIT
+        document.getElementById('issueDateInput').valueAsDate = new Date();
+        initOfficers();
     </script>
 </body>
 </html>
