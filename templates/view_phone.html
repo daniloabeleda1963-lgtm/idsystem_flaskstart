@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID Card Phone Viewer (Bucket First)</title>
+    <title>ID Card Phone Viewer</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -13,6 +13,7 @@
             --primary-color: #2563eb;
             --bg-color: #f3f4f6;
             --text-dark: #1f2937;
+            --error-color: #ef4444;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -59,11 +60,21 @@
             display: none;
             border-radius: 8px;
             overflow: hidden;
+            min-height: 200px;
+            align-items: center;
+            justify-content: center;
         }
         .image-container img {
             width: 100%;
             height: auto;
             display: block;
+        }
+        /* Placeholder text for failed load */
+        .error-placeholder {
+            color: var(--error-color);
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
         }
 
         .info-box {
@@ -175,9 +186,9 @@
         .opt-btn span { font-size: 20px; margin-bottom: 4px; }
         
         .btn-pdf { color: #dc2626; border-color: #fca5a5; }
-        .btn-copy { color: #2563eb; border-color: #93c5fd; }
+        .btn-share { color: #d97706; border-color: #fcd34d; background: #fffbeb; } /* Share to Word */
         .btn-dl { color: #059669; border-color: #6ee7b7; }
-        .btn-all { color: #d97706; border-color: #fcd34d; grid-column: span 2; background: #fffbeb; }
+        .btn-all { color: #d97706; border-color: #fcd34d; grid-column: span 2; }
 
         #loading-overlay {
             display: none;
@@ -204,16 +215,18 @@
         </select>
 
         <div id="idImageContainer" class="image-container">
-            <img id="idCardImg" src="" alt="ID Card">
+            <div id="placeholderText" class="error-placeholder" style="display:none;">⚠️ Image Failed to Load</div>
+            <!-- Silent Error Handling -->
+            <img id="idCardImg" src="" alt="ID Card" crossorigin="anonymous">
         </div>
 
         <div id="infoBox" class="info-box">
             <div class="info-header">File Details</div>
             <div class="info-row"><span class="info-label">Filename:</span><span class="info-value" id="infoFilename">-</span></div>
-            <div class="info-row"><span class="info-label">Status:</span><span class="info-value" style="color:green">Ready to Print/Download</span></div>
+            <div class="info-row"><span class="info-label">Status:</span><span class="info-value" id="infoStatus">-</span></div>
         </div>
 
-        <div id="status-text">Initializing Bucket Connection...</div>
+        <div id="status-text">Initializing...</div>
     </div>
 
     <div class="bottom-bar">
@@ -224,18 +237,23 @@
     <div class="options-panel" id="optionsPanel">
         <div class="opt-grid">
             <button class="opt-btn btn-pdf" onclick="printPDF()"><span>📄</span> PDF Print</button>
-            <button class="opt-btn btn-copy" onclick="copyImage()"><span>📋</span> Image Copy</button>
+            
+            <button class="opt-btn btn-share" onclick="shareImage()"><span>📤</span> Share to Word</button>
+
             <button class="opt-btn btn-dl" onclick="downloadSingle()"><span>⬇️</span> Download ID</button>
-            <button class="opt-btn btn-all" onclick="downloadAllToPhone()"><span>☁️</span> DOWNLOAD ALL TO PHONE (Carbon Copy)</button>
+
+            <button class="opt-btn btn-all" onclick="downloadAllToPhone()"><span>☁️</span> DOWNLOAD ALL (Carbon Copy)</button>
         </div>
     </div>
 
     <script>
         const API_URL = '';
+        const SUPABASE_URL = "https://ibxgidohcxvbjtbzqpub.supabase.co";
         
         const bucketSelect = document.getElementById('bucketSelect');
         const imgContainer = document.getElementById('idImageContainer');
         const imgEl = document.getElementById('idCardImg');
+        const placeholderText = document.getElementById('placeholderText');
         const infoBox = document.getElementById('infoBox');
         const loadingOverlay = document.getElementById('loading-overlay');
         const loadingMsg = document.getElementById('loading-msg');
@@ -243,6 +261,7 @@
         const btnToggle = document.getElementById('btnToggle');
         const statusText = document.getElementById('status-text');
         const infoFilename = document.getElementById('infoFilename');
+        const infoStatus = document.getElementById('infoStatus');
 
         let bucketFiles = []; 
         let currentFile = null;
@@ -250,12 +269,11 @@
         window.addEventListener('DOMContentLoaded', async () => {
             showLoading(true, "Connecting to Bucket...");
             try {
-                // FETCH LIST ONLY
                 await fetchBucketList();
                 statusText.textContent = `Found ${bucketFiles.length} IDs in Bucket.`;
             } catch (e) {
                 console.error(e);
-                statusText.textContent = "Error loading bucket.";
+                statusText.textContent = "Error loading bucket list.";
             } finally {
                 showLoading(false);
             }
@@ -267,23 +285,25 @@
                 const response = await fetch(`${API_URL}/api/storage/list-all`);
                 const data = await response.json();
                 
-                bucketFiles = Array.isArray(data) ? data : [];
-                
-                // Populate Dropdown
-                bucketSelect.innerHTML = '<option value="" disabled selected>-- Select ID from Bucket --</option>';
-                
-                bucketFiles.forEach((file, index) => {
-                    const opt = document.createElement('option');
-                    opt.value = index;
-                    // Show Filename directly (Ano ang nasa bucket, yun ang lalabas)
-                    opt.textContent = file.filename;
-                    bucketSelect.appendChild(opt);
-                });
+                console.log("Bucket List Response:", data); // Debugging for Lolo (F12)
 
+                bucketFiles = Array.isArray(data) ? data : [];
+                populateDropdown(bucketFiles);
+                
             } catch (e) {
-                alert("Failed to get file list. Is the Python route updated?");
-                throw e;
+                console.error("Fetch List Error:", e);
+                statusText.textContent = "Failed to connect to server.";
             }
+        }
+
+        function populateDropdown(list) {
+            bucketSelect.innerHTML = '<option value="" disabled selected>-- Select ID from Bucket --</option>';
+            list.forEach((file, index) => {
+                const opt = document.createElement('option');
+                opt.value = index;
+                opt.textContent = file.filename;
+                bucketSelect.appendChild(opt);
+            });
         }
 
         function showLoading(show, msg = "Loading...") {
@@ -303,15 +323,29 @@
 
             currentFile = bucketFiles[index];
             
-            // SHOW IMAGE DIRECTLY FROM LIST
+            // Show Image
+            imgEl.style.display = 'block';
+            placeholderText.style.display = 'none';
             imgEl.src = currentFile.url;
             imgContainer.style.display = 'block';
-            
-            // SHOW FILENAME (Simple Info)
+
+            // Show Info
             infoFilename.textContent = currentFile.filename;
-            infoBox.style.display = 'block';
+            infoStatus.textContent = "Ready";
+            infoStatus.style.color = "green";
             
+            infoBox.style.display = 'block';
             statusText.textContent = `Viewing: ${currentFile.filename}`;
+        }
+
+        // Silent Image Error Handler
+        imgEl.onerror = function() {
+            console.error("Image failed to load:", this.src);
+            imgEl.style.display = 'none';
+            placeholderText.style.display = 'block';
+            statusText.textContent = "Error: Could not load image from Bucket.";
+            infoStatus.textContent = "Failed";
+            infoStatus.style.color = "red";
         }
 
         function smartFilter() {
@@ -354,21 +388,43 @@
                 doc.save(`ID_${currentFile.filename}.pdf`);
                 statusText.textContent = "PDF Downloaded.";
             } catch (e) {
+                console.error("PDF Error:", e);
                 alert("PDF Error: " + e.message);
             } finally {
                 showLoading(false);
             }
         }
 
-        async function copyImage() {
+        async function shareImage() {
             if (!currentFile) return alert("Select an ID first.");
+            
+            showLoading(true, "Preparing Share...");
+            
             try {
-                const res = await fetch(currentFile.url);
-                const blob = await res.blob();
-                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-                alert("Image Copied to Clipboard!");
+                // 1. Get Image Blob
+                const response = await fetch(currentFile.url);
+                const blob = await response.blob();
+                
+                // 2. Create File Object
+                const file = new File([blob], "ID_Card.png", { type: blob.type });
+                
+                // 3. Native Share (Opens Word Share Sheet)
+                if (navigator.share) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'My ID Card',
+                        text: 'Here is my ID card'
+                    });
+                    statusText.textContent = "Shared!";
+                } else {
+                    // Fallback
+                    alert("Share not supported. Use Download button.");
+                }
             } catch (e) {
-                alert("Copy failed: " + e.message);
+                console.error("Share Error:", e);
+                alert("Share failed: " + e.message);
+            } finally {
+                showLoading(false);
             }
         }
 
@@ -386,12 +442,11 @@
             optionsPanel.classList.remove('show');
             btnToggle.textContent = "⚙️ Options";
             
-            // Carbon Copy Logic: Download EVERYTHING
+            // Carbon Copy: Download EVERYTHING
             for (let i = 0; i < bucketFiles.length; i++) {
                 const f = bucketFiles[i];
                 statusText.textContent = `Downloading ${i+1} of ${bucketFiles.length}: ${f.filename}`;
                 await downloadImageFromUrl(f.url, f.filename);
-                // Small delay to prevent browser crash/block
                 await new Promise(r => setTimeout(r, 500));
             }
             
@@ -412,7 +467,7 @@
                 document.body.removeChild(link);
                 window.URL.revokeObjectURL(linkUrl);
             } catch (e) {
-                console.error("Failed to download: " + filename, e);
+                console.error("Download Failed:", filename, e);
             }
         }
     </script>
