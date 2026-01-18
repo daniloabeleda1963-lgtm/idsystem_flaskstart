@@ -3,19 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID Card Generator (User Friendly)</title>
+    <title>ID Card Phone Viewer (Bucket First)</title>
     
-    <!-- PDF GENERATION LIBRARIES -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <style>
-        /* === USER FRIENDLY STYLES === */
         :root {
             --primary-color: #2563eb;
             --bg-color: #f3f4f6;
-            --sidebar-bg: #1e293b;
-            --sidebar-text: #e2e8f0;
+            --text-dark: #1f2937;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -28,48 +25,6 @@
             overflow: hidden;
         }
         
-        /* === BIG BUTTONS FOR CELPON === */
-        .action-container {
-            background: white;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            display: flex; /* Default Visible */
-            flex-direction: column;
-            gap: 15px;
-            z-index: 100;
-            transition: opacity 0.3s;
-        }
-        
-        .big-btn {
-            width: 100%;
-            padding: 18px 20px;
-            font-size: 18px;
-            font-weight: bold;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: transform 0.1s, box-shadow 0.1s;
-        }
-        
-        .big-btn:active { transform: scale(0.98); }
-        
-        .btn-print { background: #2563eb; color: white; }
-        .btn-print:hover { background: #1d4ed8; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
-        
-        .btn-save { background: #10b981; color: white; }
-        .btn-save:hover { background: #059669; box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
-        
-        .btn-img { background: #f59e0b; color: white; }
-        .btn-img:hover { background: #d97706; box-shadow: 0 4px 12px rgba(245,158,11,0.3); }
-
-        .btn-merge { background: #8b5cf6; color: white; }
-        .btn-merge:hover { background: #7c3aed; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); }
-
-        /* === WORKSPACE === */
         .workspace {
             flex-grow: 1;
             background: #e5e7eb;
@@ -77,27 +32,11 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 30px 10px;
-            gap: 20px;
+            padding: 20px 10px;
+            gap: 15px;
+            padding-bottom: 100px;
         }
 
-        /* === UPDATED: SIMPLE IMAGE CONTAINER === */
-        .image-container {
-            position: relative;
-            background-color: #fff;
-            width: 100%;
-            max-width: 400px; /* Default limit */
-            height: auto;
-            background-repeat: no-repeat;
-            background-size: contain;
-            background-position: top center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            user-select: none;
-            margin: 0 auto;
-            display: none; /* Hidden by default until loaded */
-        }
-
-        /* === SIMPLIFIED DROPDOWN === */
         .member-select {
             width: 100%;
             max-width: 600px;
@@ -106,419 +45,376 @@
             border: 2px solid #ccc;
             border-radius: 8px;
             background: white;
-            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
-        /* === BACK BUTTON (FIXED: Clean Arrow) === */
-        #backButton {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 200;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%; /* Circle */
-            background: #ef4444;
-            color: white;
-            border: none;
-            font-size: 20px;
+        .image-container {
+            position: relative;
+            background-color: #fff;
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin: 0 auto;
+            display: none;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .image-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .info-box {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: none;
+            font-size: 14px;
+            color: var(--text-dark);
+        }
+        .info-header {
+            font-size: 18px;
             font-weight: bold;
+            color: var(--primary-color);
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            border-bottom:1px dashed #f3f4f6;
+            padding-bottom: 4px;
+        }
+        .info-label { font-weight: 600; color: #6b7280; }
+        .info-value { text-align: right; font-weight: 500; }
+
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: white;
+            padding: 10px 15px;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            gap: 10px;
+            box-sizing: border-box;
+        }
+
+        .nav-btn {
+            flex: 1;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
             cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            display: none; /* Hidden initially */
+            text-align: center;
+            display: flex;
             align-items: center;
             justify-content: center;
-            /* Animation */
-            animation: fadeIn 0.5s ease-in;
+            gap: 8px;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.5); }
-            to { opacity: 1; transform: scale(1); }
+        .btn-home { background: #ef4444; color: white; }
+        .btn-opt { background: #2563eb; color: white; }
+
+        .options-panel {
+            position: fixed;
+            bottom: 70px;
+            left: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 999;
+            animation: slideUp 0.3s ease-out;
+        }
+        .options-panel.show { display: flex; }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
 
-        /* === LOADING OVERLAY === */
-        #loading-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.9);
-            z-index: 9999;
+        .opt-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .opt-btn {
+            background: white;
+            border: 2px solid #e5e7eb;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #374151;
+            cursor: pointer;
+            display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-        }
-        .spinner {
-            border: 8px solid #f3f3f3;
-            border-top: 8px solid var(--primary-color);
-            border-radius: 50%;
-            width: 60px; height: 60px;
-            animation: spin 1s linear infinite;
-        }
-        .loading-text {
-            margin-top: 20px;
-            font-size: 18px;
-            color: #333;
-            font-weight: bold;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* === FOOTER INFO === */
-        .footer-info {
             text-align: center;
-            color: #666;
-            font-size: 14px;
-            margin-top: 10px;
-            padding: 10px;
-            background: rgba(255,255,255,0.5);
-            border-radius: 8px;
         }
+        .opt-btn:active { background: #f3f4f6; transform: scale(0.98); }
+        .opt-btn span { font-size: 20px; margin-bottom: 4px; }
+        
+        .btn-pdf { color: #dc2626; border-color: #fca5a5; }
+        .btn-copy { color: #2563eb; border-color: #93c5fd; }
+        .btn-dl { color: #059669; border-color: #6ee7b7; }
+        .btn-all { color: #d97706; border-color: #fcd34d; grid-column: span 2; background: #fffbeb; }
 
+        #loading-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9); z-index: 2000;
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+        .spinner { border: 8px solid #f3f3f3; border-top: 8px solid var(--primary-color); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #status-text { text-align: center; font-size: 14px; color: #666; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <!-- === FLOATING BACK BUTTON (Visible only in Clean Mode) === -->
-    <button id="backButton" onclick="backToSearch()">🔙</button>
-
-    <!-- === LOADING OVERLAY === -->
     <div id="loading-overlay">
         <div class="spinner"></div>
-        <div class="loading-text">Searching... Please wait.</div>
+        <div id="loading-msg" style="margin-top: 15px; font-weight: bold;">Loading...</div>
     </div>
 
-    <!-- === MAIN CONTENT === -->
     <div class="workspace">
-        
-        <!-- SELECT MEMBER DROPDOWN -->
-        <select id="memberSelect" class="member-select" onchange="searchMember()" oninput="smartFilter()">
-            <option value="" disabled selected>-- Start Typing Name or ID --</option>
-            <!-- Options will be populated by JS -->
+        <select id="bucketSelect" class="member-select" onchange="selectFile()" oninput="smartFilter()">
+            <option value="" disabled selected>-- Loading Bucket Files... --</option>
         </select>
 
-        <!-- === IMAGE DISPLAY AREA === -->
         <div id="idImageContainer" class="image-container">
-            <img id="idCardImg" src="" style="width:100%; height:auto; display:block;" alt="ID Card">
+            <img id="idCardImg" src="" alt="ID Card">
         </div>
 
-        <!-- === USER FRIENDLY ACTION BUTTONS === -->
-        <div class="action-container" id="actionContainer">
-            
-            <!-- 1. REFRESH / LOAD DATA -->
-            <button class="big-btn btn-save" onclick="loadSavedData()">
-                🔄 REFRESH / RELOAD DATA
-            </button>
+        <div id="infoBox" class="info-box">
+            <div class="info-header">File Details</div>
+            <div class="info-row"><span class="info-label">Filename:</span><span class="info-value" id="infoFilename">-</span></div>
+            <div class="info-row"><span class="info-label">Status:</span><span class="info-value" style="color:green">Ready to Print/Download</span></div>
+        </div>
 
-            <!-- 2. DOWNLOAD IMAGE (FIXED: Direct Download, not Open) -->
-            <button class="big-btn btn-img" onclick="downloadImageFile()">
-                📸 SAVE IMAGE
-            </button>
+        <div id="status-text">Initializing Bucket Connection...</div>
+    </div>
 
-            <!-- 3. DOWNLOAD PDF (FIXED: Full Size Capture) -->
-            <button class="big-btn btn-print" onclick="downloadPDFImage()">
-                ⬇️ DOWNLOAD PDF
-            </button>
+    <div class="bottom-bar">
+        <button class="nav-btn btn-home" onclick="goHome()">🏠 Home</button>
+        <button class="nav-btn btn-opt" id="btnToggle" onclick="toggleOptions()">⚙️ Options</button>
+    </div>
 
-            <!-- 4. BACK TO HOME -->
-            <button class="big-btn btn-merge" onclick="goHome()">
-                🏠 BACK TO HOME
-            </button>
-
-            <div class="footer-info">
-                Status: <span id="statusText" style="color: green;">Ready</span>
-            </div>
+    <div class="options-panel" id="optionsPanel">
+        <div class="opt-grid">
+            <button class="opt-btn btn-pdf" onclick="printPDF()"><span>📄</span> PDF Print</button>
+            <button class="opt-btn btn-copy" onclick="copyImage()"><span>📋</span> Image Copy</button>
+            <button class="opt-btn btn-dl" onclick="downloadSingle()"><span>⬇️</span> Download ID</button>
+            <button class="opt-btn btn-all" onclick="downloadAllToPhone()"><span>☁️</span> DOWNLOAD ALL TO PHONE (Carbon Copy)</button>
         </div>
     </div>
 
     <script>
-        const API_URL = ''; 
-        const memberSelect = document.getElementById('memberSelect');
-        const idImageContainer = document.getElementById('idImageContainer');
-        const idCardImg = document.getElementById('idCardImg');
-        const statusText = document.getElementById('statusText');
+        const API_URL = '';
+        
+        const bucketSelect = document.getElementById('bucketSelect');
+        const imgContainer = document.getElementById('idImageContainer');
+        const imgEl = document.getElementById('idCardImg');
+        const infoBox = document.getElementById('infoBox');
         const loadingOverlay = document.getElementById('loading-overlay');
-        const actionContainer = document.getElementById('actionContainer');
-        const backButton = document.getElementById('backButton');
+        const loadingMsg = document.getElementById('loading-msg');
+        const optionsPanel = document.getElementById('optionsPanel');
+        const btnToggle = document.getElementById('btnToggle');
+        const statusText = document.getElementById('status-text');
+        const infoFilename = document.getElementById('infoFilename');
 
-        // State
-        let allMembers = [];
-        let currentImageUrl = "";
+        let bucketFiles = []; 
+        let currentFile = null;
 
-        // ==========================================
-        // 1. INITIALIZATION (LOAD MEMBERS LIST)
-        // ==========================================
         window.addEventListener('DOMContentLoaded', async () => {
-            statusText.textContent = "Loading System...";
-            showLoading(true);
-
+            showLoading(true, "Connecting to Bucket...");
             try {
-                await fetchMembers();
-                statusText.textContent = "Ready. Start typing name.";
-            } catch (error) {
-                console.error("Init Error:", error);
-                statusText.textContent = "Error loading data.";
+                // FETCH LIST ONLY
+                await fetchBucketList();
+                statusText.textContent = `Found ${bucketFiles.length} IDs in Bucket.`;
+            } catch (e) {
+                console.error(e);
+                statusText.textContent = "Error loading bucket.";
             } finally {
                 showLoading(false);
             }
         });
 
-        function showLoading(show) {
-            loadingOverlay.style.display = show ? 'flex' : 'none';
-        }
-
-        // ==========================================
-        // 2. FETCH MEMBERS
-        // ==========================================
-        async function fetchMembers() {
+        async function fetchBucketList() {
             try {
-                // Fetch first 50 members only for speed
-                const response = await fetch(`${API_URL}/api/members/json?limit=50`);
-                if (response.ok) {
-                    const data = await response.json();
-                    allMembers = Array.isArray(data) ? data : [];
-                    populateDropdown();
-                }
+                // Call new route that lists EVERYTHING
+                const response = await fetch(`${API_URL}/api/storage/list-all`);
+                const data = await response.json();
+                
+                bucketFiles = Array.isArray(data) ? data : [];
+                
+                // Populate Dropdown
+                bucketSelect.innerHTML = '<option value="" disabled selected>-- Select ID from Bucket --</option>';
+                
+                bucketFiles.forEach((file, index) => {
+                    const opt = document.createElement('option');
+                    opt.value = index;
+                    // Show Filename directly (Ano ang nasa bucket, yun ang lalabas)
+                    opt.textContent = file.filename;
+                    bucketSelect.appendChild(opt);
+                });
+
             } catch (e) {
-                console.error("Member fetch failed", e);
-                alert("Error fetching members.");
+                alert("Failed to get file list. Is the Python route updated?");
+                throw e;
             }
         }
 
-        function populateDropdown() {
-            memberSelect.innerHTML = '<option value="" disabled selected>-- Start Typing Name or ID --</option>';
-            allMembers.forEach((member, index) => {
-                const option = document.createElement('option');
-                option.value = index; 
-                // Display Name and ID Number for easier search
-                option.textContent = `${member.name} (${member.idnumb || member.id})`;
-                memberSelect.appendChild(option);
-            });
+        function showLoading(show, msg = "Loading...") {
+            loadingOverlay.style.display = show ? 'flex' : 'none';
+            loadingMsg.textContent = msg;
         }
 
-        function loadSavedData() {
-            showLoading(true);
-            setTimeout(() => {
-                fetchMembers().then(() => {
-                    statusText.textContent = "Data Refreshed.";
-                    showLoading(false);
-                });
-            }, 500);
+        function selectFile() {
+            const index = bucketSelect.value;
+            if (index === "" || index === null) {
+                imgContainer.style.display = 'none';
+                imgEl.src = "";
+                infoBox.style.display = 'none';
+                currentFile = null;
+                return;
+            }
+
+            currentFile = bucketFiles[index];
+            
+            // SHOW IMAGE DIRECTLY FROM LIST
+            imgEl.src = currentFile.url;
+            imgContainer.style.display = 'block';
+            
+            // SHOW FILENAME (Simple Info)
+            infoFilename.textContent = currentFile.filename;
+            infoBox.style.display = 'block';
+            
+            statusText.textContent = `Viewing: ${currentFile.filename}`;
+        }
+
+        function smartFilter() {
+            const query = bucketSelect.value.toLowerCase();
+            const options = bucketSelect.options;
+            for (let i = 1; i < options.length; i++) {
+                const text = options[i].text.toLowerCase();
+                options[i].style.display = text.includes(query) ? "" : "none";
+            }
+        }
+
+        function toggleOptions() {
+            optionsPanel.classList.toggle('show');
+            btnToggle.textContent = optionsPanel.classList.contains('show') ? "❌ Close" : "⚙️ Options";
         }
 
         function goHome() {
             window.location.href = '/';
         }
 
-        // ==========================================
-        // 3. SMART FILTER LOGIC
-        // ==========================================
-        function smartFilter() {
-            const query = memberSelect.value.toLowerCase();
-            const options = memberSelect.options;
-
-            // Loop through all options (skip first disabled placeholder)
-            for (let i = 1; i < options.length; i++) {
-                const text = options[i].text.toLowerCase();
-                
-                // If query matches part of name, SHOW IT.
-                // Else, HIDE IT.
-                if (text.includes(query)) {
-                    options[i].style.display = "";
-                } else {
-                    options[i].style.display = "none";
-                }
-            }
-        }
-
-        // ==========================================
-        // 4. SEARCH / SHOW CARD LOGIC (Clean Mode)
-        // ==========================================
-        async function searchMember() {
-            const index = memberSelect.value;
-            
-            // Clear previous image if no selection
-            if (index === "" || index === null) {
-                idImageContainer.style.display = 'none';
-                idCardImg.src = "";
-                statusText.textContent = "Select a member.";
-                return;
-            }
-
-            const member = allMembers[index];
-            if (!member) return;
-
-            showLoading(true);
-            statusText.textContent = `Searching for ${member.name}...`;
-
+        async function printPDF() {
+            if (!currentFile) return alert("Select an ID first.");
+            showLoading(true, "Generating PDF...");
             try {
-                // === CHECK IF GENERATED CARD EXISTS ===
-                if (member.generated_card_image) {
-                    // SUCCESS: Show Image + CLEAN MODE
-                    idCardImg.src = member.generated_card_image;
-                    idImageContainer.style.display = 'block';
-                    statusText.textContent = `Found ID for ${member.name}.`;
-                    currentImageUrl = member.generated_card_image;
-
-                    // === CLEAN MODE: HIDE BUTTONS, SHOW ARROW ===
-                    actionContainer.style.display = 'none';
-                    memberSelect.style.display = 'none';
-                    backButton.style.display = 'flex'; // Show Arrow
-                } else {
-                    // FAIL: No card generated.
-                    idImageContainer.style.display = 'none';
-                    statusText.textContent = `No ID generated yet.`;
-                    alert(`Member found: ${member.name}\n\nBut ID card image has NOT been generated yet.\n\nPlease contact Admin to click "SAVE CARD".`);
-                    currentImageUrl = "";
-                }
-
-            } catch (error) {
-                console.error(error);
-                statusText.textContent = "Error searching.";
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        function backToSearch() {
-            // Show controls again
-            actionContainer.style.display = 'flex';
-            memberSelect.style.display = 'block';
-            backButton.style.display = 'none'; // Hide Arrow
-            
-            // Clear Image
-            idImageContainer.style.display = 'none';
-            idCardImg.src = "";
-            statusText.textContent = "Ready. Select a member.";
-        }
-
-        // ==========================================
-        // 5. DOWNLOAD IMAGE FUNCTION (FIXED: Direct Download)
-        // ==========================================
-        async function downloadImageFile() {
-            if (!currentImageUrl) {
-                alert("No ID card image loaded yet.");
-                return;
-            }
-
-            showLoading(true);
-            statusText.textContent = "Downloading...";
-
-            try {
-                // 1. Fetch the image as Blob
-                const response = await fetch(currentImageUrl);
-                if (!response.ok) throw new Error("Network response was not ok");
-                
-                const blob = await response.blob();
-                
-                // 2. Create a temporary link to trigger download
-                const url = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                
-                // 3. Set filename
-                const timestamp = new Date().toISOString().slice(0,19).replace(/[-T:]/g,"");
-                link.download = `ID_Card_${timestamp}.png`;
-                
-                // 4. Trigger click
-                document.body.appendChild(link);
-                link.click();
-                
-                // 5. Cleanup
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(url);
-                
-                statusText.textContent = "Image Saved! (Check Gallery)";
-
-            } catch (error) {
-                console.error("Download Error:", error);
-                alert("Error downloading image: " + error.message);
-                statusText.textContent = "Error.";
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        // ==========================================
-        // 6. DOWNLOAD PDF FUNCTION (FIXED: Full Size Capture)
-        // ==========================================
-        async function downloadPDFImage() {
-            if (!currentImageUrl) {
-                alert("No ID card image loaded yet.");
-                return;
-            }
-
-            showLoading(true);
-            statusText.textContent = "Generating PDF...";
-
-            try {
-                // === FIX 1: REMOVE WIDTH CONSTRAINTS ===
-                // Before capturing, we remove max-width so we capture the FULL image size
-                // This fixes the "maliit sa canvas" issue
-                const originalMaxWidth = idImageContainer.style.maxWidth;
-                const originalWidth = idImageContainer.style.width;
-                
-                idImageContainer.style.maxWidth = 'none'; // Remove 400px limit
-                idImageContainer.style.width = 'auto'; // Let it grow to natural size
-
-                // === FIX 2: WAIT FOR IMAGE TO RENDER ===
-                const imgElem = idCardImg;
-                if (!imgElem.complete) {
-                    await new Promise(resolve => imgElem.onload = resolve);
-                }
-
-                // 3. Capture with HIGH QUALITY
-                // Since we removed the width limit, this will capture the full res image
-                const canvas = await html2canvas(idImageContainer, {
-                    scale: 2, // Keep scale 2 for quality
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    useCORS: true
-                });
-
-                // 4. Restore styles
-                idImageContainer.style.maxWidth = originalMaxWidth;
-                idImageContainer.style.width = originalWidth;
-
-                // 5. Setup PDF
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('p', 'mm', 'a4');
-                
-                const pageWidth = 210; // A4
-                const pageHeight = 297;
-                const margin = 10;
+                const originalMaxWidth = imgContainer.style.maxWidth;
+                imgContainer.style.maxWidth = 'none';
+                const canvas = await html2canvas(imgContainer, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+                imgContainer.style.maxWidth = originalMaxWidth; 
 
-                // 6. Calculate Fit
-                const imgWidth = canvas.width;
-                const imgHeight = canvas.height;
-                const ratio = imgWidth / imgHeight;
+                const pageW = 210, margin = 10;
+                const ratio = canvas.width / canvas.height;
+                const w = pageW - (margin * 2);
+                const h = w / ratio;
+                const x = (pageW - w) / 2;
+                const y = (297 - h) / 2;
 
-                const availableWidth = pageWidth - (margin * 2);
-                const availableHeight = pageHeight - (margin * 2);
-
-                let targetWidth_mm = availableWidth;
-                let targetHeight_mm = targetWidth_mm / ratio;
-
-                // If height is too big, base on height
-                if (targetHeight_mm > availableHeight) {
-                    targetHeight_mm = availableHeight;
-                    targetWidth_mm = targetHeight_mm * ratio;
-                }
-
-                // Center
-                const x = (pageWidth - targetWidth_mm) / 2;
-                const y = (pageHeight - targetHeight_mm) / 2;
-
-                doc.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', x, y, targetWidth_mm, targetHeight_mm);
-                doc.save(`ID_Card_FullSize.pdf`);
-                statusText.textContent = "PDF Downloaded!";
-
-            } catch (error) {
-                console.error(error);
-                alert("Error generating PDF: " + error.message);
+                doc.addImage(canvas.toDataURL('image/jpeg',1.0), 'JPEG', x, y, w, h);
+                doc.save(`ID_${currentFile.filename}.pdf`);
+                statusText.textContent = "PDF Downloaded.";
+            } catch (e) {
+                alert("PDF Error: " + e.message);
             } finally {
                 showLoading(false);
             }
         }
 
+        async function copyImage() {
+            if (!currentFile) return alert("Select an ID first.");
+            try {
+                const res = await fetch(currentFile.url);
+                const blob = await res.blob();
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                alert("Image Copied to Clipboard!");
+            } catch (e) {
+                alert("Copy failed: " + e.message);
+            }
+        }
+
+        async function downloadSingle() {
+            if (!currentFile) return alert("Select an ID first.");
+            downloadImageFromUrl(currentFile.url, currentFile.filename);
+        }
+
+        async function downloadAllToPhone() {
+            if (bucketFiles.length === 0) return alert("No IDs in bucket to download.");
+            
+            const confirmDownload = confirm(`Download ALL ${bucketFiles.length} IDs to your phone?`);
+            if (!confirmDownload) return;
+
+            optionsPanel.classList.remove('show');
+            btnToggle.textContent = "⚙️ Options";
+            
+            // Carbon Copy Logic: Download EVERYTHING
+            for (let i = 0; i < bucketFiles.length; i++) {
+                const f = bucketFiles[i];
+                statusText.textContent = `Downloading ${i+1} of ${bucketFiles.length}: ${f.filename}`;
+                await downloadImageFromUrl(f.url, f.filename);
+                // Small delay to prevent browser crash/block
+                await new Promise(r => setTimeout(r, 500));
+            }
+            
+            statusText.textContent = "✅ All IDs Downloaded!";
+            alert("Download Complete!");
+        }
+
+        async function downloadImageFromUrl(url, filename) {
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const linkUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = linkUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(linkUrl);
+            } catch (e) {
+                console.error("Failed to download: " + filename, e);
+            }
+        }
     </script>
 </body>
 </html>
