@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID Card Phone Viewer</title>
+    <title>ID Card Phone Viewer (Improved Copy)</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -13,7 +13,6 @@
             --primary-color: #2563eb;
             --bg-color: #f3f4f6;
             --text-dark: #1f2937;
-            --error-color: #ef4444;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -60,21 +59,11 @@
             display: none;
             border-radius: 8px;
             overflow: hidden;
-            min-height: 200px;
-            align-items: center;
-            justify-content: center;
         }
         .image-container img {
             width: 100%;
             height: auto;
             display: block;
-        }
-        /* Placeholder text for failed load */
-        .error-placeholder {
-            color: var(--error-color);
-            font-weight: bold;
-            text-align: center;
-            padding: 20px;
         }
 
         .info-box {
@@ -181,14 +170,15 @@
             flex-direction: column;
             align-items: center;
             text-align: center;
+            transition: all 0.2s;
         }
         .opt-btn:active { background: #f3f4f6; transform: scale(0.98); }
         .opt-btn span { font-size: 20px; margin-bottom: 4px; }
         
         .btn-pdf { color: #dc2626; border-color: #fca5a5; }
-        .btn-share { color: #d97706; border-color: #fcd34d; background: #fffbeb; } /* Share to Word */
+        .btn-copy { color: #2563eb; border-color: #93c5fd; }
         .btn-dl { color: #059669; border-color: #6ee7b7; }
-        .btn-all { color: #d97706; border-color: #fcd34d; grid-column: span 2; }
+        .btn-all { color: #d97706; border-color: #fcd34d; grid-column: span 2; background: #fffbeb; }
 
         #loading-overlay {
             display: none;
@@ -200,9 +190,35 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
         #status-text { text-align: center; font-size: 14px; color: #666; margin-top: 10px; }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #10b981;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 3000;
+            display: none;
+            font-weight: bold;
+            animation: slideDown 0.3s ease-out;
+        }
+        .toast.show { display: block; }
+        .toast.error { background: #ef4444; }
+        
+        @keyframes slideDown {
+            from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
     </style>
 </head>
 <body>
+
+    <div id="toast" class="toast"></div>
 
     <div id="loading-overlay">
         <div class="spinner"></div>
@@ -215,18 +231,16 @@
         </select>
 
         <div id="idImageContainer" class="image-container">
-            <div id="placeholderText" class="error-placeholder" style="display:none;">⚠️ Image Failed to Load</div>
-            <!-- Silent Error Handling -->
             <img id="idCardImg" src="" alt="ID Card" crossorigin="anonymous">
         </div>
 
         <div id="infoBox" class="info-box">
             <div class="info-header">File Details</div>
             <div class="info-row"><span class="info-label">Filename:</span><span class="info-value" id="infoFilename">-</span></div>
-            <div class="info-row"><span class="info-label">Status:</span><span class="info-value" id="infoStatus">-</span></div>
+            <div class="info-row"><span class="info-label">Status:</span><span class="info-value" style="color:green">Ready to Print/Download</span></div>
         </div>
 
-        <div id="status-text">Initializing...</div>
+        <div id="status-text">Initializing Bucket Connection...</div>
     </div>
 
     <div class="bottom-bar">
@@ -237,23 +251,18 @@
     <div class="options-panel" id="optionsPanel">
         <div class="opt-grid">
             <button class="opt-btn btn-pdf" onclick="printPDF()"><span>📄</span> PDF Print</button>
-            
-            <button class="opt-btn btn-share" onclick="shareImage()"><span>📤</span> Share to Word</button>
-
+            <button class="opt-btn btn-copy" onclick="copyImageImproved()"><span>📋</span> Copy Image (Improved)</button>
             <button class="opt-btn btn-dl" onclick="downloadSingle()"><span>⬇️</span> Download ID</button>
-
-            <button class="opt-btn btn-all" onclick="downloadAllToPhone()"><span>☁️</span> DOWNLOAD ALL (Carbon Copy)</button>
+            <button class="opt-btn btn-all" onclick="downloadAllToPhone()"><span>☁️</span> DOWNLOAD ALL TO PHONE</button>
         </div>
     </div>
 
     <script>
         const API_URL = '';
-        const SUPABASE_URL = "https://ibxgidohcxvbjtbzqpub.supabase.co";
         
         const bucketSelect = document.getElementById('bucketSelect');
         const imgContainer = document.getElementById('idImageContainer');
         const imgEl = document.getElementById('idCardImg');
-        const placeholderText = document.getElementById('placeholderText');
         const infoBox = document.getElementById('infoBox');
         const loadingOverlay = document.getElementById('loading-overlay');
         const loadingMsg = document.getElementById('loading-msg');
@@ -261,7 +270,7 @@
         const btnToggle = document.getElementById('btnToggle');
         const statusText = document.getElementById('status-text');
         const infoFilename = document.getElementById('infoFilename');
-        const infoStatus = document.getElementById('infoStatus');
+        const toast = document.getElementById('toast');
 
         let bucketFiles = []; 
         let currentFile = null;
@@ -273,7 +282,8 @@
                 statusText.textContent = `Found ${bucketFiles.length} IDs in Bucket.`;
             } catch (e) {
                 console.error(e);
-                statusText.textContent = "Error loading bucket list.";
+                statusText.textContent = "Error loading bucket.";
+                showToast("Failed to load bucket files", true);
             } finally {
                 showLoading(false);
             }
@@ -281,34 +291,37 @@
 
         async function fetchBucketList() {
             try {
-                // Call new route that lists EVERYTHING
                 const response = await fetch(`${API_URL}/api/storage/list-all`);
                 const data = await response.json();
                 
-                console.log("Bucket List Response:", data); // Debugging for Lolo (F12)
-
                 bucketFiles = Array.isArray(data) ? data : [];
-                populateDropdown(bucketFiles);
                 
-            } catch (e) {
-                console.error("Fetch List Error:", e);
-                statusText.textContent = "Failed to connect to server.";
-            }
-        }
+                bucketSelect.innerHTML = '<option value="" disabled selected>-- Select ID from Bucket --</option>';
+                
+                bucketFiles.forEach((file, index) => {
+                    const opt = document.createElement('option');
+                    opt.value = index;
+                    opt.textContent = file.filename;
+                    bucketSelect.appendChild(opt);
+                });
 
-        function populateDropdown(list) {
-            bucketSelect.innerHTML = '<option value="" disabled selected>-- Select ID from Bucket --</option>';
-            list.forEach((file, index) => {
-                const opt = document.createElement('option');
-                opt.value = index;
-                opt.textContent = file.filename;
-                bucketSelect.appendChild(opt);
-            });
+            } catch (e) {
+                alert("Failed to get file list. Is the Python route updated?");
+                throw e;
+            }
         }
 
         function showLoading(show, msg = "Loading...") {
             loadingOverlay.style.display = show ? 'flex' : 'none';
             loadingMsg.textContent = msg;
+        }
+
+        function showToast(message, isError = false) {
+            toast.textContent = message;
+            toast.className = 'toast show' + (isError ? ' error' : '');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
         }
 
         function selectFile() {
@@ -323,29 +336,13 @@
 
             currentFile = bucketFiles[index];
             
-            // Show Image
-            imgEl.style.display = 'block';
-            placeholderText.style.display = 'none';
             imgEl.src = currentFile.url;
             imgContainer.style.display = 'block';
-
-            // Show Info
-            infoFilename.textContent = currentFile.filename;
-            infoStatus.textContent = "Ready";
-            infoStatus.style.color = "green";
             
+            infoFilename.textContent = currentFile.filename;
             infoBox.style.display = 'block';
+            
             statusText.textContent = `Viewing: ${currentFile.filename}`;
-        }
-
-        // Silent Image Error Handler
-        imgEl.onerror = function() {
-            console.error("Image failed to load:", this.src);
-            imgEl.style.display = 'none';
-            placeholderText.style.display = 'block';
-            statusText.textContent = "Error: Could not load image from Bucket.";
-            infoStatus.textContent = "Failed";
-            infoStatus.style.color = "red";
         }
 
         function smartFilter() {
@@ -367,7 +364,7 @@
         }
 
         async function printPDF() {
-            if (!currentFile) return alert("Select an ID first.");
+            if (!currentFile) return showToast("Select an ID first", true);
             showLoading(true, "Generating PDF...");
             try {
                 const { jsPDF } = window.jspdf;
@@ -386,55 +383,179 @@
 
                 doc.addImage(canvas.toDataURL('image/jpeg',1.0), 'JPEG', x, y, w, h);
                 doc.save(`ID_${currentFile.filename}.pdf`);
+                showToast("PDF Downloaded Successfully!");
                 statusText.textContent = "PDF Downloaded.";
             } catch (e) {
-                console.error("PDF Error:", e);
-                alert("PDF Error: " + e.message);
+                showToast("PDF Error: " + e.message, true);
             } finally {
                 showLoading(false);
             }
         }
 
-        async function shareImage() {
-            if (!currentFile) return alert("Select an ID first.");
-            
-            showLoading(true, "Preparing Share...");
-            
-            try {
-                // 1. Get Image Blob
-                const response = await fetch(currentFile.url);
-                const blob = await response.blob();
-                
-                // 2. Create File Object
-                const file = new File([blob], "ID_Card.png", { type: blob.type });
-                
-                // 3. Native Share (Opens Word Share Sheet)
-                if (navigator.share) {
-                    await navigator.share({
-                        files: [file],
-                        title: 'My ID Card',
-                        text: 'Here is my ID card'
-                    });
-                    statusText.textContent = "Shared!";
-                } else {
-                    // Fallback
-                    alert("Share not supported. Use Download button.");
-                }
-            } catch (e) {
-                console.error("Share Error:", e);
-                alert("Share failed: " + e.message);
-            } finally {
-                showLoading(false);
+        /**
+         * IMPROVED COPY IMAGE FUNCTION
+         * Optimized for MS Word pasting with multiple fallback methods
+         */
+        async function copyImageImproved() {
+            if (!currentFile) {
+                showToast("Please select an ID first", true);
+                return;
             }
+
+            showLoading(true, "Preparing image for clipboard...");
+
+            try {
+                // Method 1: Try modern Clipboard API with PNG (Best for MS Word)
+                if (navigator.clipboard && navigator.clipboard.write) {
+                    try {
+                        const response = await fetch(currentFile.url);
+                        const blob = await response.blob();
+                        
+                        // Convert to PNG if not already (MS Word prefers PNG)
+                        let finalBlob = blob;
+                        if (!blob.type.includes('png')) {
+                            finalBlob = await convertToPNG(blob);
+                        }
+                        
+                        const clipboardItem = new ClipboardItem({
+                            'image/png': finalBlob
+                        });
+                        
+                        await navigator.clipboard.write([clipboardItem]);
+                        showLoading(false);
+                        showToast("✅ Image copied! Ready to paste in MS Word");
+                        statusText.textContent = "Image in clipboard - Ready for MS Word";
+                        
+                        // Auto-close options panel after successful copy
+                        setTimeout(() => {
+                            optionsPanel.classList.remove('show');
+                            btnToggle.textContent = "⚙️ Options";
+                        }, 1000);
+                        
+                        return;
+                    } catch (clipboardError) {
+                        console.warn("Clipboard API failed, trying fallback:", clipboardError);
+                    }
+                }
+
+                // Method 2: Canvas-based copy (Fallback for older browsers)
+                const canvas = await imageToCanvas(currentFile.url);
+                canvas.toBlob(async (blob) => {
+                    try {
+                        if (navigator.clipboard && navigator.clipboard.write) {
+                            const item = new ClipboardItem({ 'image/png': blob });
+                            await navigator.clipboard.write([item]);
+                            showLoading(false);
+                            showToast("✅ Image copied (Canvas method)");
+                            statusText.textContent = "Image copied - Ready to paste";
+                        } else {
+                            throw new Error("Clipboard not supported");
+                        }
+                    } catch (e) {
+                        showLoading(false);
+                        showToast("⚠️ Copy partially successful. Try manual copy.", true);
+                        // Show manual copy instructions
+                        showManualCopyInstructions();
+                    }
+                }, 'image/png', 1.0);
+
+            } catch (error) {
+                console.error("Copy failed:", error);
+                showLoading(false);
+                showToast("Copy failed. Try download instead.", true);
+                
+                // Offer download as alternative
+                if (confirm("Copy failed. Download image instead?")) {
+                    downloadSingle();
+                }
+            }
+        }
+
+        /**
+         * Convert image blob to PNG format
+         */
+        async function convertToPNG(blob) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                const url = URL.createObjectURL(blob);
+                
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    
+                    canvas.toBlob((pngBlob) => {
+                        URL.revokeObjectURL(url);
+                        resolve(pngBlob);
+                    }, 'image/png', 1.0);
+                };
+                
+                img.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    reject(new Error("Failed to load image"));
+                };
+                
+                img.src = url;
+            });
+        }
+
+        /**
+         * Convert image URL to canvas
+         */
+        async function imageToCanvas(imageUrl) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    
+                    resolve(canvas);
+                };
+                
+                img.onerror = () => reject(new Error("Failed to load image"));
+                img.src = imageUrl;
+            });
+        }
+
+        /**
+         * Show manual copy instructions if automatic copy fails
+         */
+        function showManualCopyInstructions() {
+            const instructions = `
+Manual Copy Instructions:
+1. Long-press the image above
+2. Select "Copy Image"
+3. Open MS Word
+4. Long-press and select "Paste"
+
+Or use the Download button to save the image first.
+            `;
+            alert(instructions.trim());
         }
 
         async function downloadSingle() {
-            if (!currentFile) return alert("Select an ID first.");
+            if (!currentFile) {
+                showToast("Select an ID first", true);
+                return;
+            }
+            showToast("Downloading...");
             downloadImageFromUrl(currentFile.url, currentFile.filename);
         }
 
         async function downloadAllToPhone() {
-            if (bucketFiles.length === 0) return alert("No IDs in bucket to download.");
+            if (bucketFiles.length === 0) {
+                showToast("No IDs in bucket to download", true);
+                return;
+            }
             
             const confirmDownload = confirm(`Download ALL ${bucketFiles.length} IDs to your phone?`);
             if (!confirmDownload) return;
@@ -442,16 +563,19 @@
             optionsPanel.classList.remove('show');
             btnToggle.textContent = "⚙️ Options";
             
-            // Carbon Copy: Download EVERYTHING
+            showLoading(true, "Starting bulk download...");
+            
             for (let i = 0; i < bucketFiles.length; i++) {
                 const f = bucketFiles[i];
                 statusText.textContent = `Downloading ${i+1} of ${bucketFiles.length}: ${f.filename}`;
+                loadingMsg.textContent = `Downloading ${i+1}/${bucketFiles.length}`;
                 await downloadImageFromUrl(f.url, f.filename);
                 await new Promise(r => setTimeout(r, 500));
             }
             
+            showLoading(false);
             statusText.textContent = "✅ All IDs Downloaded!";
-            alert("Download Complete!");
+            showToast("All downloads complete!");
         }
 
         async function downloadImageFromUrl(url, filename) {
@@ -467,7 +591,8 @@
                 document.body.removeChild(link);
                 window.URL.revokeObjectURL(linkUrl);
             } catch (e) {
-                console.error("Download Failed:", filename, e);
+                console.error("Failed to download: " + filename, e);
+                showToast("Download failed: " + filename, true);
             }
         }
     </script>
