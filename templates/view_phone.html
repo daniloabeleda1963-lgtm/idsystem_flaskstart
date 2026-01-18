@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID Card Phone Viewer (Improved Copy)</title>
+    <title>ID Card Phone Stacker</title>
     
+    <!-- Libraries (Necessary for future options, pero optional ngayon) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
@@ -22,203 +23,103 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
-            overflow: hidden;
+            overflow: hidden; /* Body overflow hidden, scrollbar sa workspace */
         }
         
         .workspace {
             flex-grow: 1;
             background: #e5e7eb;
-            overflow: auto;
+            overflow-y: auto; /* Vertical scrolling lang */
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px 10px;
-            gap: 15px;
-            padding-bottom: 100px;
+            padding: 10px;
+            padding-bottom: 70px; /* Space para sa buttons sa baba */
         }
 
+        /* Combobox Styling */
         .member-select {
             width: 100%;
             max-width: 600px;
-            padding: 15px;
+            padding: 12px;
             font-size: 16px;
             border: 2px solid #ccc;
             border-radius: 8px;
             background: white;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+            position: sticky; /* Dikit sa taas habang nag s-scroll ka */
+            top: 0;
+            z-index: 100;
         }
 
-        .image-container {
-            position: relative;
-            background-color: #fff;
+        /* Container ng mga stacked images */
+        .stack-container {
             width: 100%;
-            max-width: 400px;
-            height: auto;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            margin: 0 auto;
-            display: none;
-            border-radius: 8px;
-            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px; /* Space sa pagitan ng mga cards */
         }
-        .image-container img {
+
+        /* Individual ID Card Styling */
+        .id-card {
             width: 100%;
+            max-width: 380px; /* Standard ID width sa mobile */
             height: auto;
             display: block;
-        }
-
-        .info-box {
-            width: 100%;
-            max-width: 600px;
             background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            display: none;
-            font-size: 14px;
-            color: var(--text-dark);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            border: 1px solid #ddd; /* Visual boundary para sa cropping */
         }
-        .info-header {
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--primary-color);
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            border-bottom:1px dashed #f3f4f6;
-            padding-bottom: 4px;
-        }
-        .info-label { font-weight: 600; color: #6b7280; }
-        .info-value { text-align: right; font-weight: 500; }
 
+        /* Bottom Bar - Liit lang */
         .bottom-bar {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
             background: white;
-            padding: 10px 15px;
-            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+            padding: 8px 10px; /* Pinaikli ang padding */
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 1000;
+            justify-content: center; /* Centered buttons */
             gap: 10px;
+            z-index: 1000;
             box-sizing: border-box;
         }
 
         .nav-btn {
-            flex: 1;
-            padding: 15px;
-            font-size: 18px;
-            font-weight: bold;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .btn-home { background: #ef4444; color: white; }
-        .btn-opt { background: #2563eb; color: white; }
-
-        .options-panel {
-            position: fixed;
-            bottom: 70px;
-            left: 10px;
-            right: 10px;
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 15px;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
-            display: none;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 999;
-            animation: slideUp 0.3s ease-out;
-        }
-        .options-panel.show { display: flex; }
-
-        @keyframes slideUp {
-            from { transform: translateY(50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        .opt-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-        
-        .opt-btn {
-            background: white;
-            border: 2px solid #e5e7eb;
-            padding: 12px;
-            border-radius: 10px;
+            padding: 10px 20px;
             font-size: 14px;
             font-weight: bold;
-            color: #374151;
+            border: none;
+            border-radius: 8px;
             cursor: pointer;
+            color: white;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            text-align: center;
-            transition: all 0.2s;
+            gap: 5px;
         }
-        .opt-btn:active { background: #f3f4f6; transform: scale(0.98); }
-        .opt-btn span { font-size: 20px; margin-bottom: 4px; }
         
-        .btn-pdf { color: #dc2626; border-color: #fca5a5; }
-        .btn-copy { color: #2563eb; border-color: #93c5fd; }
-        .btn-dl { color: #059669; border-color: #6ee7b7; }
-        .btn-all { color: #d97706; border-color: #fcd34d; grid-column: span 2; background: #fffbeb; }
+        .btn-reset { background: #ef4444; }
+        .btn-guide { background: #2563eb; }
 
+        /* Loading Overlay */
         #loading-overlay {
             display: none;
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(255,255,255,0.9); z-index: 2000;
             flex-direction: column; align-items: center; justify-content: center;
         }
-        .spinner { border: 8px solid #f3f3f3; border-top: 8px solid var(--primary-color); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        #status-text { text-align: center; font-size: 14px; color: #666; margin-top: 10px; }
-
-        /* Toast Notification */
-        .toast {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #10b981;
-            color: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            z-index: 3000;
-            display: none;
-            font-weight: bold;
-            animation: slideDown 0.3s ease-out;
-        }
-        .toast.show { display: block; }
-        .toast.error { background: #ef4444; }
-        
-        @keyframes slideDown {
-            from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
-            to { transform: translateX(-50%) translateY(0); opacity: 1; }
-        }
+        #status-text { text-align: center; font-size: 12px; color: #666; margin-top: 10px; }
     </style>
 </head>
 <body>
-
-    <div id="toast" class="toast"></div>
 
     <div id="loading-overlay">
         <div class="spinner"></div>
@@ -226,64 +127,45 @@
     </div>
 
     <div class="workspace">
-        <select id="bucketSelect" class="member-select" onchange="selectFile()" oninput="smartFilter()">
-            <option value="" disabled selected>-- Loading Bucket Files... --</option>
+        <!-- Sticky Select Box -->
+        <select id="bucketSelect" class="member-select" onchange="addToStack()">
+            <option value="" disabled selected>-- Select ID to Add Below --</option>
         </select>
 
-        <div id="idImageContainer" class="image-container">
-            <img id="idCardImg" src="" alt="ID Card" crossorigin="anonymous">
+        <!-- Dito mag-a-accumulate ang mga ID Cards -->
+        <div id="stackContainer" class="stack-container">
+            <!-- Images will appear here one by one -->
         </div>
 
-        <div id="infoBox" class="info-box">
-            <div class="info-header">File Details</div>
-            <div class="info-row"><span class="info-label">Filename:</span><span class="info-value" id="infoFilename">-</span></div>
-            <div class="info-row"><span class="info-label">Status:</span><span class="info-value" style="color:green">Ready to Print/Download</span></div>
-        </div>
-
-        <div id="status-text">Initializing Bucket Connection...</div>
+        <div id="status-text" style="margin-top: 20px;">Select an ID above to start stacking...</div>
     </div>
 
+    <!-- Simpleng Bottom Bar -->
     <div class="bottom-bar">
-        <button class="nav-btn btn-home" onclick="goHome()">🏠 Home</button>
-        <button class="nav-btn btn-opt" id="btnToggle" onclick="toggleOptions()">⚙️ Options</button>
-    </div>
-
-    <div class="options-panel" id="optionsPanel">
-        <div class="opt-grid">
-            <button class="opt-btn btn-pdf" onclick="printPDF()"><span>📄</span> PDF Print</button>
-            <button class="opt-btn btn-copy" onclick="copyImageImproved()"><span>📋</span> Copy Image (Improved)</button>
-            <button class="opt-btn btn-dl" onclick="downloadSingle()"><span>⬇️</span> Download ID</button>
-            <button class="opt-btn btn-all" onclick="downloadAllToPhone()"><span>☁️</span> DOWNLOAD ALL TO PHONE</button>
-        </div>
+        <button class="nav-btn btn-reset" onclick="clearStack()">🗑️ Clear / Reset</button>
+        <button class="nav-btn btn-guide" onclick="goHome()">🏠 Home</button>
     </div>
 
     <script>
-        const API_URL = '';
+        const API_URL = ''; // Dito mo lalagyan ng URL kung kailangan
         
         const bucketSelect = document.getElementById('bucketSelect');
-        const imgContainer = document.getElementById('idImageContainer');
-        const imgEl = document.getElementById('idCardImg');
-        const infoBox = document.getElementById('infoBox');
+        const stackContainer = document.getElementById('stackContainer');
         const loadingOverlay = document.getElementById('loading-overlay');
         const loadingMsg = document.getElementById('loading-msg');
-        const optionsPanel = document.getElementById('optionsPanel');
-        const btnToggle = document.getElementById('btnToggle');
         const statusText = document.getElementById('status-text');
-        const infoFilename = document.getElementById('infoFilename');
-        const toast = document.getElementById('toast');
 
         let bucketFiles = []; 
-        let currentFile = null;
 
         window.addEventListener('DOMContentLoaded', async () => {
             showLoading(true, "Connecting to Bucket...");
             try {
                 await fetchBucketList();
-                statusText.textContent = `Found ${bucketFiles.length} IDs in Bucket.`;
+                statusText.textContent = `Ready! Found ${bucketFiles.length} IDs.`;
             } catch (e) {
                 console.error(e);
                 statusText.textContent = "Error loading bucket.";
-                showToast("Failed to load bucket files", true);
+                alert("Error: " + e.message);
             } finally {
                 showLoading(false);
             }
@@ -291,12 +173,14 @@
 
         async function fetchBucketList() {
             try {
+                // Kunin ang listahan ng files
                 const response = await fetch(`${API_URL}/api/storage/list-all`);
                 const data = await response.json();
                 
                 bucketFiles = Array.isArray(data) ? data : [];
                 
-                bucketSelect.innerHTML = '<option value="" disabled selected>-- Select ID from Bucket --</option>';
+                // Reset options
+                bucketSelect.innerHTML = '<option value="" disabled selected>-- Select ID to Add Below --</option>';
                 
                 bucketFiles.forEach((file, index) => {
                     const opt = document.createElement('option');
@@ -306,7 +190,7 @@
                 });
 
             } catch (e) {
-                alert("Failed to get file list. Is the Python route updated?");
+                alert("Failed to get file list. Check connection/API.");
                 throw e;
             }
         }
@@ -316,284 +200,51 @@
             loadingMsg.textContent = msg;
         }
 
-        function showToast(message, isError = false) {
-            toast.textContent = message;
-            toast.className = 'toast show' + (isError ? ' error' : '');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-        }
-
-        function selectFile() {
-            const index = bucketSelect.value;
-            if (index === "" || index === null) {
-                imgContainer.style.display = 'none';
-                imgEl.src = "";
-                infoBox.style.display = 'none';
-                currentFile = null;
-                return;
-            }
-
-            currentFile = bucketFiles[index];
-            
-            imgEl.src = currentFile.url;
-            imgContainer.style.display = 'block';
-            
-            infoFilename.textContent = currentFile.filename;
-            infoBox.style.display = 'block';
-            
-            statusText.textContent = `Viewing: ${currentFile.filename}`;
-        }
-
-        function smartFilter() {
-            const query = bucketSelect.value.toLowerCase();
-            const options = bucketSelect.options;
-            for (let i = 1; i < options.length; i++) {
-                const text = options[i].text.toLowerCase();
-                options[i].style.display = text.includes(query) ? "" : "none";
-            }
-        }
-
-        function toggleOptions() {
-            optionsPanel.classList.toggle('show');
-            btnToggle.textContent = optionsPanel.classList.contains('show') ? "❌ Close" : "⚙️ Options";
-        }
-
         function goHome() {
             window.location.href = '/';
         }
 
-        async function printPDF() {
-            if (!currentFile) return showToast("Select an ID first", true);
-            showLoading(true, "Generating PDF...");
-            try {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF('p', 'mm', 'a4');
-                const originalMaxWidth = imgContainer.style.maxWidth;
-                imgContainer.style.maxWidth = 'none';
-                const canvas = await html2canvas(imgContainer, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
-                imgContainer.style.maxWidth = originalMaxWidth; 
-
-                const pageW = 210, margin = 10;
-                const ratio = canvas.width / canvas.height;
-                const w = pageW - (margin * 2);
-                const h = w / ratio;
-                const x = (pageW - w) / 2;
-                const y = (297 - h) / 2;
-
-                doc.addImage(canvas.toDataURL('image/jpeg',1.0), 'JPEG', x, y, w, h);
-                doc.save(`ID_${currentFile.filename}.pdf`);
-                showToast("PDF Downloaded Successfully!");
-                statusText.textContent = "PDF Downloaded.";
-            } catch (e) {
-                showToast("PDF Error: " + e.message, true);
-            } finally {
-                showLoading(false);
+        function clearStack() {
+            if(confirm("Burahin lahat ng nasa screen?")) {
+                stackContainer.innerHTML = '';
+                statusText.textContent = "Stack Cleared. Ready for new batch.";
+                // Scroll back to top
+                document.querySelector('.workspace').scrollTop = 0;
+                // Reset select box
+                bucketSelect.value = "";
             }
         }
 
-        /**
-         * IMPROVED COPY IMAGE FUNCTION
-         * Optimized for MS Word pasting with multiple fallback methods
-         */
-        async function copyImageImproved() {
-            if (!currentFile) {
-                showToast("Please select an ID first", true);
-                return;
-            }
+        // MAIN FUNCTION: Add to Stack
+        function addToStack() {
+            const index = bucketSelect.value;
+            if (index === "" || index === null) return;
 
-            showLoading(true, "Preparing image for clipboard...");
-
-            try {
-                // Method 1: Try modern Clipboard API with PNG (Best for MS Word)
-                if (navigator.clipboard && navigator.clipboard.write) {
-                    try {
-                        const response = await fetch(currentFile.url);
-                        const blob = await response.blob();
-                        
-                        // Convert to PNG if not already (MS Word prefers PNG)
-                        let finalBlob = blob;
-                        if (!blob.type.includes('png')) {
-                            finalBlob = await convertToPNG(blob);
-                        }
-                        
-                        const clipboardItem = new ClipboardItem({
-                            'image/png': finalBlob
-                        });
-                        
-                        await navigator.clipboard.write([clipboardItem]);
-                        showLoading(false);
-                        showToast("✅ Image copied! Ready to paste in MS Word");
-                        statusText.textContent = "Image in clipboard - Ready for MS Word";
-                        
-                        // Auto-close options panel after successful copy
-                        setTimeout(() => {
-                            optionsPanel.classList.remove('show');
-                            btnToggle.textContent = "⚙️ Options";
-                        }, 1000);
-                        
-                        return;
-                    } catch (clipboardError) {
-                        console.warn("Clipboard API failed, trying fallback:", clipboardError);
-                    }
-                }
-
-                // Method 2: Canvas-based copy (Fallback for older browsers)
-                const canvas = await imageToCanvas(currentFile.url);
-                canvas.toBlob(async (blob) => {
-                    try {
-                        if (navigator.clipboard && navigator.clipboard.write) {
-                            const item = new ClipboardItem({ 'image/png': blob });
-                            await navigator.clipboard.write([item]);
-                            showLoading(false);
-                            showToast("✅ Image copied (Canvas method)");
-                            statusText.textContent = "Image copied - Ready to paste";
-                        } else {
-                            throw new Error("Clipboard not supported");
-                        }
-                    } catch (e) {
-                        showLoading(false);
-                        showToast("⚠️ Copy partially successful. Try manual copy.", true);
-                        // Show manual copy instructions
-                        showManualCopyInstructions();
-                    }
-                }, 'image/png', 1.0);
-
-            } catch (error) {
-                console.error("Copy failed:", error);
-                showLoading(false);
-                showToast("Copy failed. Try download instead.", true);
-                
-                // Offer download as alternative
-                if (confirm("Copy failed. Download image instead?")) {
-                    downloadSingle();
-                }
-            }
-        }
-
-        /**
-         * Convert image blob to PNG format
-         */
-        async function convertToPNG(blob) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                const url = URL.createObjectURL(blob);
-                
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0);
-                    
-                    canvas.toBlob((pngBlob) => {
-                        URL.revokeObjectURL(url);
-                        resolve(pngBlob);
-                    }, 'image/png', 1.0);
-                };
-                
-                img.onerror = () => {
-                    URL.revokeObjectURL(url);
-                    reject(new Error("Failed to load image"));
-                };
-                
-                img.src = url;
-            });
-        }
-
-        /**
-         * Convert image URL to canvas
-         */
-        async function imageToCanvas(imageUrl) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0);
-                    
-                    resolve(canvas);
-                };
-                
-                img.onerror = () => reject(new Error("Failed to load image"));
-                img.src = imageUrl;
-            });
-        }
-
-        /**
-         * Show manual copy instructions if automatic copy fails
-         */
-        function showManualCopyInstructions() {
-            const instructions = `
-Manual Copy Instructions:
-1. Long-press the image above
-2. Select "Copy Image"
-3. Open MS Word
-4. Long-press and select "Paste"
-
-Or use the Download button to save the image first.
-            `;
-            alert(instructions.trim());
-        }
-
-        async function downloadSingle() {
-            if (!currentFile) {
-                showToast("Select an ID first", true);
-                return;
-            }
-            showToast("Downloading...");
-            downloadImageFromUrl(currentFile.url, currentFile.filename);
-        }
-
-        async function downloadAllToPhone() {
-            if (bucketFiles.length === 0) {
-                showToast("No IDs in bucket to download", true);
-                return;
-            }
+            const file = bucketFiles[index];
             
-            const confirmDownload = confirm(`Download ALL ${bucketFiles.length} IDs to your phone?`);
-            if (!confirmDownload) return;
+            // Create Image Element
+            const imgEl = document.createElement('img');
+            imgEl.src = file.url;
+            imgEl.className = 'id-card';
+            imgEl.alt = file.filename;
+            
+            // Add loading attribute for performance
+            imgEl.loading = "lazy";
 
-            optionsPanel.classList.remove('show');
-            btnToggle.textContent = "⚙️ Options";
-            
-            showLoading(true, "Starting bulk download...");
-            
-            for (let i = 0; i < bucketFiles.length; i++) {
-                const f = bucketFiles[i];
-                statusText.textContent = `Downloading ${i+1} of ${bucketFiles.length}: ${f.filename}`;
-                loadingMsg.textContent = `Downloading ${i+1}/${bucketFiles.length}`;
-                await downloadImageFromUrl(f.url, f.filename);
-                await new Promise(r => setTimeout(r, 500));
-            }
-            
-            showLoading(false);
-            statusText.textContent = "✅ All IDs Downloaded!";
-            showToast("All downloads complete!");
-        }
+            // Append sa baba
+            stackContainer.appendChild(imgEl);
 
-        async function downloadImageFromUrl(url, filename) {
-            try {
-                const response = await fetch(url);
-                const blob = await response.blob();
-                const linkUrl = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = linkUrl;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(linkUrl);
-            } catch (e) {
-                console.error("Failed to download: " + filename, e);
-                showToast("Download failed: " + filename, true);
-            }
+            // Auto scroll sa baba para makita ang bago
+            setTimeout(() => {
+                imgEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }, 100);
+
+            // Update Status
+            const currentCount = stackContainer.children.length;
+            statusText.textContent = `Added: ${file.filename} (Total in stack: ${currentCount})`;
+
+            // Reset select box para ready sa sunod
+            bucketSelect.value = "";
         }
     </script>
 </body>
