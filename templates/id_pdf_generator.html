@@ -24,7 +24,7 @@
             display: flex; flex-direction: column; border-right: 1px solid #334155;
             z-index: 200; overflow-y: auto;
         }
-        .sidebar-header { padding: 15px; background: #0f172a; font-weight: bold; border-bottom: 1px solid #334155; }
+        .sidebar-header { padding: 15px; background: #0f172a; font-weight: bold; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;}
         
         /* PANELS */
         .panel { padding: 10px; border-bottom: 1px solid #334155; }
@@ -132,6 +132,18 @@
             cursor: pointer;
         }
 
+        /* Close Button Styling (Inside Sidebar) */
+        #closeSidebarBtn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        #closeSidebarBtn:hover { color: white; }
+
         @media (max-width: 768px) {
             /* 2. Show the Toggle Button */
             #mobileMenuBtn {
@@ -177,7 +189,11 @@
 
     <!-- SIDEBAR: CLEAN & TIDY -->
     <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">ID Generator</div>
+        <div class="sidebar-header">
+            ID Generator
+            <!-- ADDED CLOSE BUTTON HERE -->
+            <button id="closeSidebarBtn">✖</button>
+        </div>
 
         <!-- 1. MEMBERS PANEL -->
         <div class="panel">
@@ -297,15 +313,21 @@
         let startX, startY, startWidth, startHeight, startLeft, startTop;
         let allOfficers = [];
 
-        // --- 0. MOBILE MENU LOGIC (ADDED) ---
+        // --- 0. MOBILE MENU LOGIC (UPDATED) ---
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const closeSidebarBtn = document.getElementById('closeSidebarBtn'); // NEW
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
 
-        // Toggle Sidebar
+        // Toggle Sidebar (Open)
         mobileMenuBtn.addEventListener('click', (e) => {
             e.stopPropagation(); // Prevent click from going to document
             sidebar.classList.toggle('active');
+        });
+
+        // Toggle Sidebar (Close via Button)
+        closeSidebarBtn.addEventListener('click', () => {
+            sidebar.classList.remove('active');
         });
 
         // Close Sidebar when clicking Main Content ("Itutulak para itago")
