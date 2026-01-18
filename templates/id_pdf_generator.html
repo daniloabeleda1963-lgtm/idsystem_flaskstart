@@ -119,51 +119,56 @@
         .rh-ne { top: -4px; right: -4px; cursor: nesw-resize; }
         .rh-nw { top: -4px; left: -4px; cursor: nwse-resize; }
 
-        /* --- MOBILE RESPONSIVE SIZES (ADDED) --- */
+        /* --- MOBILE SLIDING SIDEBAR (CURTAIN EFFECT) --- */
+        /* 1. Toggle Button Styling */
+        #mobileMenuBtn {
+            display: none; /* Hidden on desktop */
+            font-size: 18px;
+            padding: 6px 12px;
+            background: #1e293b;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
         @media (max-width: 768px) {
-            body {
-                flex-direction: column; /* Stack sidebar on top of content */
-                overflow: auto; /* Allow scrolling the whole page */
-                height: auto; /* Remove fixed height to allow full scrolling */
+            /* 2. Show the Toggle Button */
+            #mobileMenuBtn {
+                display: block;
             }
 
-            /* Sidebar Styles for Mobile */
+            /* 3. Sidebar becomes a "Curtain" / Drawer */
             .sidebar {
-                width: 100%;
-                height: auto;
-                max-height: 320px; /* Limit height so editor is reachable */
-                flex-shrink: 0;
-                border-right: none;
-                border-bottom: 2px solid #334155;
+                position: fixed;
+                top: 0;
+                left: -280px; /* Hide completely to the left */
+                height: 100%;
+                width: 280px;
+                transition: left 0.3s ease-in-out; /* Smooth slide animation */
+                z-index: 9999;
+                box-shadow: 2px 0 10px rgba(0,0,0,0.5);
             }
 
-            /* Make transfer lists smaller */
-            .transfer-box {
-                height: 100px; 
+            /* 4. Class to show the sidebar (Active State) */
+            .sidebar.active {
+                left: 0;
             }
 
-            /* Toolbar Adjustments */
+            /* 5. Adjust Toolbar for Mobile */
             .toolbar {
-                flex-direction: column;
-                padding: 10px;
-                align-items: stretch;
+                padding: 8px 10px;
+                gap: 5px;
             }
+            
             .toolbar-group {
                 flex-wrap: wrap;
                 justify-content: center;
             }
 
-            /* Workspace Adjustments */
+            /* 6. Adjust Workspace padding to maximize view */
             .workspace {
-                padding: 10px; /* Less padding */
-                align-items: flex-start; /* Align left to allow horizontal scroll if needed */
-            }
-
-            /* Force Scale Down the Canvas to fit phone screen */
-            .canvas-wrapper {
-                transform-origin: top left;
-                transform: scale(0.4) !important; /* Force small scale */
-                margin-bottom: -250px; /* Counteract the whitespace caused by scaling down */
+                padding: 10px;
             }
         }
     </style>
@@ -171,7 +176,7 @@
 <body>
 
     <!-- SIDEBAR: CLEAN & TIDY -->
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
         <div class="sidebar-header">ID Generator</div>
 
         <!-- 1. MEMBERS PANEL -->
@@ -225,9 +230,12 @@
     </div>
 
     <!-- MAIN CONTENT -->
-    <div class="main-content">
+    <div class="main-content" id="mainContent">
         <div class="toolbar">
             <div class="toolbar-group">
+                <!-- MOBILE MENU TOGGLE BUTTON -->
+                <button id="mobileMenuBtn">☰</button>
+
                 <label class="primary" style="padding:6px 12px; cursor:pointer; border-radius:4px; background:#6366f1; color:white;">
                     📁 Template
                     <input type="file" id="templateUpload" accept="image/*" style="display:none;">
@@ -288,6 +296,24 @@
         let isDragging = false, isResizing = false, currentEl = null, currentHandle = null;
         let startX, startY, startWidth, startHeight, startLeft, startTop;
         let allOfficers = [];
+
+        // --- 0. MOBILE MENU LOGIC (ADDED) ---
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+
+        // Toggle Sidebar
+        mobileMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent click from going to document
+            sidebar.classList.toggle('active');
+        });
+
+        // Close Sidebar when clicking Main Content ("Itutulak para itago")
+        mainContent.addEventListener('click', () => {
+            if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+            }
+        });
 
         // --- 1. MEMBERS LOGIC ---
         async function loadMembers() {
