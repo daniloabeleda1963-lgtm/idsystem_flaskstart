@@ -5,6 +5,7 @@ import os
 import re
 import io         # ADDED: Needed for image stream handling
 import base64     # ADDED: Needed for base64 decoding
+import tempfile   # ADDED: Needed for temporary file handling
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from dotenv import load_dotenv
@@ -761,17 +762,24 @@ def view_phone():
     Celphone Only ID Viewer (User Friendly).
     Direct access for members to select name and download ID without Admin tools.
     """
-    return render_template('view_phone.html')
+    # === FIX: PASS SUPAB_URL TO HTML ===
+    # Dito pumapasok yung variable na gagamitin ng HTML (JavaScript)
+    return render_template('view_phone.html', supabase_url=SUPAB_URL)
 
 # ==============================
-# NEW: SAVE CARD IMAGE ROUTE (UPDATED FOR STORAGE)
+# FIXED: SAVE CARD IMAGE (Temp File Method + STATIC FILENAME)
 # ==============================
 @app.route('/save_card_image', methods=['POST'])
 def save_card_image():
-    """
-    UPDATED VERSION FOR SUPABASE STORAGE + TIME BOMB.
-    I-upload sa 'public_id_cards' bucket, tapos i-save ang URL sa 'members' table.
-    """
+    # Helper logging
+    def log(message):
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        with open("error_log.txt", "a") as f:
+            f.write(f"\n[{timestamp}] {message}")
+        print(message)
+
+    log(">>> ROUTE TRIGGERED: Save Card")
+
     try:
         db = get_db()
         data = request.json
@@ -779,56 +787,226 @@ def save_card_image():
         image_data = data.get('image_data') 
 
         if not member_id or not image_data:
+            log(">>> ERROR: Missing member_id or image_data")
             return jsonify({'success': False, 'message': 'Missing data'}), 400
 
+        log(f">>> Processing Member ID: {member_id}")
+
         # --- STEP 1: DECODE BASE64 ---
-        # Tanggalin ang prefix "data:image/png;base64,"
-        if "base64," in image_data:
-            base64_string = image_data.split("base64,")[1]
-        else:
-            base64_string = image_data
+        try:
+            # Remove header kung meron
+            if "," in image_data:
+                base64_string = image_data.split(",")[1]
+            else:
+                base64_string = image_data
             
-        # Decode binary
-        image_bytes = base64.b64decode(base64_string)
-        
-        # --- STEP 2: UPLOAD TO SUPABASE STORAGE ---
+            # Decode string to bytes
+            image_bytes = base64.b64decode(base64_string)
+            log(f">>> Decoded Image Size: {len(image_bytes)} bytes")
+        except Exception as decode_err:
+            log(f">>> DECODING ERROR: {decode_err}")
+            return jsonify({'success': False, 'message': 'Invalid Image Data'}), 400
+
+        # --- STEP 2: UPLOAD TO SUPABASE STORAGE (Using Temp File) ---
         bucket_name = "public_id_cards" 
         
-        # Create unique filename: memberid_timestamp.png
-        filename = f"guardian_ids/{member_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.png"
+        # --- UPDATE: STATIC FILENAME (Overwrite instead of Duplicate) ---
+        filename = f"guardian_ids/{member_id}.png"
+        log(f">>> Target Path: {bucket_name}/{filename} (Mode: OVERWRITE)")
         
-        # Upload stream
-        file_stream = io.BytesIO(image_bytes)
-        
-        # Upload Logic
-        upload_response = supabase.storage \
-            .from_(bucket_name) \
-            .upload(filename, file_stream)
+        try:
+            # A. Create a temporary file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                tmp_file.write(image_bytes)
+                temp_path = tmp_file.name
             
-        # Handle Error kung existing na
-        if hasattr(upload_response, 'error') and upload_response.error:
-            # Kung error ay "already exists", ok lang. Pero kung iba, alert.
-            if 'already exists' not in str(upload_response.error).lower():
-                print(f"Storage Upload Error: {upload_response.error}")
-                return jsonify({'success': False, 'message': 'Storage upload failed'}), 500
+            log(f">>> Created Temp File: {temp_path}")
+
+            # B. Prepare options
+            options = {
+                "content-type": "image/png",
+                "upsert": "true"  # <--- NAG-IISA LANG ANG FILE PER MEMBER
+            }
+
+            # C. Upload using the File Path (String)
+            upload_response = supabase.storage.from_(bucket_name).upload(
+                path=filename, 
+                file=temp_path,  # <-- String path, not io.BytesIO
+                file_options=options
+            )
+            
+            log(f">>> Upload Response: {upload_response}")
+
+            # D. Delete the temporary file after upload (Cleanup)
+            try:
+                os.remove(temp_path)
+                log(f">>> Deleted Temp File: {temp_path}")
+            except:
+                pass # Hindi critical kung di ma-delete temp file
+
+            log(">>> UPLOAD SEEMS SUCCESSFUL")
+
+        except Exception as upload_err:
+            # Clean up temp file if error occurs
+            if 'temp_path' in locals() and os.path.exists(temp_path):
+                os.remove(temp_path)
+                
+            error_msg = str(upload_err)
+            log(f">>> UPLOAD EXCEPTION: {error_msg}")
+            
+            if "Bucket not found" in error_msg:
+                return jsonify({'success': False, 'message': 'Bucket "public_id_cards" does not exist.'}), 500
+            elif "Permission denied" in error_msg:
+                return jsonify({'success': False, 'message': 'Storage Permission Denied. Check Service Key.'}), 500
+                
+            return jsonify({'success': False, 'message': f"Upload Failed: {error_msg}"}), 500
 
         # --- STEP 3: GET PUBLIC URL ---
-        image_url_data = supabase.storage.from_(bucket_name).get_public_url(filename)
+        try:
+            image_url_data = supabase.storage.from_(bucket_name).get_public_url(filename)
+            log(f">>> Public URL: {image_url_data}")
+        except Exception as url_err:
+            log(f">>> URL ERROR: {url_err}")
+            # Fallback manual URL construction
+            image_url_data = f"{SUPAB_URL}/storage/v1/object/public/{bucket_name}/{filename}"
 
         # --- STEP 4: SAVE URL TO DATABASE ---
-        # Ito ay nag-i-save lang ng maliit na string, hindi ng malaking image.
-        payload = {
-            'generated_card_image': image_url_data, 
-            'generated_at': datetime.now().isoformat() # Time Bomb trigger
-        }
+        try:
+            payload = {
+                'generated_card_image': image_url_data, 
+                'generated_at': datetime.now().isoformat()
+            }
+            db.from_('members').update(payload).eq('id', member_id).execute()
+            log(">>> DATABASE UPDATE SUCCESS")
+        except Exception as db_err:
+            log(f">>> DATABASE ERROR: {db_err}")
+            return jsonify({'success': False, 'message': f"DB Error: {str(db_err)}"}), 500
 
-        db.from_('members').update(payload).eq('id', member_id).execute()
-
-        return jsonify({'success': True, 'message': 'ID Card saved to Database & Storage.'})
+        return jsonify({'success': True, 'message': 'ID Card saved successfully.', 'url': image_url_data})
 
     except Exception as e:
-        print(f"Save Card Error: {e}")
+        log(f">>> FATAL ERROR (Outer Loop): {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+## ==============================
+# UPDATED: BATCH DELETE CARDS (Case Sensitive Fix)
+# ==============================
+@app.route('/delete_cards_batch', methods=['POST'])
+def delete_cards_batch():
+    """
+    Deletes generated IDs for a list of members.
+    FIX: Handles both .png and .PNG to catch Case Sensitive issues.
+    """
+    try:
+        db = get_db()
+        data = request.json
+        member_ids = data.get('member_ids')
+
+        if not member_ids:
+            return jsonify({'success': False, 'message': 'No members selected'}), 400
+
+        print(f">>> BATCH DELETE INITIATED (Umpisa-Umaga Fix) for {len(member_ids)} members.")
+
+        # --- STEP 1: GATHER FILES TO DELETE ---
+        files_to_remove = set() 
+
+        # A. KUNIN YUNG NAKASULAT SA DATABASE (Old Files)
+        print(">>> Checking Database for Files...")
+        get_members = db.from_('members').select('id', 'generated_card_image') \
+            .in_('id', member_ids).execute()
+        
+        if get_members.data:
+            for record in get_members.data:
+                url = record.get('generated_card_image')
+                if url:
+                    try:
+                        if '/public_id_cards/' in url:
+                            filename = url.split(f'/public_id_cards/')[-1]
+                            files_to_remove.add(filename)
+                            print(f"   -> Found in DB: {filename}")
+                    except Exception as e:
+                        print(f"   -> Error splitting URL: {e}")
+
+        # B. DAGDAGIN ANG STATIC FILENAMES (Case Sensitive!)
+        # Buburahin natin BOTH: lower case AND upper case extensions.
+        # Para siguradong mapatay kahit anong klaseng extension.
+        print(">>> Adding Standard Filenames (.png & .PNG)...")
+        for mid in member_ids:
+            lower_case = f"guardian_ids/{mid}.png"
+            upper_case = f"guardian_ids/{mid}.PNG"
+            
+            files_to_remove.add(lower_case)
+            files_to_remove.add(upper_case)
+            
+            print(f"   -> Adding: {lower_case} & {upper_case}")
+
+        # Convert set to list
+        final_list = list(files_to_remove)
+        
+        print(f">>> TOTAL COMMANDS PREPARED: {len(final_list)}")
+        print(f">>> SENDING COMMANDS TO SUPABASE: {final_list}")
+
+        # --- STEP 2: EXECUTE DELETE ---
+        if final_list:
+            try:
+                response = supabase.storage.from_('public_id_cards').remove(final_list)
+                print(">>> DELETE COMMAND SENT SUCCESSFULLY.")
+                print(">>> CHECK SUPABASE DASHBOARD NOW.")
+            except Exception as e:
+                print(f">>> STORAGE DELETE ERROR: {e}")
+                print(">>> BUT WE WILL STILL CLEAR DATABASE.")
+        else:
+            print(">>> No files found to delete.")
+
+        # --- STEP 3: CLEAR DATABASE ---
+        payload = {
+            'generated_card_image': None,
+            'generated_at': None
+        }
+        db.from_('members').update(payload).in_('id', member_ids).execute()
+
+        return jsonify({
+            'success': True, 
+            'message': f'Delete commands sent for {len(member_ids)} members.'
+        }), 200
+
+    except Exception as e:
+        print(f">>> BATCH DELETE GENERAL ERROR: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# ==============================
+# NEW: BUCKET ONLY LIST (Lolo's Rule)
+# ==============================
+@app.route('/api/storage/list-all', methods=['GET'])
+def list_bucket_only():
+    """
+    Lahat ng nasa bucket, ilalabas.
+    Hindi na tayo magho-hibernate ng file.
+    Kung nasa guardian_ids, lalabas siya.
+    """
+    try:
+        bucket_name = "public_id_cards"
+        folder_path = "guardian_ids"
+
+        # 1. LIST ALL FILES
+        # Ito automatic na siya kuha lahat ng laman ng folder
+        files_response = supabase.storage.from_(bucket_name).list(path=folder_path)
+        
+        # 2. PREPARE DATA (Lagyan ng URL para madaling i-display)
+        result = []
+        for f in files_response:
+            result.append({
+                'filename': f['name'],
+                'url': f"{SUPAB_URL}/storage/v1/object/public/{bucket_name}/{folder_path}/{f['name']}"
+            })
+
+        # 3. RETURN LIST (Sort by Filename para maayos)
+        # Reverse (Descending) para yung pinaka-bago naka-sa taas
+        return jsonify(sorted(result, key=lambda x: x['filename'], reverse=True)), 200
+
+    except Exception as e:
+        print(f">>> Error listing bucket: {e}")
+        return jsonify([]), 500
 
 # ==============================
 # Run App
