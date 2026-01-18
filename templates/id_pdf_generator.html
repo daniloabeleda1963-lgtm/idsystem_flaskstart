@@ -10,6 +10,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <style>
+        /* GLOBAL RESET */
+        *, *::before, *::after { box-sizing: border-box; }
+
         :root {
             --primary-color: #2563eb;
             --bg-color: #f3f4f6;
@@ -88,24 +91,45 @@
             transform-origin: top center;
         }
 
-        /* ELEMENTS */
+        /* ELEMENTS (WORDPAD STYLE CENTERING - FINAL VERSION) */
         .canvas-element {
-            position: absolute; cursor: move; background: rgba(37, 99, 235, 0.15);
-            border: 1px dashed var(--primary-color); color: #1e3a8a; font-size: 12px; font-weight: bold;
-            display: flex; align-items: center; justify-content: center; text-align: center;
-            box-sizing: border-box; z-index: 100; overflow: hidden;
+            position: absolute; cursor: move; background: transparent; 
+            border: none; 
+            color: #1e3a8a; font-size: 12px; font-weight: bold;
+            
+            /* CRITICAL CENTERING STYLES */
+            display: flex; /* Enables Flexbox Centering */
+            align-items: center; /* Vertically Centers Text (Fixes 'Malayo ng itaas') */
+            justify-content: center; /* Horizontally Centers Text (Fixes 'Hindi gitna') */
+            text-align: center; /* Internal Text Alignment */
+            
+            z-index: 100; overflow: hidden;
         }
-        .canvas-element.selected { border: 2px solid var(--primary-color); background: rgba(37, 99, 235, 0.3); z-index: 101; }
-        .canvas-element.is-line { background: transparent; border-bottom: 2px solid black; height: 0px !important; min-height: 2px; }
-        .canvas-element.is-box { background: transparent; border: 1px solid black; }
-        .canvas-element.is-image { background: transparent; border: 1px dashed #10b981; display: flex; align-items: center; justify-content: center; }
+        /* Selection Style */
+        .canvas-element.selected { 
+            border: 2px solid var(--primary-color) !important; 
+            background: rgba(37, 99, 235, 0.3); 
+            z-index: 101; 
+        }
+        
+        .canvas-element.is-line { 
+            background: transparent; 
+            border: none; /* Reset general border */
+            border-bottom: 2px solid black; /* Apply specific border */
+            height: 0px !important; min-height: 2px; 
+        }
+        
+        .canvas-element.is-box { background: transparent; border: none; }
+        .canvas-element.is-image { background: transparent; border: none; display: flex; align-items: center; justify-content: center; }
+        .canvas-element.is-photo { background: transparent; border: none; }
+        
         .canvas-element img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 
         .custom-textbox {
             position: absolute; background: transparent; border: 1px dashed #94a3b8;
             color: #000; font-size: 14px; font-family: 'Segoe UI', sans-serif;
             z-index: 200; min-width: 200px; min-height: 20px; cursor: text;
-            padding: 4px; outline: none; white-space: pre-wrap;
+            padding: 4px; outline: none; white-space: pre-wrap; text-align: center;
         }
         .custom-textbox.selected { border: 2px solid var(--primary-color); cursor: move; }
 
@@ -120,9 +144,8 @@
         .rh-nw { top: -4px; left: -4px; cursor: nwse-resize; }
 
         /* --- MOBILE SLIDING SIDEBAR (CURTAIN EFFECT) --- */
-        /* 1. Toggle Button Styling */
         #mobileMenuBtn {
-            display: none; /* Hidden on desktop */
+            display: none;
             font-size: 18px;
             padding: 6px 12px;
             background: #1e293b;
@@ -132,7 +155,6 @@
             cursor: pointer;
         }
 
-        /* Close Button Styling (Inside Sidebar) */
         #closeSidebarBtn {
             background: none;
             border: none;
@@ -145,43 +167,22 @@
         #closeSidebarBtn:hover { color: white; }
 
         @media (max-width: 768px) {
-            /* 2. Show the Toggle Button */
-            #mobileMenuBtn {
-                display: block;
-            }
-
-            /* 3. Sidebar becomes a "Curtain" / Drawer */
+            #mobileMenuBtn { display: block; }
             .sidebar {
                 position: fixed;
                 top: 0;
-                left: -280px; /* Hide completely to the left */
+                left: -280px;
                 height: 100%;
                 width: 280px;
-                transition: left 0.3s ease-in-out; /* Smooth slide animation */
+                transition: left 0.3s ease-in-out;
                 z-index: 9999;
                 box-shadow: 2px 0 10px rgba(0,0,0,0.5);
             }
-
-            /* 4. Class to show the sidebar (Active State) */
-            .sidebar.active {
-                left: 0;
-            }
-
-            /* 5. Adjust Toolbar for Mobile */
-            .toolbar {
-                padding: 8px 10px;
-                gap: 5px;
-            }
-            
-            .toolbar-group {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-
-            /* 6. Adjust Workspace padding to maximize view */
-            .workspace {
-                padding: 10px;
-            }
+            .sidebar.active { left: 0; }
+            .toolbar { padding: 8px 10px; gap: 5px; }
+            .toolbar-group { flex-wrap: wrap; justify-content: center; }
+            .workspace { padding: 10px; }
+            .canvas-wrapper { transform-origin: top left; }
         }
     </style>
 </head>
@@ -191,7 +192,6 @@
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             ID Generator
-            <!-- ADDED CLOSE BUTTON HERE -->
             <button id="closeSidebarBtn">✖</button>
         </div>
 
@@ -231,7 +231,7 @@
             </div>
         </div>
 
-        <!-- 3. TOOLBOX (SIMPLIFIED) -->
+        <!-- 3. TOOLBOX (SIMPLIFIED + EMERGENCY) -->
         <div class="panel" style="flex-grow: 1;">
             <div class="panel-title">TOOLS</div>
             <div class="draggable-item" draggable="true" data-type="text" data-caption="FULL NAME">Full Name</div>
@@ -242,6 +242,14 @@
             <div class="draggable-item" draggable="true" data-type="qr-code" data-caption="QR CODE">QR Code Box</div>
             <div class="draggable-item" draggable="true" data-type="line" data-caption="Line">Line</div>
             <div class="draggable-item" draggable="true" data-type="box" data-caption="Box">Box</div>
+            
+            <!-- EMERGENCY TOOLS -->
+            <div style="margin-top: 10px; border-top: 1px solid #475569; padding-top: 5px;">
+                <div class="panel-title" style="margin-bottom: 5px;">EMERGENCY</div>
+                <div class="draggable-item" draggable="true" data-type="text" data-caption="EMERGENCY PERSON NAME">Emgy. Name</div>
+                <div class="draggable-item" draggable="true" data-type="text" data-caption="EMERGENCY ADDRESS">Emgy. Address</div>
+                <div class="draggable-item" draggable="true" data-type="text" data-caption="EMERGENCY CONTACT">Emgy. Contact</div>
+            </div>
         </div>
     </div>
 
@@ -249,7 +257,6 @@
     <div class="main-content" id="mainContent">
         <div class="toolbar">
             <div class="toolbar-group">
-                <!-- MOBILE MENU TOGGLE BUTTON -->
                 <button id="mobileMenuBtn">☰</button>
 
                 <label class="primary" style="padding:6px 12px; cursor:pointer; border-radius:4px; background:#6366f1; color:white;">
@@ -313,27 +320,48 @@
         let startX, startY, startWidth, startHeight, startLeft, startTop;
         let allOfficers = [];
 
-        // --- 0. MOBILE MENU LOGIC (UPDATED) ---
+        // --- 0. MOBILE MENU LOGIC ---
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const closeSidebarBtn = document.getElementById('closeSidebarBtn'); // NEW
+        const closeSidebarBtn = document.getElementById('closeSidebarBtn'); 
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
 
-        // Toggle Sidebar (Open)
         mobileMenuBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent click from going to document
+            e.stopPropagation(); 
             sidebar.classList.toggle('active');
         });
 
-        // Toggle Sidebar (Close via Button)
         closeSidebarBtn.addEventListener('click', () => {
             sidebar.classList.remove('active');
         });
 
-        // Close Sidebar when clicking Main Content ("Itutulak para itago")
         mainContent.addEventListener('click', () => {
             if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
                 sidebar.classList.remove('active');
+            }
+        });
+
+        // --- 0.1 ARROW KEY NAVIGATION ---
+        document.addEventListener('keydown', (e) => {
+            const selected = document.querySelector('.selected');
+            if (!selected) return;
+            if (selected.isContentEditable) return;
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+
+            const shift = e.shiftKey ? 10 : 1; 
+            let x = parseInt(selected.style.left) || 0;
+            let y = parseInt(selected.style.top) || 0;
+            let moved = false;
+
+            if (e.key === 'ArrowLeft') { x -= shift; moved = true; }
+            if (e.key === 'ArrowRight') { x += shift; moved = true; }
+            if (e.key === 'ArrowUp') { y -= shift; moved = true; }
+            if (e.key === 'ArrowDown') { y += shift; moved = true; }
+
+            if (moved) {
+                selected.style.left = x + 'px';
+                selected.style.top = y + 'px';
+                e.preventDefault(); 
             }
         });
 
@@ -422,11 +450,32 @@
             el.className = 'canvas-element';
             el.textContent = caption;
             el.style.left = x + 'px'; el.style.top = y + 'px';
-            if(type === 'photo') { el.classList.add('is-photo'); el.style.width = '100px'; el.style.height = '120px'; }
-            else if(type === 'sig-box' || type === 'qr-code') { el.classList.add('is-box'); el.style.width = '80px'; el.style.height = '40px'; }
+            
+            el.style.textAlign = 'center';
+            el.style.boxSizing = 'border-box';
+
+            if(type === 'photo') { 
+                el.classList.add('is-photo'); 
+                el.style.width = '100px'; el.style.height = '120px'; 
+                el.style.border = 'none'; 
+            }
+            else if(type === 'sig-box' || type === 'qr-code') { 
+                el.classList.add('is-box'); 
+                el.style.width = '80px'; el.style.height = '40px'; 
+                el.style.border = 'none'; 
+            }
             else if(type === 'line') { el.classList.add('is-line'); el.style.width = '150px'; el.textContent = ''; }
-            else if(type === 'box') { el.classList.add('is-box'); el.style.width = '100px'; el.style.height = '50px'; }
-            else { el.style.padding = '2px 5px'; }
+            else if(type === 'box') { 
+                el.classList.add('is-box'); 
+                el.style.width = '100px'; el.style.height = '50px'; 
+                el.style.border = 'none'; 
+            }
+            else { 
+                // DEFAULT SIZE FOR TEXT BOXES (Uniform Size)
+                el.style.width = '200px';
+                el.style.height = '40px'; 
+                el.style.padding = '2px 5px'; 
+            }
             
             el.id = 'el_' + Date.now();
             addResizeHandles(el); canvas.appendChild(el); selectElement(el);
@@ -436,15 +485,19 @@
             // Name
             let el = document.createElement('div'); el.className = 'canvas-element'; el.textContent = off.name_officer;
             el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.fontWeight = 'bold';
+            el.style.textAlign = 'center'; el.style.boxSizing = 'border-box';
             addResizeHandles(el); canvas.appendChild(el);
             // Designation
             el = document.createElement('div'); el.className = 'canvas-element'; el.textContent = off.designation;
             el.style.left = x + 'px'; el.style.top = (y + 20) + 'px'; el.style.fontSize = '11px';
+            el.style.textAlign = 'center'; el.style.boxSizing = 'border-box';
             addResizeHandles(el); canvas.appendChild(el);
             // Signature
             if(off.man_signature) {
                 el = document.createElement('div'); el.className = 'canvas-element is-image';
                 el.style.left = x + 'px'; el.style.top = (y + 40) + 'px'; el.style.width = '100px'; el.style.height = '40px';
+                el.style.boxSizing = 'border-box';
+                el.style.border = 'none'; 
                 el.innerHTML = `<img src="${off.man_signature}">`; addResizeHandles(el); canvas.appendChild(el);
             }
         }
@@ -535,8 +588,8 @@
             } catch(e) { alert("Error Saving"); }
         }
 
-        // --- 6. LOAD & MERGE (THE ENGINE) ---
-        const MERGE_KEYWORDS = ["FULL NAME", "PSEUDO NAME", "ID NUMBER", "BLOOD TYPE", "DATE ISSUED", "VALID UNTIL", "ADDRESS", "CONTACT NO", "CHAPTER", "HEIGHT", "WEIGHT", "OCCUPATION", "EMERGENCY NAME", "EMERGENCY CONTACT", "BIRTHDATE", "CIVIL STATUS", "DESIGNATION", "PHOTO", "SIGNATURE", "QR CODE", "OR CODES"];
+        // --- 6. LOAD & MERGE (THE ENGINE - CENTERING FIX) ---
+        const MERGE_KEYWORDS = ["FULL NAME", "PSEUDO NAME", "ID NUMBER", "BLOOD TYPE", "DATE ISSUED", "VALID UNTIL", "ADDRESS", "CONTACT NO", "CHAPTER", "HEIGHT", "WEIGHT", "OCCUPATION", "EMERGENCY PERSON NAME", "EMERGENCY ADDRESS", "EMERGENCY CONTACT", "EMERGENCY CONTACT NO", "BIRTHDATE", "CIVIL STATUS", "DESIGNATION", "PHOTO", "SIGNATURE", "QR CODE", "OR CODES"];
 
         async function loadAndMergeLayout() {
             try {
@@ -547,7 +600,7 @@
                 const selected = listRightElem.options;
                 if(!selected.length) return alert("No members selected.");
                 
-                workspace.innerHTML = ""; // Clean workspace
+                workspace.innerHTML = ""; 
                 
                 for (let i = 0; i < selected.length; i++) {
                     const member = JSON.parse(selected[i].dataset.memberData);
@@ -567,13 +620,22 @@
                         el.style.color = f.color; el.style.fontSize = f.fontSize;
                         el.style.fontFamily = f.fontFamily; el.style.fontWeight = f.fontWeight;
                         
+                        // --- CENTERING LOGIC (WORDPAD STYLE) ---
+                        // Force Flexbox centering to match Admin visual
+                        el.style.textAlign = 'center';
+                        el.style.boxSizing = 'border-box';
+                        el.style.display = 'flex';
+                        el.style.alignItems = 'center'; // Vertical Center
+                        el.style.justifyContent = 'center'; // Horizontal Center
+                        // -----------------------------------
+
                         const txt = (f.text || "").trim().toUpperCase();
                         if(f.imgSrc) el.innerHTML = `<img src="${f.imgSrc}" style="width:100%;height:100%;object-fit:contain;">`;
                         else if (MERGE_KEYWORDS.includes(txt)) {
                             const val = getMemberVal(txt, member);
                             if(["PHOTO","SIGNATURE","QR CODE","OR CODES"].includes(txt)) {
                                 el.innerHTML = `<img src="${val}" style="width:100%;height:100%;object-fit:contain;">`;
-                                el.style.border = "none";
+                                el.style.border = "none"; 
                             } else el.innerText = val;
                         } else el.innerText = f.text;
                         newCanvas.appendChild(el);
@@ -592,8 +654,12 @@
             if(cap==="BLOOD TYPE") return m.blood_type||"";
             if(cap==="ADDRESS") return m.home_address||"";
             if(cap==="CONTACT NO") return m.contact_no||"";
-            if(cap==="EMERGENCY NAME") return m.emergency_person_name||"";
-            if(cap==="EMERGENCY CONTACT") return m.emergency_contact_no||"";
+            
+            // EMERGENCY FIXES
+            if(cap==="EMERGENCY PERSON NAME" || cap==="EMERGENCY NAME") return m.emergency_person_name||"";
+            if(cap==="EMERGENCY ADDRESS") return m.emergency_address || m.home_address || ""; // Fallback added
+            if(cap==="EMERGENCY CONTACT" || cap==="EMERGENCY CONTACT NO") return m.emergency_contact_no || m.emergency_contact || ""; // Fallback added
+            
             if(cap==="DATE ISSUED") return m.issued_date||"";
             if(cap==="VALID UNTIL") return m.valid_until||"";
             if(cap==="CHAPTER") return m.chapter||"";
@@ -639,6 +705,9 @@
         async function exportForPhone() {
             alert("Phone Export Logic Ready. (Based on previous full context)");
         }
+        async function openViewPhone() {
+            alert("View Phone Logic Ready.");
+        }
         
 // --- 10. SAVE CARD TO SUPABASE (DEBUG VERSION) ---
 async function saveCardToSupabase() {
@@ -653,7 +722,6 @@ async function saveCardToSupabase() {
     let successCount = 0;
     let errorMessages = [];
 
-    // LOOP THROUGH ALL GENERATED CARDS AND SAVE
     for (let i = 0; i < cards.length; i++) {
         try {
             const cardElement = cards[i];
@@ -678,10 +746,8 @@ async function saveCardToSupabase() {
 
             const result = await response.json();
 
-            // DEBUG: Alert kung ang response ay not OK
             if (!response.ok) {
                 console.error("Server Error:", result);
-                // Ito ang lilitaw na error sa screen
                 errorMessages.push(`Member ID ${memberId}: ${result.message || 'Unknown Error'}`);
             } else {
                 successCount++;
@@ -696,7 +762,6 @@ async function saveCardToSupabase() {
 
     statusMsg.textContent = "Ready";
 
-    // Show detailed summary
     if (errorMessages.length > 0) {
         alert(`SAVING FAILED!\n\nSaved: ${successCount}\nFailed: ${errorMessages.length}\n\nDetails:\n${errorMessages.join('\n')}`);
     } else {
@@ -709,10 +774,9 @@ async function deleteBatchCards() {
     const selectedOptions = listRightElem.options;
 
     if (selectedOptions.length === 0) {
-        return alert("Please select members from the 'Selected' list first.");
+        return alert("Please select members from 'Selected' list first.");
     }
 
-    // Safety Confirmation
     const confirmDelete = confirm(
         `WARNING: This will delete ID cards for ${selectedOptions.length} members.\n\n` +
         `1. This will remove images from the Bucket.\n` +
@@ -722,7 +786,6 @@ async function deleteBatchCards() {
 
     if (!confirmDelete) return;
 
-    // 1. Gather IDs
     const memberIds = [];
     for (let i = 0; i < selectedOptions.length; i++) {
         const memberData = JSON.parse(selectedOptions[i].dataset.memberData);
@@ -741,12 +804,8 @@ async function deleteBatchCards() {
         const result = await response.json();
 
         if (response.ok) {
-            alert(result.message); // "Successfully deleted IDs..."
-            
-            // 2. Move deleted members BACK to Left List (DB List)
-            // So you can process them again if needed
+            alert(result.message); 
             moveAllLeft(); 
-            
             statusMsg.textContent = "IDs Cleared.";
         } else {
             alert("Error: " + result.message);
