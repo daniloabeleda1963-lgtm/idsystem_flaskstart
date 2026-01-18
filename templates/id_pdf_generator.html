@@ -118,6 +118,54 @@
         .rh-sw { bottom: -4px; left: -4px; cursor: nesw-resize; }
         .rh-ne { top: -4px; right: -4px; cursor: nesw-resize; }
         .rh-nw { top: -4px; left: -4px; cursor: nwse-resize; }
+
+        /* --- MOBILE RESPONSIVE SIZES (ADDED) --- */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column; /* Stack sidebar on top of content */
+                overflow: auto; /* Allow scrolling the whole page */
+                height: auto; /* Remove fixed height to allow full scrolling */
+            }
+
+            /* Sidebar Styles for Mobile */
+            .sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 320px; /* Limit height so editor is reachable */
+                flex-shrink: 0;
+                border-right: none;
+                border-bottom: 2px solid #334155;
+            }
+
+            /* Make transfer lists smaller */
+            .transfer-box {
+                height: 100px; 
+            }
+
+            /* Toolbar Adjustments */
+            .toolbar {
+                flex-direction: column;
+                padding: 10px;
+                align-items: stretch;
+            }
+            .toolbar-group {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            /* Workspace Adjustments */
+            .workspace {
+                padding: 10px; /* Less padding */
+                align-items: flex-start; /* Align left to allow horizontal scroll if needed */
+            }
+
+            /* Force Scale Down the Canvas to fit phone screen */
+            .canvas-wrapper {
+                transform-origin: top left;
+                transform: scale(0.4) !important; /* Force small scale */
+                margin-bottom: -250px; /* Counteract the whitespace caused by scaling down */
+            }
+        }
     </style>
 </head>
 <body>
