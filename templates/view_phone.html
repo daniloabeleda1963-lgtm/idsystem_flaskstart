@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID Card Phone Stacker (Smart Mode)</title>
+    <title>ID Card Phone Stacker (Final + Delete Bucket)</title>
     
     <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -12,7 +12,8 @@
     <style>
         :root {
             --primary-color: #2563eb;
-            --edit-color: #d97706; /* Orange color for Edit Mode */
+            --edit-color: #d97706;
+            --danger-color: #dc2626;
             --bg-color: #f3f4f6;
         }
         body {
@@ -34,10 +35,9 @@
             flex-direction: column;
             align-items: center;
             padding: 10px;
-            padding-bottom: 80px; /* Extra space for bottom bar */
+            padding-bottom: 80px;
         }
 
-        /* Combobox */
         .member-select {
             width: 100%;
             max-width: 600px;
@@ -53,13 +53,12 @@
             z-index: 100;
         }
 
-        /* Container */
         .stack-container {
             width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 2px; /* Dikit-dikit */
+            gap: 2px;
         }
 
         .card-wrapper {
@@ -82,7 +81,6 @@
             cursor: default;
         }
 
-        /* DELETE BUTTON - Default HIDDEN */
         .delete-btn {
             position: absolute;
             top: -10px;
@@ -94,25 +92,22 @@
             border-radius: 50%;
             font-weight: bold;
             font-size: 20px;
-            display: flex; /* Flex lang pero opacity 0 */
+            display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0; /* <--- DITO NAKO HIDE */
-            pointer-events: none; /* Hindi maklikable pag normal */
+            opacity: 0;
+            pointer-events: none;
             z-index: 50;
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
             border: 2px solid white;
             transition: opacity 0.2s ease;
         }
 
-        /* EDIT MODE STYLES */
-        /* Kapag may class na 'editing-mode' sa body, lalabas ang buttons */
         body.editing-mode .delete-btn {
             opacity: 1;
             pointer-events: auto;
         }
         
-        /* Naka-highlight ang card pag edit mode */
         body.editing-mode .id-card {
             border: 2px dashed var(--edit-color);
         }
@@ -127,14 +122,14 @@
             padding: 8px 5px;
             box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
             display: flex;
-            justify-content: center; /* Center buttons */
+            justify-content: center;
             gap: 8px;
             z-index: 1000;
             box-sizing: border-box;
         }
 
         .nav-btn {
-            padding: 8px 15px;
+            padding: 8px 12px;
             font-size: 13px;
             font-weight: bold;
             border: none;
@@ -144,24 +139,56 @@
             display: flex;
             align-items: center;
             gap: 4px;
-            flex: 1; /* Equal width */
+            flex: 1;
             justify-content: center;
         }
         
-        .btn-reset { background: #ef4444; }
+        .btn-clear { background: #6b7280; }
         .btn-home { background: #2563eb; }
-        .btn-edit { background: #6b7280; } /* Gray default */
-        
-        /* Active state ng Edit Button */
-        .btn-edit.active {
-            background: var(--edit-color); /* Orange pag active */
-            animation: pulse 1.5s infinite;
-        }
+        .btn-edit { background: #6b7280; }
+        .btn-edit.active { background: var(--edit-color); animation: pulse 1.5s infinite; }
+        .btn-danger { background: #dc2626; } /* Red Delete Bucket Button */
 
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        /* Options Panel */
+        .options-panel {
+            position: fixed;
+            bottom: 60px; /* Above bottom bar */
+            left: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 999;
+            animation: slideUp 0.3s ease-out;
+            border: 2px solid #fee2e2; /* Light red border */
+        }
+        .options-panel.show { display: flex; }
+        
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .opt-btn {
+            background: white;
+            border: 1px solid #e5e7eb;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #374151;
+            cursor: pointer;
+            text-align: center;
+        }
+        .opt-btn:active { background: #f3f4f6; }
+        .opt-btn-danger {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #dc2626;
         }
 
         /* Loading */
@@ -171,7 +198,7 @@
             background: rgba(255,255,255,0.9); z-index: 2000;
             flex-direction: column; align-items: center; justify-content: center;
         }
-        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #dc2626; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
         #status-text { text-align: center; font-size: 12px; color: #666; margin-top: 5px; }
@@ -181,7 +208,7 @@
 
     <div id="loading-overlay">
         <div class="spinner"></div>
-        <div id="loading-msg" style="margin-top: 15px; font-weight: bold;">Loading...</div>
+        <div id="loading-msg" style="margin-top: 15px; font-weight: bold;">Processing...</div>
     </div>
 
     <div class="workspace">
@@ -190,17 +217,27 @@
         </select>
 
         <div id="stackContainer" class="stack-container">
-            <!-- Images dito -->
+            <!-- Images -->
         </div>
 
-        <div id="status-text" style="margin-top: 10px;">Ready. Select ID above.</div>
+        <div id="status-text" style="margin-top: 10px;">Ready.</div>
     </div>
 
+    <!-- Options Panel (Hidden by default) -->
+    <div class="options-panel" id="optionsPanel">
+        <div style="font-size: 12px; color: #666; text-align: center; margin-bottom: 5px;">
+            ⚠️ WARNING: This will delete ALL IDs from the bucket permanently.
+        </div>
+        <button class="opt-btn opt-btn-danger" onclick="confirmDeleteBucket()">☠️ DELETE ALL FILES IN BUCKET</button>
+        <button class="opt-btn" onclick="toggleOptions()">Cancel</button>
+    </div>
+
+    <!-- Bottom Bar -->
     <div class="bottom-bar">
-        <button class="nav-btn btn-reset" onclick="clearStack()">🗑️ Clear</button>
+        <button class="nav-btn btn-clear" onclick="clearStack()">🗑️ Clr Scrn</button>
         <button class="nav-btn btn-home" onclick="goHome()">🏠 Home</button>
-        <!-- ITO ANG EDIT BUTTON -->
-        <button class="nav-btn btn-edit" id="btnEdit" onclick="toggleEditMode()">🛠️ Edit Mode</button>
+        <button class="nav-btn btn-edit" id="btnEdit" onclick="toggleEditMode()">✏️ Edit</button>
+        <button class="nav-btn btn-danger" onclick="toggleOptions()">🔥 Burn</button>
     </div>
 
     <script>
@@ -209,6 +246,7 @@
         const bucketSelect = document.getElementById('bucketSelect');
         const stackContainer = document.getElementById('stackContainer');
         const btnEdit = document.getElementById('btnEdit');
+        const optionsPanel = document.getElementById('optionsPanel');
         const loadingOverlay = document.getElementById('loading-overlay');
         const loadingMsg = document.getElementById('loading-msg');
         const statusText = document.getElementById('status-text');
@@ -220,7 +258,7 @@
             showLoading(true, "Connecting...");
             try {
                 await fetchBucketList();
-                statusText.textContent = `Ready. ${bucketFiles.length} IDs found.`;
+                statusText.textContent = `Ready. ${bucketFiles.length} IDs.`;
             } catch (e) {
                 console.error(e);
                 statusText.textContent = "Error.";
@@ -252,33 +290,62 @@
             loadingMsg.textContent = msg;
         }
 
+        function toggleOptions() {
+            optionsPanel.classList.toggle('show');
+        }
+
+        async function confirmDeleteBucket() {
+            if(!confirm("ARE YOU SURE?\n\nThis will delete ALL files in the bucket.\nThis action cannot be undone.")) return;
+            if(!confirm("Final Warning: Press OK to BURN all files.")) return;
+
+            toggleOptions(); // Close panel
+            showLoading(true, "Burning bucket...");
+            statusText.textContent = "Deleting files...";
+
+            try {
+                // Assuming your backend has a 'delete-all' endpoint. 
+                // If not, we might need to loop delete. But assuming optimized:
+                const response = await fetch(`${API_URL}/api/storage/delete-all`, { method: 'DELETE' });
+                
+                if (response.ok) {
+                    statusText.textContent = "Bucket is now empty! Diet complete!";
+                    // Refresh list
+                    await fetchBucketList();
+                    alert("Success! All files deleted.");
+                } else {
+                    throw new Error("Failed to delete");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Error deleting files. Check console or permissions.");
+            } finally {
+                showLoading(false);
+            }
+        }
+
         function goHome() { window.location.href = '/'; }
 
         function clearStack() {
-            if(confirm("Clear all IDs?")) {
+            if(confirm("Clear screen?")) {
                 stackContainer.innerHTML = '';
-                statusText.textContent = "Cleared.";
+                statusText.textContent = "Screen Cleared.";
                 document.querySelector('.workspace').scrollTop = 0;
                 bucketSelect.value = "";
             }
         }
 
-        // TOGGLE EDIT MODE FUNCTION
         function toggleEditMode() {
             isEditMode = !isEditMode;
-            
             if (isEditMode) {
-                // On
                 document.body.classList.add('editing-mode');
                 btnEdit.classList.add('active');
-                btnEdit.innerHTML = '✅ Done'; // Change text
-                statusText.textContent = "EDIT MODE: Tap X to remove ID.";
+                btnEdit.innerHTML = '✅ Done';
+                statusText.textContent = "EDIT MODE ON";
             } else {
-                // Off
                 document.body.classList.remove('editing-mode');
                 btnEdit.classList.remove('active');
-                btnEdit.innerHTML = '🛠️ Edit Mode'; // Change text back
-                statusText.textContent = "Ready to Screenshot.";
+                btnEdit.innerHTML = '✏️ Edit';
+                statusText.textContent = "Ready.";
             }
         }
 
@@ -293,8 +360,6 @@
             const delBtn = document.createElement('div');
             delBtn.className = 'delete-btn';
             delBtn.innerHTML = '&times;';
-            delBtn.title = "Remove this ID";
-            
             delBtn.onclick = function(e) {
                 e.stopPropagation();
                 if(confirm("Remove this ID?")) {
@@ -322,8 +387,7 @@
         }
 
         function updateCount() {
-            const currentCount = stackContainer.children.length;
-            statusText.textContent = `Stack Count: ${currentCount}`;
+            statusText.textContent = `Stack: ${stackContainer.children.length}`;
         }
     </script>
 </body>
