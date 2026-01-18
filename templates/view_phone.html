@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID Card Phone Stacker</title>
+    <title>ID Card Phone Stacker (Smart Mode)</title>
     
-    <!-- Libraries (Necessary for future options, pero optional ngayon) -->
+    <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <style>
         :root {
             --primary-color: #2563eb;
+            --edit-color: #d97706; /* Orange color for Edit Mode */
             --bg-color: #f3f4f6;
-            --text-dark: #1f2937;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -23,90 +23,148 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
-            overflow: hidden; /* Body overflow hidden, scrollbar sa workspace */
+            overflow: hidden;
         }
         
         .workspace {
             flex-grow: 1;
             background: #e5e7eb;
-            overflow-y: auto; /* Vertical scrolling lang */
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
             align-items: center;
             padding: 10px;
-            padding-bottom: 70px; /* Space para sa buttons sa baba */
+            padding-bottom: 80px; /* Extra space for bottom bar */
         }
 
-        /* Combobox Styling */
+        /* Combobox */
         .member-select {
             width: 100%;
             max-width: 600px;
-            padding: 12px;
+            padding: 10px;
             font-size: 16px;
             border: 2px solid #ccc;
             border-radius: 8px;
             background: white;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-bottom: 15px;
-            position: sticky; /* Dikit sa taas habang nag s-scroll ka */
+            margin-bottom: 10px;
+            position: sticky;
             top: 0;
             z-index: 100;
         }
 
-        /* Container ng mga stacked images */
+        /* Container */
         .stack-container {
             width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 15px; /* Space sa pagitan ng mga cards */
+            gap: 2px; /* Dikit-dikit */
         }
 
-        /* Individual ID Card Styling */
+        .card-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            justify-content: center;
+        }
+
         .id-card {
             width: 100%;
-            max-width: 380px; /* Standard ID width sa mobile */
+            max-width: 380px;
             height: auto;
             display: block;
             background: white;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            border-radius: 8px;
-            border: 1px solid #ddd; /* Visual boundary para sa cropping */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            cursor: default;
         }
 
-        /* Bottom Bar - Liit lang */
+        /* DELETE BUTTON - Default HIDDEN */
+        .delete-btn {
+            position: absolute;
+            top: -10px;
+            right: 5px;
+            width: 30px;
+            height: 30px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 20px;
+            display: flex; /* Flex lang pero opacity 0 */
+            align-items: center;
+            justify-content: center;
+            opacity: 0; /* <--- DITO NAKO HIDE */
+            pointer-events: none; /* Hindi maklikable pag normal */
+            z-index: 50;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            border: 2px solid white;
+            transition: opacity 0.2s ease;
+        }
+
+        /* EDIT MODE STYLES */
+        /* Kapag may class na 'editing-mode' sa body, lalabas ang buttons */
+        body.editing-mode .delete-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        /* Naka-highlight ang card pag edit mode */
+        body.editing-mode .id-card {
+            border: 2px dashed var(--edit-color);
+        }
+
+        /* Bottom Bar */
         .bottom-bar {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
             background: white;
-            padding: 8px 10px; /* Pinaikli ang padding */
+            padding: 8px 5px;
             box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
             display: flex;
-            justify-content: center; /* Centered buttons */
-            gap: 10px;
+            justify-content: center; /* Center buttons */
+            gap: 8px;
             z-index: 1000;
             box-sizing: border-box;
         }
 
         .nav-btn {
-            padding: 10px 20px;
-            font-size: 14px;
+            padding: 8px 15px;
+            font-size: 13px;
             font-weight: bold;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             color: white;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
+            flex: 1; /* Equal width */
+            justify-content: center;
         }
         
         .btn-reset { background: #ef4444; }
-        .btn-guide { background: #2563eb; }
+        .btn-home { background: #2563eb; }
+        .btn-edit { background: #6b7280; } /* Gray default */
+        
+        /* Active state ng Edit Button */
+        .btn-edit.active {
+            background: var(--edit-color); /* Orange pag active */
+            animation: pulse 1.5s infinite;
+        }
 
-        /* Loading Overlay */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Loading */
         #loading-overlay {
             display: none;
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -116,7 +174,7 @@
         .spinner { border: 5px solid #f3f3f3; border-top: 5px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        #status-text { text-align: center; font-size: 12px; color: #666; margin-top: 10px; }
+        #status-text { text-align: center; font-size: 12px; color: #666; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -127,45 +185,45 @@
     </div>
 
     <div class="workspace">
-        <!-- Sticky Select Box -->
         <select id="bucketSelect" class="member-select" onchange="addToStack()">
-            <option value="" disabled selected>-- Select ID to Add Below --</option>
+            <option value="" disabled selected>-- Select ID to Stack --</option>
         </select>
 
-        <!-- Dito mag-a-accumulate ang mga ID Cards -->
         <div id="stackContainer" class="stack-container">
-            <!-- Images will appear here one by one -->
+            <!-- Images dito -->
         </div>
 
-        <div id="status-text" style="margin-top: 20px;">Select an ID above to start stacking...</div>
+        <div id="status-text" style="margin-top: 10px;">Ready. Select ID above.</div>
     </div>
 
-    <!-- Simpleng Bottom Bar -->
     <div class="bottom-bar">
-        <button class="nav-btn btn-reset" onclick="clearStack()">🗑️ Clear / Reset</button>
-        <button class="nav-btn btn-guide" onclick="goHome()">🏠 Home</button>
+        <button class="nav-btn btn-reset" onclick="clearStack()">🗑️ Clear</button>
+        <button class="nav-btn btn-home" onclick="goHome()">🏠 Home</button>
+        <!-- ITO ANG EDIT BUTTON -->
+        <button class="nav-btn btn-edit" id="btnEdit" onclick="toggleEditMode()">🛠️ Edit Mode</button>
     </div>
 
     <script>
-        const API_URL = ''; // Dito mo lalagyan ng URL kung kailangan
+        const API_URL = ''; 
         
         const bucketSelect = document.getElementById('bucketSelect');
         const stackContainer = document.getElementById('stackContainer');
+        const btnEdit = document.getElementById('btnEdit');
         const loadingOverlay = document.getElementById('loading-overlay');
         const loadingMsg = document.getElementById('loading-msg');
         const statusText = document.getElementById('status-text');
 
         let bucketFiles = []; 
+        let isEditMode = false;
 
         window.addEventListener('DOMContentLoaded', async () => {
-            showLoading(true, "Connecting to Bucket...");
+            showLoading(true, "Connecting...");
             try {
                 await fetchBucketList();
-                statusText.textContent = `Ready! Found ${bucketFiles.length} IDs.`;
+                statusText.textContent = `Ready. ${bucketFiles.length} IDs found.`;
             } catch (e) {
                 console.error(e);
-                statusText.textContent = "Error loading bucket.";
-                alert("Error: " + e.message);
+                statusText.textContent = "Error.";
             } finally {
                 showLoading(false);
             }
@@ -173,24 +231,18 @@
 
         async function fetchBucketList() {
             try {
-                // Kunin ang listahan ng files
                 const response = await fetch(`${API_URL}/api/storage/list-all`);
                 const data = await response.json();
-                
                 bucketFiles = Array.isArray(data) ? data : [];
-                
-                // Reset options
-                bucketSelect.innerHTML = '<option value="" disabled selected>-- Select ID to Add Below --</option>';
-                
+                bucketSelect.innerHTML = '<option value="" disabled selected>-- Select ID to Stack --</option>';
                 bucketFiles.forEach((file, index) => {
                     const opt = document.createElement('option');
                     opt.value = index;
                     opt.textContent = file.filename;
                     bucketSelect.appendChild(opt);
                 });
-
             } catch (e) {
-                alert("Failed to get file list. Check connection/API.");
+                alert("Failed to fetch files.");
                 throw e;
             }
         }
@@ -200,51 +252,78 @@
             loadingMsg.textContent = msg;
         }
 
-        function goHome() {
-            window.location.href = '/';
-        }
+        function goHome() { window.location.href = '/'; }
 
         function clearStack() {
-            if(confirm("Burahin lahat ng nasa screen?")) {
+            if(confirm("Clear all IDs?")) {
                 stackContainer.innerHTML = '';
-                statusText.textContent = "Stack Cleared. Ready for new batch.";
-                // Scroll back to top
+                statusText.textContent = "Cleared.";
                 document.querySelector('.workspace').scrollTop = 0;
-                // Reset select box
                 bucketSelect.value = "";
             }
         }
 
-        // MAIN FUNCTION: Add to Stack
+        // TOGGLE EDIT MODE FUNCTION
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            
+            if (isEditMode) {
+                // On
+                document.body.classList.add('editing-mode');
+                btnEdit.classList.add('active');
+                btnEdit.innerHTML = '✅ Done'; // Change text
+                statusText.textContent = "EDIT MODE: Tap X to remove ID.";
+            } else {
+                // Off
+                document.body.classList.remove('editing-mode');
+                btnEdit.classList.remove('active');
+                btnEdit.innerHTML = '🛠️ Edit Mode'; // Change text back
+                statusText.textContent = "Ready to Screenshot.";
+            }
+        }
+
         function addToStack() {
             const index = bucketSelect.value;
             if (index === "" || index === null) return;
-
             const file = bucketFiles[index];
             
-            // Create Image Element
+            const wrapper = document.createElement('div');
+            wrapper.className = 'card-wrapper';
+
+            const delBtn = document.createElement('div');
+            delBtn.className = 'delete-btn';
+            delBtn.innerHTML = '&times;';
+            delBtn.title = "Remove this ID";
+            
+            delBtn.onclick = function(e) {
+                e.stopPropagation();
+                if(confirm("Remove this ID?")) {
+                    stackContainer.removeChild(wrapper);
+                    updateCount();
+                }
+            };
+
             const imgEl = document.createElement('img');
             imgEl.src = file.url;
             imgEl.className = 'id-card';
             imgEl.alt = file.filename;
-            
-            // Add loading attribute for performance
             imgEl.loading = "lazy";
 
-            // Append sa baba
-            stackContainer.appendChild(imgEl);
+            wrapper.appendChild(delBtn); 
+            wrapper.appendChild(imgEl);
+            stackContainer.appendChild(wrapper);
 
-            // Auto scroll sa baba para makita ang bago
             setTimeout(() => {
-                imgEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                wrapper.scrollIntoView({ behavior: 'smooth', block: 'end' });
             }, 100);
-
-            // Update Status
-            const currentCount = stackContainer.children.length;
-            statusText.textContent = `Added: ${file.filename} (Total in stack: ${currentCount})`;
-
-            // Reset select box para ready sa sunod
+            
+            updateCount();
             bucketSelect.value = "";
+        }
+
+        function updateCount() {
+            const currentCount = stackContainer.children.length;
+            statusText.textContent = `Stack Count: ${currentCount}`;
         }
     </script>
 </body>
