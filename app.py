@@ -1008,6 +1008,49 @@ def list_bucket_only():
         print(f">>> Error listing bucket: {e}")
         return jsonify([]), 500
 
+# ============================================================
+# 🆕 NEW ROUTE: DELETE ALL FILES IN BUCKET (The Missing Link)
+# ============================================================
+@app.route('/api/storage/delete-all', methods=['DELETE'])
+def delete_all_bucket_files():
+    """
+    Ito ang tatawagin ng 'Burn' button.
+    Burahin lahat ng files sa 'guardian_ids' folder.
+    """
+    try:
+        bucket_name = "public_id_cards"
+        folder_path = "guardian_ids"
+
+        # 1. LIST MUNA ANG LAHAT NG FILENAMES
+        # Kailangan muna nating malaman ang mga pangalan para ipasa sa remove function
+        files_response = supabase.storage.from_(bucket_name).list(path=folder_path)
+        
+        filenames_to_delete = [f['name'] for f in files_response]
+
+        # 2. CHECK KUNG MAY LAMAN
+        if not filenames_to_delete:
+            print(">>> Bucket is already empty.")
+            return jsonify({'success': True, 'message': 'Bucket is already empty.'}), 200
+
+        # 3. DELETE
+        try:
+            # Ipalitan lang natin ang simple filename sa "folder/filename" format
+            # Supabase remove function ay kumakain ng list ng paths
+            full_paths = [f"{folder_path}/{name}" for name in filenames_to_delete]
+            
+            print(f">>> BURNING {len(full_paths)} FILES...")
+            supabase.storage.from_(bucket_name).remove(full_paths)
+            
+            return jsonify({'success': True, 'message': f'Deleted {len(full_paths)} files from bucket.'}), 200
+            
+        except Exception as e:
+            print(f">>> Error deleting files: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    except Exception as e:
+        print(f">>> General Error in delete-all: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 # ==============================
 # Run App
 # ==============================
