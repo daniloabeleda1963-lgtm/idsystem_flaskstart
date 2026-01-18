@@ -975,30 +975,64 @@ def delete_cards_batch():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # ==============================
-# NEW: BUCKET ONLY LIST (Lolo's Rule)
+# NEW: BUCKET ONLY LIST (Lolo's Rule + SUPER RESCUE MODE)
 # ==============================
 @app.route('/api/storage/list-all', methods=['GET'])
 def list_bucket_only():
     """
     Lahat ng nasa bucket, ilalabas.
     Hindi na tayo magho-hibernate ng file.
-    Kung nasa guardian_ids, lalabas siya.
+    
+    === LATEST FIX: AUTO RESCUE MODE ===
+    Kung mawala yung folder, hindi na tayo babagsak.
+    Mag-a-attempt ito mag-Upload ng fake file para ma-recreate ang folder.
     """
     try:
         bucket_name = "public_id_cards"
         folder_path = "guardian_ids"
 
         # 1. LIST ALL FILES
-        # Ito automatic na siya kuha lahat ng laman ng folder
-        files_response = supabase.storage.from_(bucket_name).list(path=folder_path)
+        try:
+            files_response = supabase.storage.from_(bucket_name).list(path=folder_path)
+        except Exception as list_err:
+            # NAG ERROR, BAKIT? KASI WALANG FOLDER.
+            print(f">>> ERROR: Folder '{folder_path}' might be missing.")
+            print(f">>> ATTEMPTING AUTO-RESCUE...")
+            
+            try:
+                # Trick: Upload an empty string or dummy file to create folder
+                # Note: Some Supabase versions allow creating folders via upload of 'folder/.empty'
+                rescue_path = f"{folder_path}/.empty"
+                
+                # Create dummy content
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as tmp:
+                    tmp.write(b"folder_rescue")
+                    tmp_path = tmp.name
+                
+                supabase.storage.from_(bucket_name).upload(
+                    path=rescue_path, 
+                    file=tmp_path,
+                    file_options={"upsert": "true"}
+                )
+                os.remove(tmp_path)
+                
+                print(">>> RESCUE SUCCESS! Folder recreated.")
+                # Try listing again
+                files_response = supabase.storage.from_(bucket_name).list(path=folder_path)
+            except Exception as rescue_err:
+                print(f">>> RESCUE FAILED: {rescue_err}")
+                # Pag talagang di makabuhay, return empty list nalang para di bumagsak UI
+                return jsonify([]), 200
         
         # 2. PREPARE DATA (Lagyan ng URL para madaling i-display)
         result = []
         for f in files_response:
-            result.append({
-                'filename': f['name'],
-                'url': f"{SUPAB_URL}/storage/v1/object/public/{bucket_name}/{folder_path}/{f['name']}"
-            })
+            # Iwasan yung .empty file na nilagay natin
+            if f['name'] != '.empty':
+                result.append({
+                    'filename': f['name'],
+                    'url': f"{SUPAB_URL}/storage/v1/object/public/{bucket_name}/{folder_path}/{f['name']}"
+                })
 
         # 3. RETURN LIST (Sort by Filename para maayos)
         # Reverse (Descending) para yung pinaka-bago naka-sa taas
@@ -1006,7 +1040,8 @@ def list_bucket_only():
 
     except Exception as e:
         print(f">>> Error listing bucket: {e}")
-        return jsonify([]), 500
+        # Pag error, ibalik na lang empty list para di bumagsak yung app ni Lolo
+        return jsonify([]), 200
 
 # ============================================================
 # 🆕 NEW ROUTE: DELETE ALL FILES IN BUCKET (The Missing Link)
