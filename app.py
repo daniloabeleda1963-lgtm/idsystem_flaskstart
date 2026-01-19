@@ -426,6 +426,7 @@ def add_member():
                 'govt_id_no': request.form.get('govt_id_no'),
                 'emergency_person_name': request.form.get('emergency_person_name'),
                 'emergency_contact_no': request.form.get('emergency_contact_no'),
+                'emergency_address': request.form.get('emergency_address'), # <- NADAGDAGAN DITO ITO
                 'photo_data': request.form.get('photo_data'), 
                 'qr_code': request.form.get('qr_code'),
                 'signature': request.form.get('signature'),
