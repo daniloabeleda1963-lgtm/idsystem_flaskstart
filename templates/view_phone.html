@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID Card Phone Stacker (Select All + Copy)</title>
+    <title>ID Card Phone Stacker (Final Zip Version)</title>
     
     <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -15,7 +15,7 @@
             --edit-color: #d97706;
             --danger-color: #dc2626;
             --bg-color: #f3f4f6;
-            --selected-border: #2563eb; /* Blue border when selected */
+            --selected-border: #2563eb;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -40,7 +40,7 @@
             padding-bottom: 80px; /* Space for Bottom Bar */
         }
 
-        /* NEW: TOP BAR (For Select All & Copy) */
+        /* TOP BAR (For Select All & Download Zip) */
         .top-bar {
             position: fixed;
             top: 0;
@@ -67,7 +67,7 @@
             max-width: 150px;
         }
         .btn-select-all { background: #2563eb; }
-        .btn-copy { background: #059669; }
+        .btn-zip { background: #059669; } /* Green for Download Zip */
 
         .member-select {
             width: 100%;
@@ -251,10 +251,10 @@
         <div id="loading-msg" style="margin-top: 15px; font-weight: bold;">Processing...</div>
     </div>
 
-    <!-- NEW: TOP BAR (Select All / Copy) -->
+    <!-- TOP BAR (Select All / Download Zip) -->
     <div class="top-bar">
         <button class="top-btn btn-select-all" onclick="selectAllCards()">☑️ Select All</button>
-        <button class="top-btn btn-copy" onclick="copySelectedCard()">📋 Copy Img</button>
+        <button class="top-btn btn-zip" onclick="downloadAllZip()">📥 Download Zip</button>
     </div>
 
     <div class="workspace">
@@ -417,11 +417,9 @@
             imgEl.alt = file.filename;
             imgEl.loading = "lazy";
             
-            // ADD CLICK TOGGLE SELECT (For Copy Button to know which one to copy)
+            // ADD CLICK TOGGLE SELECT
             imgEl.onclick = function() {
-                // Remove selected from others
                 document.querySelectorAll('.card-wrapper').forEach(w => w.classList.remove('is-selected'));
-                // Select this one
                 wrapper.classList.add('is-selected');
             };
 
@@ -441,51 +439,69 @@
             statusText.textContent = `Stack: ${stackContainer.children.length}`;
         }
 
-        // --- NEW FUNCTIONS ---
+        // --- ZIP FUNCTION (FIXED) ---
+        async function downloadAllZip() {
+            const selectedWrappers = document.querySelectorAll('.card-wrapper.is-selected');
+            
+            if (selectedWrappers.length === 0) {
+                return alert("Please select cards first (Click image or Select All).");
+            }
 
-        // 1. Select All Function
+            // Collect filenames
+            let filenamesToZip = [];
+            
+            selectedWrappers.forEach(wrap => {
+                const img = wrap.querySelector('img');
+                const match = bucketFiles.find(f => f.url === img.src);
+                if (match) {
+                    filenamesToZip.push(match.filename);
+                }
+            });
+
+            if (filenamesToZip.length === 0) {
+                return alert("Error identifying files.");
+            }
+
+            showLoading(true, `Zipping ${filenamesToZip.length} IDs...`);
+
+            try {
+                const response = await fetch(`${API_URL}/api/storage/download-zip`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filenames: filenamesToZip })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `ID_Cards_Bundle_${new Date().getTime()}.zip`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    alert(`Downloaded ${filenamesToZip.length} IDs!`);
+                } else {
+                    throw new Error("Server Error");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Failed to download zip.");
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // --- SELECT ALL FUNCTION ---
         function selectAllCards() {
             const wrappers = document.querySelectorAll('.card-wrapper');
             if (wrappers.length === 0) return alert("No cards to select.");
-
             wrappers.forEach(w => {
                 w.classList.add('is-selected');
             });
             statusText.textContent = "All Cards Selected.";
-        }
-
-        // 2. Copy Function (Copies FIRST Selected Image to Clipboard)
-        async function copySelectedCard() {
-            const selected = document.querySelector('.card-wrapper.is-selected');
-            
-            if (!selected) {
-                alert("Please select a card first (Click on the image).");
-                return;
-            }
-
-            const imgEl = selected.querySelector('img');
-            const imgUrl = imgEl.src;
-
-            try {
-                showLoading(true, "Copying...");
-                
-                // 1. Fetch Image Data (Blob)
-                const response = await fetch(imgUrl);
-                const blob = await response.blob();
-
-                // 2. Write to Clipboard
-                // Note: Works best on Android Chrome. Might need user permission on others.
-                const item = new ClipboardItem({ "image/png": blob });
-                await navigator.clipboard.write([item]);
-                
-                alert("Image Copied! Paste in WhatsApp/Messenger.");
-                showLoading(false);
-
-            } catch (err) {
-                console.error(err);
-                showLoading(false);
-                alert("Copy failed. \n\nReason: Browser might not support copying images automatically.\n\nTip: Long press the image directly to Save.");
-            }
         }
     </script>
 </body>
