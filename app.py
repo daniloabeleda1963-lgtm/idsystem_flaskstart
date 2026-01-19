@@ -6,8 +6,9 @@ import re
 import io         # ADDED: Needed for image stream handling
 import base64     # ADDED: Needed for base64 decoding
 import tempfile   # ADDED: Needed for temporary file handling
+import zipfile    # ADDED: Needed for ZIP file creation (For Celphone Download)
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, send_file # ADDED: send_file
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
@@ -426,7 +427,7 @@ def add_member():
                 'govt_id_no': request.form.get('govt_id_no'),
                 'emergency_person_name': request.form.get('emergency_person_name'),
                 'emergency_contact_no': request.form.get('emergency_contact_no'),
-                'emergency_address': request.form.get('emergency_address'), # <- NADAGDAGAN DITO ITO
+                'emergency_address': request.form.get('emergency_address'), 
                 'photo_data': request.form.get('photo_data'), 
                 'qr_code': request.form.get('qr_code'),
                 'signature': request.form.get('signature'),
@@ -908,7 +909,7 @@ def delete_cards_batch():
 
         print(f">>> BATCH DELETE INITIATED (Umpisa-Umaga Fix) for {len(member_ids)} members.")
 
-        # --- STEP 1: GATHER FILES TO DELETE ---
+        # --- STEP1: GATHER FILES TO DELETE ---
         files_to_remove = set() 
 
         # A. KUNIN YUNG NAKASULAT SA DATABASE (Old Files)
@@ -1085,6 +1086,58 @@ def delete_all_bucket_files():
 
     except Exception as e:
         print(f">>> General Error in delete-all: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# ============================================================
+# 🆕 NEW ROUTE: DOWNLOAD ZIP (For Celphone)
+# ============================================================
+@app.route('/api/storage/download-zip', methods=['POST'])
+def download_zip_files():
+    """
+    I-Zip lahat ng selected files para sa easy download.
+    """
+    try:
+        db = get_db()
+        data = request.json
+        filenames = data.get('filenames') # Expecting list: ["2.png", "16.png", etc.]
+
+        if not filenames:
+            return jsonify({'success': False, 'message': 'No files selected'}), 400
+
+        print(f">>> ZIPPING {len(filenames)} files...")
+
+        # 1. Gumawa ng ZIP sa Memory (BytesIO)
+        memory_file = io.BytesIO()
+        
+        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for fname in filenames:
+                # Full path in bucket
+                file_path = f"guardian_ids/{fname}"
+                
+                try:
+                    # 2. Download file from Supabase to Memory
+                    # Note: .download() returns raw bytes
+                    file_data = supabase.storage.from_('public_id_cards').download(file_path)
+                    
+                    # 3. Isulat sa Zip
+                    zf.writestr(fname, file_data)
+                    print(f"   -> Zipped: {fname}")
+                except Exception as e:
+                    print(f"   -> Failed to zip {fname}: {e}")
+
+        # 4. Ibalik ang pointer sa simula ng Zip file
+        memory_file.seek(0)
+
+        # 5. Ibalik sa Browser as Download
+        return send_file(
+            memory_file, 
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name='All_ID_Cards.zip'
+        )
+
+    except Exception as e:
+        print(f">>> ZIP ERROR: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # ==============================
