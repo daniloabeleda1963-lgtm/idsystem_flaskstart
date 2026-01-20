@@ -126,7 +126,7 @@
         .canvas-element img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 
         .custom-textbox {
-            position: absolute; background: transparent; border:1px dashed #94a3b8;
+            position: absolute; background: transparent; border: 1px dashed #94a3b8;
             color: #000; font-size: 14px; font-family: 'Segoe UI', sans-serif;
             z-index: 200; min-width: 200px; min-height: 20px; cursor: text;
             padding: 4px; outline: none; white-space: pre-wrap; text-align: center;
@@ -290,9 +290,6 @@
                 
                 <!-- EXPORTS -->
                 <button class="primary" onclick="downloadPDF()">📄 PDF</button>
-                <!-- PDF PREVIEW BUTTON ADDED HERE -->
-                <button class="primary" style="background:#8b5cf6;" onclick="previewPDF()">👁️ PDF Preview</button>
-                
                 <button class="warning" onclick="downloadFirstCardScreenshot()">📸 Img</button>
                 <button class="success" onclick="exportForPhone()">📱 Phone</button>
                 
@@ -677,26 +674,7 @@
             return "";
         }
 
-        // --- 7. PDF PREVIEW FUNCTION (NEW) ---
-        async function previewPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'mm', 'a4');
-            const cards = document.querySelectorAll('.workspace .canvas-wrapper');
-            if(!cards.length) return alert("No IDs to print.");
-            
-            let y = 10; const h_mm = 54; const gap = 5;
-            for(let i=0; i<cards.length; i++) {
-                if(y + h_mm > 287) { doc.addPage(); y = 10; }
-                const c = await html2canvas(cards[i], {scale: 2});
-                const r = c.width / c.height;
-                doc.addImage(c, 'JPEG', 10, y, h_mm * r, h_mm);
-                y += h_mm + gap;
-            }
-            // OPEN IN NEW TAB (PREVIEW)
-            window.open(doc.output('bloburl'), '_blank');
-        }
-
-        // --- 8. PDF DOWNLOAD FUNCTION (EXISTING) ---
+        // --- 7. PDF DOWNLOAD ---
         async function downloadPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('p', 'mm', 'a4');
@@ -714,7 +692,7 @@
             doc.save('IDs.pdf');
         }
 
-        // --- 9. IMAGE SCREENSHOT ---
+        // --- 8. IMAGE SCREENSHOT ---
         async function downloadFirstCardScreenshot() {
             const c = document.querySelector('.workspace .canvas-wrapper');
             if(!c) return alert("Generate IDs first.");
@@ -723,7 +701,7 @@
             a.download = 'ID.png'; a.href = canvas.toDataURL(); a.click();
         }
 
-        // --- 10. EXPORT FOR PHONE (STANDALONE) ---
+        // --- 9. EXPORT FOR PHONE (STANDALONE) ---
         async function exportForPhone() {
             alert("Phone Export Logic Ready. (Based on previous full context)");
         }
@@ -731,115 +709,115 @@
             alert("View Phone Logic Ready.");
         }
         
-        // --- 11. SAVE CARD TO SUPABASE (DEBUG VERSION) ---
-        async function saveCardToSupabase() {
-            const cards = document.querySelectorAll('.workspace .canvas-wrapper');
-            const selectedOptions = listRightElem.options;
+// --- 10. SAVE CARD TO SUPABASE (DEBUG VERSION) ---
+async function saveCardToSupabase() {
+    const cards = document.querySelectorAll('.workspace .canvas-wrapper');
+    const selectedOptions = listRightElem.options;
 
-            if (cards.length === 0 || selectedOptions.length === 0) {
-                return alert("Please generate IDs first and ensure members are selected.");
-            }
+    if (cards.length === 0 || selectedOptions.length === 0) {
+        return alert("Please generate IDs first and ensure members are selected.");
+    }
 
-            statusMsg.textContent = "Uploading to Bucket...";
-            let successCount = 0;
-            let errorMessages = [];
+    statusMsg.textContent = "Uploading to Bucket...";
+    let successCount = 0;
+    let errorMessages = [];
 
-            for (let i = 0; i < cards.length; i++) {
-                try {
-                    const cardElement = cards[i];
-                    const canvas = await html2canvas(cardElement, { scale: 2, backgroundColor: "#ffffff" });
-                    const imgData = canvas.toDataURL('image/png');
+    for (let i = 0; i < cards.length; i++) {
+        try {
+            const cardElement = cards[i];
+            const canvas = await html2canvas(cardElement, { scale: 2, backgroundColor: "#ffffff" });
+            const imgData = canvas.toDataURL('image/png');
 
-                    const memberData = JSON.parse(selectedOptions[i].dataset.memberData);
-                    const memberId = memberData.id;
+            const memberData = JSON.parse(selectedOptions[i].dataset.memberData);
+            const memberId = memberData.id;
 
-                    const payload = {
-                        member_id: memberId,
-                        image_data: imgData
-                    };
+            const payload = {
+                member_id: memberId,
+                image_data: imgData
+            };
 
-                    statusMsg.textContent = `Uploading ${i+1}/${cards.length}...`;
+            statusMsg.textContent = `Uploading ${i+1}/${cards.length}...`;
 
-                    const response = await fetch(`${API_URL}/save_card_image`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
+            const response = await fetch(`${API_URL}/save_card_image`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
-                    const result = await response.json();
+            const result = await response.json();
 
-                    if (!response.ok) {
-                        console.error("Server Error:", result);
-                        errorMessages.push(`Member ID ${memberId}: ${result.message || 'Unknown Error'}`);
-                    } else {
-                        successCount++;
-                        console.log(`Member ID ${memberId} saved successfully.`);
-                    }
-
-                } catch (e) {
-                    console.error("JS Error saving card:", e);
-                    errorMessages.push(`JS Error: ${e.message}`);
-                }
-            }
-
-            statusMsg.textContent = "Ready";
-
-            if (errorMessages.length > 0) {
-                alert(`SAVING FAILED!\n\nSaved: ${successCount}\nFailed: ${errorMessages.length}\n\nDetails:\n${errorMessages.join('\n')}`);
+            if (!response.ok) {
+                console.error("Server Error:", result);
+                errorMessages.push(`Member ID ${memberId}: ${result.message || 'Unknown Error'}`);
             } else {
-                alert(`Success! All ${successCount} cards saved.`);
+                successCount++;
+                console.log(`Member ID ${memberId} saved successfully.`);
             }
+
+        } catch (e) {
+            console.error("JS Error saving card:", e);
+            errorMessages.push(`JS Error: ${e.message}`);
+        }
+    }
+
+    statusMsg.textContent = "Ready";
+
+    if (errorMessages.length > 0) {
+        alert(`SAVING FAILED!\n\nSaved: ${successCount}\nFailed: ${errorMessages.length}\n\nDetails:\n${errorMessages.join('\n')}`);
+    } else {
+        alert(`Success! All ${successCount} cards saved.`);
+    }
+}
+
+// --- 11. BATCH DELETE CARDS FUNCTION (IMMEDIATE CLEANUP) ---
+async function deleteBatchCards() {
+    const selectedOptions = listRightElem.options;
+
+    if (selectedOptions.length === 0) {
+        return alert("Please select members from 'Selected' list first.");
+    }
+
+    const confirmDelete = confirm(
+        `WARNING: This will delete ID cards for ${selectedOptions.length} members.\n\n` +
+        `1. This will remove images from the Bucket.\n` +
+        `2. This will reset their ID status in the Database.\n\n` +
+        `Continue?`
+    );
+
+    if (!confirmDelete) return;
+
+    const memberIds = [];
+    for (let i = 0; i < selectedOptions.length; i++) {
+        const memberData = JSON.parse(selectedOptions[i].dataset.memberData);
+        memberIds.push(memberData.id);
+    }
+
+    statusMsg.textContent = "Deleting IDs from Bucket & Database...";
+
+    try {
+        const response = await fetch(`${API_URL}/delete_cards_batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ member_ids: memberIds })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert(result.message); 
+            moveAllLeft(); 
+            statusMsg.textContent = "IDs Cleared.";
+        } else {
+            alert("Error: " + result.message);
+            statusMsg.textContent = "Error.";
         }
 
-        // --- 12. BATCH DELETE CARDS FUNCTION (IMMEDIATE CLEANUP) ---
-        async function deleteBatchCards() {
-            const selectedOptions = listRightElem.options;
-
-            if (selectedOptions.length === 0) {
-                return alert("Please select members from 'Selected' list first.");
-            }
-
-            const confirmDelete = confirm(
-                `WARNING: This will delete ID cards for ${selectedOptions.length} members.\n\n` +
-                `1. This will remove images from Bucket.\n` +
-                `2. This will reset their ID status in Database.\n\n` +
-                `Continue?`
-            );
-
-            if (!confirmDelete) return;
-
-            const memberIds = [];
-            for (let i = 0; i < selectedOptions.length; i++) {
-                const memberData = JSON.parse(selectedOptions[i].dataset.memberData);
-                memberIds.push(memberData.id);
-            }
-
-            statusMsg.textContent = "Deleting IDs from Bucket & Database...";
-
-            try {
-                const response = await fetch(`${API_URL}/delete_cards_batch`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ member_ids: memberIds })
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    alert(result.message); 
-                    moveAllLeft(); 
-                    statusMsg.textContent = "IDs Cleared.";
-                } else {
-                    alert("Error: " + result.message);
-                    statusMsg.textContent = "Error.";
-                }
-
-            } catch (e) {
-                console.error(e);
-                alert("Connection Error.");
-                statusMsg.textContent = "Error.";
-            }
-        }
+    } catch (e) {
+        console.error(e);
+        alert("Connection Error.");
+        statusMsg.textContent = "Error.";
+    }
+}
 
         // UPLOAD HANDLERS
         document.getElementById('templateUpload').addEventListener('change', function(e) {
