@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head> 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID Layout Editor - Final w/ Zoom Fix</title>
+    <title>ID Layout Editor - Final w/ Double Click Fix</title>
     
     <style>
         :root {
@@ -65,7 +65,7 @@
         .draggable-item:hover { background: #475569; border-color: var(--primary-color); }
         .draggable-item:active { cursor: grabbing; }
 
-        /* --- ADDED: Admin Forms Styles --- */
+        /* --- Admin Forms Styles --- */
         .admin-forms-panel {
             background: #0f172a;
             padding: 10px;
@@ -118,7 +118,7 @@
         .btn-del { background: var(--danger-color, #ef4444); }
         .btn-save { background: var(--success-color, #10b981); }
 
-        /* --- ADDED: Transfer List Styles --- */
+        /* --- Transfer List Styles --- */
         .transfer-box {
             display: flex;
             gap: 4px;
@@ -180,6 +180,17 @@
         button.danger { background: #ef4444; color: white; border: none; }
         .zoom-display { font-size: 12px; color: #666; width: 40px; text-align: center; }
         input[type="range"] { width: 80px; cursor: pointer; }
+        
+        /* NEW: Rotation Textbox Style */
+        input[type="number"].rotate-input {
+            width: 50px;
+            padding: 4px;
+            font-size: 12px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
         .workspace {
             flex-grow: 1;
             background: #e5e7eb;
@@ -217,6 +228,8 @@
             box-sizing: border-box;
             z-index: 100;
             overflow: hidden;
+            transform: rotate(0deg);
+            writing-mode: horizontal-tb; 
         }
         .canvas-element:hover {
             border: 1px solid var(--primary-color);
@@ -253,7 +266,7 @@
         }
         .canvas-element.is-image img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 
-        /* --- 2. MS WORD TEXTBOX STYLE (FIXED) --- */
+        /* --- MS WORD TEXTBOX STYLE --- */
         .custom-textbox {
             position: absolute;
             background: transparent;
@@ -270,6 +283,8 @@
             white-space: pre-wrap;
             line-height: 1.4;
             text-align: left;
+            transform: rotate(0deg);
+            writing-mode: horizontal-tb;
         }
         .custom-textbox.selected {
             border: 2px solid var(--primary-color);
@@ -294,7 +309,7 @@
         .rh-ne { top: -4px; right: -4px; cursor: nesw-resize; }
         .rh-nw { top: -4px; left: -4px; cursor: nwse-resize; }
 
-        /* --- MODAL STYLES (Reusable) --- */
+        /* --- MODAL STYLES --- */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -363,7 +378,7 @@
     <div class="sidebar">
         <div class="sidebar-header">🧩 Toolbox</div>
         
-        <!-- === NEW: MEMBERS DATA PANEL (For Print Merge) === -->
+        <!-- === MEMBERS DATA PANEL === -->
         <div class="admin-forms-panel">
             <div class="sidebar-group-title" style="color: #fff;">MEMBERS DATA (PRINT)</div>
             
@@ -378,7 +393,7 @@
             <button class="admin-btn btn-add" onclick="loadAndMergeLayout()" style="background: #8b5cf6; margin-bottom: 5px;">📂 LOAD & MERGE (PRINT)</button>
         </div>
 
-        <!-- === OFFICERS PANEL (NEW) === -->
+        <!-- === OFFICERS PANEL === -->
         <div class="admin-forms-panel">
             <div class="sidebar-group-title" style="color: #fff;">OFFICERS LIST</div>
             
@@ -395,7 +410,8 @@
         <div class="admin-forms-panel">
             <div class="sidebar-group-title" style="color: #fff;">Admin Forms (Table: admin_forms)</div>
             
-            <select id="adminFormsSelect" class="admin-select" onchange="checkAdminFormSelection()">
+            <!-- UPDATED FIX: Added onfocus AND onclick for instant reaction -->
+            <select id="adminFormsSelect" class="admin-select" onchange="checkAdminFormSelection()" onclick="checkAdminFormSelection()" onfocus="if(this.value) checkAdminFormSelection()">
                 <!-- Options loaded via JS -->
             </select>
 
@@ -467,6 +483,8 @@
                 <span id="zoomValue" class="zoom-display">100%</span>
                 
                 <div style="border-left: 1px solid #ddd; padding-left: 10px; gap: 5px; align-items: center; display: flex;">
+                    
+                    <!-- FONT PROPERTIES -->
                     <select id="propFontFamily" title="Font Family">
                         <option value="'Segoe UI', sans-serif">Segoe UI</option>
                         <option value="Arial, sans-serif">Arial</option>
@@ -482,11 +500,22 @@
                         <option value="normal">Normal</option>
                         <option value="bold">Bold</option>
                     </select>
+
+                    <!-- UPDATED: ROTATION WITH TEXTBOX -->
+                    <span style="font-size: 11px; font-weight: bold; color: #555; margin-left: 5px;">🔄 ROTATE:</span>
+                    <input type="range" id="propRotate" min="0" max="360" value="0" style="width: 80px;" title="Rotate Text">
+                    <input type="number" id="propRotateText" class="rotate-input" value="0" min="0" max="360" title="Exact Degrees">
+                    <span style="font-size: 11px;">°</span>
+                    <button onclick="setRotate(180)" title="Quick Rotate 180°" style="padding: 2px 6px; font-size: 11px;">180°</button>
+                    <button onclick="setRotate(0)" title="Reset Rotation" style="padding: 2px 6px; font-size: 11px;">Reset</button>
+
                 </div>
 
-                <button class="danger" onclick="deleteSelected()">🗑️ Delete</button>
-                <button class="primary" onclick="saveLayout()">💾 Save</button>
-                <button class="primary" style="background: #8b5cf6;" onclick="loadLayout()">📂 Load (Template)</button>
+                <div style="border-left: 1px solid #ddd; padding-left: 10px; gap: 5px; display:flex;">
+                    <button class="danger" onclick="deleteSelected()">🗑️ Delete</button>
+                    <button class="primary" onclick="saveLayout()">💾 Save</button>
+                    <button class="primary" style="background: #8b5cf6;" onclick="loadLayout()">📂 Load (Template)</button>
+                </div>
             </div>
         </div>
 
@@ -536,7 +565,7 @@
         // ==========================================
         // CONSTANTS & SETUP
         // ==========================================
-        const API_URL = ''; // Use Relative Path
+        const API_URL = ''; 
         const canvas = document.getElementById('editorCanvas');
         const workspace = document.getElementById('workspace');
         const uploadInput = document.getElementById('templateUpload');
@@ -548,6 +577,10 @@
         const propFont = document.getElementById('propFont');
         const propFontFamily = document.getElementById('propFontFamily');
         const propTextColor = document.getElementById('propTextColor');
+        
+        // NEW: Rotation Elements (Slider & Textbox)
+        const propRotate = document.getElementById('propRotate');
+        const propRotateText = document.getElementById('propRotateText');
 
         let isDragging = false;
         let isResizing = false;
@@ -561,7 +594,14 @@
         // MODAL LOGIC (Unified)
         // ==========================================
         function openModal(modalId) {
-            document.getElementById(modalId).style.display = 'flex';
+            const modal = document.getElementById(modalId);
+            modal.style.display = 'flex';
+            
+            // Iframe Reload Fix: Force reload when opening
+            const iframe = modal.querySelector('iframe');
+            if (iframe) {
+                iframe.src = iframe.src; // Reload to ensure fresh state
+            }
         }
 
         function closeModal(modalId) {
@@ -569,7 +609,7 @@
         }
 
         // ==========================================
-        // 1. MEMBERS PRINT LOGIC (NEW FOR SIDEBAR)
+        // 1. MEMBERS PRINT LOGIC
         // ==========================================
         async function loadPrintMembers() {
             const dateInput = document.getElementById('printDateInput');
@@ -593,7 +633,6 @@
                     const option = document.createElement('option');
                     option.value = member.id; 
                     option.textContent = member.name; 
-                    // Store full data in dataset for Merge later
                     option.dataset.memberData = JSON.stringify(member);
                     listLeft.appendChild(option);
                 });
@@ -605,7 +644,7 @@
         }
 
         // ==========================================
-        // 2. OFFICER LIST LOGIC (NEW)
+        // 2. OFFICER LIST LOGIC
         // ==========================================
         const officerSelect = document.getElementById('officerSelect');
         const officerDragItem = document.getElementById('officerDragItem');
@@ -714,7 +753,7 @@
             if (!selectedOption) return;
             const selectedText = selectedOption.textContent; 
 
-            // Unified Logic to open Modals based on Name
+            // Logic to open Modals
             if (selectedText === "Officer Signature") {
                 openModal('signatureModal');
             } else if (selectedText === "Mode of Payment") {
@@ -880,7 +919,7 @@
             el.contentEditable = "true";
             const canvasWidth = canvas.offsetWidth;
             const canvasHeight = canvas.offsetHeight;
-            el.style.left = (canvasWidth / 2 - 100) + 'px';
+            el.style.left = (canvasWidth / 2 - 100) + 'px'; 
             el.style.top = (canvasHeight / 2 - 10) + 'px';
             el.style.width = '200px'; 
             el.innerText = "";
@@ -925,23 +964,20 @@
         });
 
         // ==========================================
-        // 5. ZOOM LOGIC (FIXED FOR EDITOR + WORKSPACE)
+        // 5. ZOOM LOGIC
         // ==========================================
         zoomSlider.addEventListener('input', function() {
             const scale = this.value;
-            
-            // 1. Update Text Display
             zoomValue.textContent = Math.round(scale * 100) + '%';
-            
-            // 2. Get All Canvases in Workspace (This includes Editor + Generated IDs)
             const allCanvases = document.querySelectorAll('.workspace .canvas-wrapper');
-            
-            // 3. Apply Zoom to All of them
             allCanvases.forEach(c => {
                 c.style.transform = `scale(${scale})`;
             });
         });
 
+        // ==========================================
+        // 6. MOUSE EVENTS (Drag, Resize, Select)
+        // ==========================================
         document.addEventListener('mousedown', function(e) {
             hasMoved = false;
             if (e.target.classList.contains('resize-handle')) {
@@ -1035,17 +1071,29 @@
             let currentWeight = 'normal';
             let currentFamily = "'Segoe UI', sans-serif";
             let currentColor = "#000";
-            
+            let currentRotate = 0;
+
             const computed = getComputedStyle(el);
             if(computed.fontSize) currentSize = parseInt(computed.fontSize); 
             if(computed.fontWeight) currentWeight = computed.fontWeight;
             if(computed.fontFamily) currentFamily = computed.fontFamily;
             currentColor = el.style.color || "#000"; 
+
+            // Extract rotation from inline style
+            const transform = el.style.transform;
+            if (transform && transform.includes('rotate')) {
+                const match = transform.match(/rotate\(([^)]+)deg\)/);
+                if (match) currentRotate = match[1];
+            }
             
             propSize.value = currentSize;
             propFont.value = currentWeight;
             propFontFamily.value = currentFamily;
             if(currentColor.startsWith('#')) propTextColor.value = currentColor;
+            
+            // UPDATE: Sync both Slider and Textbox
+            propRotate.value = currentRotate;
+            propRotateText.value = currentRotate;
         }
 
         function deselectAll() {
@@ -1054,6 +1102,7 @@
             });
         }
 
+        // Toolbar Helpers
         propSize.addEventListener('input', () => {
             const sel = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
             if(sel) sel.style.fontSize = propSize.value + 'px';
@@ -1071,6 +1120,37 @@
             if(sel) sel.style.color = propTextColor.value;
         });
 
+        // UPDATED: Rotation Event Listeners (Slider & Textbox Sync)
+        function updateRotation(deg) {
+            const sel = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
+            if (sel) {
+                sel.style.transform = 'rotate(' + deg + 'deg)';
+                // Sync inputs
+                propRotate.value = deg;
+                propRotateText.value = deg;
+            }
+        }
+
+        propRotate.addEventListener('input', () => {
+            updateRotation(propRotate.value);
+        });
+
+        propRotateText.addEventListener('input', () => {
+            updateRotation(propRotateText.value);
+        });
+
+        // Helper function for buttons
+        function setRotate(deg) {
+            const sel = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
+            if (sel) {
+                sel.style.transform = 'rotate(' + deg + 'deg)';
+                propRotate.value = deg;
+                propRotateText.value = deg;
+            } else {
+                alert("Please select an element first.");
+            }
+        }
+
         function deleteSelected() {
             const selected = document.querySelector('.canvas-element.selected, .custom-textbox.selected');
             if (selected) {
@@ -1081,14 +1161,13 @@
         }
 
         // ==========================================
-        // 6. SAVE & LOAD LOGIC (TEMPLATE)
+        // 7. SAVE & LOAD LOGIC (TEMPLATE)
         // ==========================================
         async function saveLayout() {
             const elements = [];
             Array.from(canvas.children).forEach(child => {
                 if (child.classList.contains('resize-handle')) return; 
                 
-                // LINE FIX: Don't save height for lines
                 const isLine = child.classList.contains('is-line');
                 let h = parseInt(getComputedStyle(child).height);
                 if (isLine) h = ""; 
@@ -1105,6 +1184,7 @@
                     fontSize: child.style.fontSize,
                     fontFamily: child.style.fontFamily,
                     fontWeight: child.style.fontWeight,
+                    transform: child.style.transform,
                     isContentEditable: child.isContentEditable
                 };
                 const img = child.querySelector('img');
@@ -1134,7 +1214,6 @@
 
         async function loadLayout() {
             try {
-                // 1. Clear Editor Canvas Only
                 Array.from(canvas.children).forEach(child => child.remove());
 
                 const response = await fetch(`${API_URL}/load_layout`);
@@ -1145,14 +1224,12 @@
                 }
                 const saved = result.data;
 
-                // 2. Restore Canvas Background & Size
                 if (saved && saved.template) {
                     canvas.style.backgroundImage = saved.template.backgroundImage;
                     canvas.style.width = saved.template.width;
                     canvas.style.height = saved.template.height;
                 }
 
-                // 3. Restore Fields
                 if (saved && saved.fields) {
                     saved.fields.forEach(fieldData => {
                         const el = document.createElement('div');
@@ -1165,8 +1242,12 @@
                         el.style.fontSize = fieldData.fontSize;
                         el.style.fontFamily = fieldData.fontFamily;
                         el.style.fontWeight = fieldData.fontWeight;
+                        
+                        // Restore Rotation
+                        if (fieldData.transform) {
+                            el.style.transform = fieldData.transform;
+                        }
 
-                        // LINE FIX: Don't set inline height for lines
                         if (!fieldData.height || fieldData.height === '' || fieldData.height === '0px') {
                             el.style.height = "";
                         } else {
@@ -1183,6 +1264,24 @@
                             el.innerHTML = `<img src="${fieldData.imgSrc}" style="width:100%; height:100%; object-fit:contain; pointer-events:none;">`;
                         }
                         
+                        if (fieldData.selectValue) {
+                            const sel = document.createElement('select');
+                            sel.style.width = '100%';
+                            sel.style.height = '100%';
+                            sel.value = fieldData.selectValue;
+                            el.innerText = "";
+                            el.appendChild(sel);
+                        }
+                        if (fieldData.inputValue) {
+                            const inp = document.createElement('input');
+                            inp.type = 'number';
+                            inp.style.width = '100%';
+                            inp.style.height = '100%';
+                            inp.value = fieldData.inputValue;
+                            el.innerText = "";
+                            el.appendChild(inp);
+                        }
+
                         ['nw', 'ne', 'sw', 'se'].forEach(pos => {
                             const handle = document.createElement('div');
                             handle.className = `resize-handle rh-${pos}`;
@@ -1200,7 +1299,7 @@
         }
 
         // ==========================================
-        // 7. LOAD & MERGE LOGIC (THE BIG UPDATE)
+        // 8. LOAD & MERGE LOGIC
         // ==========================================
         
         const MERGE_KEYWORDS = [
@@ -1216,7 +1315,6 @@
 
         async function loadAndMergeLayout() {
             try {
-                // 1. Get Layout Template
                 const response = await fetch(`${API_URL}/load_layout`);
                 const result = await response.json();
                 if (!response.ok) {
@@ -1229,7 +1327,6 @@
                     return;
                 }
 
-                // 2. Get Selected Members
                 const selectedOptions = document.getElementById('printMembersList').options;
                 
                 if (selectedOptions.length === 0) {
@@ -1237,20 +1334,12 @@
                     return;
                 }
 
-                // 3. Clear Workspace (Keep Editor Canvas?)
-                // Requirement: "isa isa lang... mawawala ang isa yung isa hindi"
-                // If we want to merge, we should probably hide the editor canvas to avoid confusion, or keep it.
-                // User said "Load Layout" is for aligning.
-                // Let's clear workspace content but maybe keep editor? 
-                // Actually, usually users want to see the result. Let's append to workspace.
                 workspace.innerHTML = "";
 
-                // 4. Loop through selected members and create a card for each
                 for (let i = 0; i < selectedOptions.length; i++) {
                     const option = selectedOptions[i];
                     const member = JSON.parse(option.dataset.memberData);
                     
-                    // Create a new canvas wrapper for this member
                     const newCanvas = document.createElement('div');
                     newCanvas.className = 'canvas-wrapper';
                     newCanvas.style.width = saved.template.width;
@@ -1260,15 +1349,11 @@
                     newCanvas.style.backgroundSize = "contain";
                     newCanvas.style.boxShadow = "0 10px 40px rgba(0,0,0,0.2)";
                     
-                    // IMPORTANT: Zoom fix for new canvases. 
-                    // The global zoom slider only affects the active element logic usually.
-                    // We must apply the transform directly here.
                     const zoom = parseFloat(zoomSlider.value);
                     newCanvas.style.transform = `scale(${zoom})`;
 
                     workspace.appendChild(newCanvas);
 
-                    // Render fields for this specific member
                     if (saved && saved.fields) {
                         saved.fields.forEach(fieldData => {
                             const el = document.createElement('div');
@@ -1278,7 +1363,6 @@
                             el.style.top = fieldData.top;
                             el.style.width = fieldData.width;
                             
-                            // LINE FIX
                             if (fieldData.height && fieldData.height !== '' && fieldData.height !== '0px') {
                                 el.style.height = fieldData.height;
                             } else {
@@ -1290,6 +1374,11 @@
                             el.style.fontFamily = fieldData.fontFamily;
                             el.style.fontWeight = fieldData.fontWeight;
                             el.style.borderColor = "transparent";
+
+                            // Restore Rotation for Printed Cards
+                            if (fieldData.transform) {
+                                el.style.transform = fieldData.transform;
+                            }
 
                             const fieldText = (fieldData.text || "").trim().toUpperCase();
                             const isCssObject = fieldData.className.includes('is-line') || 
@@ -1341,7 +1430,6 @@
                                 }
                             }
                             else {
-                                // CASE: COMBO BOX or SEQ NO in Layout
                                 if (fieldData.selectValue) {
                                     el.innerHTML = "";
                                     const sel = document.createElement('select');
@@ -1350,14 +1438,14 @@
                                     sel.style.background = 'rgba(255,255,255,0.8)';
                                     sel.style.border = '1px dashed #10b981';
                                     
-                                    el.innerText = member.name; // Replacing select with static text
+                                    el.innerText = member.name; 
                                     el.style.fontWeight = 'bold';
                                 }
                                 else if (fieldData.inputValue) {
                                     el.innerHTML = "";
                                     const inp = document.createElement('input');
                                     inp.type = 'number';
-                                    inp.value = i + 1; // Auto Sequence 1, 2, 3...
+                                    inp.value = i + 1; 
                                     inp.style.width = '100%';
                                     inp.style.height = '100%';
                                     inp.style.background = 'rgba(255,255,255,0.8)';
@@ -1382,7 +1470,7 @@
         }
 
         // ==========================================
-        // 8. HELPERS
+        // 9. HELPERS
         // ==========================================
         function getMemberValue(caption, member) {
             const cap = caption.trim().toUpperCase();
