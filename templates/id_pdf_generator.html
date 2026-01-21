@@ -126,7 +126,7 @@
         .canvas-element img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 
         .custom-textbox {
-            position: absolute; background: transparent; border: 1px dashed #94a3b8;
+            position: absolute; background: transparent; border:1px dashed #94a3b8;
             color: #000; font-size: 14px; font-family: 'Segoe UI', sans-serif;
             z-index: 200; min-width: 200px; min-height: 20px; cursor: text;
             padding: 4px; outline: none; white-space: pre-wrap; text-align: center;
@@ -290,6 +290,8 @@
                 
                 <!-- EXPORTS -->
                 <button class="primary" onclick="downloadPDF()">📄 PDF</button>
+                <button class="warning" style="background:#8b5cf6;" onclick="previewPDF()">👁️ PDF Preview</button>
+                
                 <button class="warning" onclick="downloadFirstCardScreenshot()">📸 Img</button>
                 <button class="success" onclick="exportForPhone()">📱 Phone</button>
                 
@@ -674,7 +676,7 @@
             return "";
         }
 
-        // --- 7. PDF DOWNLOAD ---
+        // --- 7. PDF DOWNLOAD (WORKING VERSION) ---
         async function downloadPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('p', 'mm', 'a4');
@@ -690,6 +692,25 @@
                 y += h_mm + gap;
             }
             doc.save('IDs.pdf');
+        }
+
+        // --- 7.1 PDF PREVIEW (BASED ON WORKING LOGIC) ---
+        async function previewPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const cards = document.querySelectorAll('.workspace .canvas-wrapper');
+            if(!cards.length) return alert("No IDs to print.");
+            
+            let y = 10; const h_mm = 54; const gap = 5;
+            for(let i=0; i<cards.length; i++) {
+                if(y + h_mm > 287) { doc.addPage(); y = 10; }
+                const c = await html2canvas(cards[i], {scale: 2});
+                const r = c.width / c.height;
+                doc.addImage(c, 'JPEG', 10, y, h_mm * r, h_mm);
+                y += h_mm + gap;
+            }
+            // OPEN IN NEW TAB INSTEAD OF SAVE
+            window.open(doc.output('bloburl'), '_blank');
         }
 
         // --- 8. IMAGE SCREENSHOT ---
@@ -779,8 +800,8 @@ async function deleteBatchCards() {
 
     const confirmDelete = confirm(
         `WARNING: This will delete ID cards for ${selectedOptions.length} members.\n\n` +
-        `1. This will remove images from the Bucket.\n` +
-        `2. This will reset their ID status in the Database.\n\n` +
+        `1. This will remove images from Bucket.\n` +
+        `2. This will reset their ID status in Database.\n\n` +
         `Continue?`
     );
 
