@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID PDF Generator - Clean & Merge</title>
+    <title>ID Generator - Final Web Software</title>
     
     <!-- PDF GENERATION LIBRARIES -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -99,8 +99,8 @@
             
             /* CRITICAL CENTERING STYLES */
             display: flex; /* Enables Flexbox Centering */
-            align-items: center; /* Vertically Centers Text (Fixes 'Malayo ng itaas') */
-            justify-content: center; /* Horizontally Centers Text (Fixes 'Hindi gitna') */
+            align-items: center; /* Vertically Centers Text */
+            justify-content: center; /* Horizontally Centers Text */
             text-align: center; /* Internal Text Alignment */
             
             z-index: 100; overflow: hidden;
@@ -288,17 +288,17 @@
                 <button class="primary" onclick="saveLayout()">💾 Save</button>
                 <button class="primary" style="background:#8b5cf6;" onclick="loadAndMergeLayout()">🔄 Load & Merge</button>
                 
-                <!-- EXPORTS -->
-                <button class="primary" onclick="downloadPDF()">📄 PDF</button>
-                <button class="warning" style="background:#8b5cf6;" onclick="previewPDF()">👁️ PDF Preview</button>
+                <!-- FINAL EXPORTS -->
+                <!-- PDF DOWNLOAD: Works on Phone (MS Word Compatible) -->
+                <button class="primary" onclick="downloadPDF()">📄 PDF Download</button>
+                <!-- PDF PREVIEW: Works on Laptop (View in Tab) -->
+                <button class="primary" style="background:#8b5cf6;" onclick="previewPDF()">👁️ PDF Preview</button>
                 
                 <button class="warning" onclick="downloadFirstCardScreenshot()">📸 Img</button>
-                <button class="success" onclick="exportForPhone()">📱 Phone</button>
                 
-                <!-- BUCKET ACTIONS -->
+                <!-- STORAGE -->
                 <button class="success" style="background:#10b981;" onclick="saveCardToSupabase()">☁️ Save Card</button>
                 <button class="danger" style="background:#dc2626;" onclick="deleteBatchCards()">🧹 Clear IDs</button>
-                <button class="warning" style="background:#f97316;" onclick="openViewPhone()">👁️ View</button>
             </div>
         </div>
 
@@ -473,7 +473,6 @@
                 el.style.border = 'none'; 
             }
             else { 
-                // DEFAULT SIZE FOR TEXT BOXES (Uniform Size)
                 el.style.width = '200px';
                 el.style.height = '40px'; 
                 el.style.padding = '2px 5px'; 
@@ -484,17 +483,14 @@
         }
 
         function createOfficerGroup(off, x, y) {
-            // Name
             let el = document.createElement('div'); el.className = 'canvas-element'; el.textContent = off.name_officer;
             el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.fontWeight = 'bold';
             el.style.textAlign = 'center'; el.style.boxSizing = 'border-box';
             addResizeHandles(el); canvas.appendChild(el);
-            // Designation
             el = document.createElement('div'); el.className = 'canvas-element'; el.textContent = off.designation;
             el.style.left = x + 'px'; el.style.top = (y + 20) + 'px'; el.style.fontSize = '11px';
             el.style.textAlign = 'center'; el.style.boxSizing = 'border-box';
             addResizeHandles(el); canvas.appendChild(el);
-            // Signature
             if(off.man_signature) {
                 el = document.createElement('div'); el.className = 'canvas-element is-image';
                 el.style.left = x + 'px'; el.style.top = (y + 40) + 'px'; el.style.width = '100px'; el.style.height = '40px';
@@ -622,14 +618,12 @@
                         el.style.color = f.color; el.style.fontSize = f.fontSize;
                         el.style.fontFamily = f.fontFamily; el.style.fontWeight = f.fontWeight;
                         
-                        // --- CENTERING LOGIC (WORDPAD STYLE) ---
-                        // Force Flexbox centering to match Admin visual
+                        // CENTERING LOGIC
                         el.style.textAlign = 'center';
                         el.style.boxSizing = 'border-box';
                         el.style.display = 'flex';
-                        el.style.alignItems = 'center'; // Vertical Center
-                        el.style.justifyContent = 'center'; // Horizontal Center
-                        // -----------------------------------
+                        el.style.alignItems = 'center'; 
+                        el.style.justifyContent = 'center'; 
 
                         const txt = (f.text || "").trim().toUpperCase();
                         if(f.imgSrc) el.innerHTML = `<img src="${f.imgSrc}" style="width:100%;height:100%;object-fit:contain;">`;
@@ -659,8 +653,8 @@
             
             // EMERGENCY FIXES
             if(cap==="EMERGENCY PERSON NAME" || cap==="EMERGENCY NAME") return m.emergency_person_name||"";
-            if(cap==="EMERGENCY ADDRESS") return m.emergency_address || m.home_address || ""; // Fallback added
-            if(cap==="EMERGENCY CONTACT" || cap==="EMERGENCY CONTACT NO") return m.emergency_contact_no || m.emergency_contact || ""; // Fallback added
+            if(cap==="EMERGENCY ADDRESS") return m.emergency_address || m.home_address || ""; 
+            if(cap==="EMERGENCY CONTACT" || cap==="EMERGENCY CONTACT NO") return m.emergency_contact_no || m.emergency_contact || ""; 
             
             if(cap==="DATE ISSUED") return m.issued_date||"";
             if(cap==="VALID UNTIL") return m.valid_until||"";
@@ -676,7 +670,7 @@
             return "";
         }
 
-        // --- 7. PDF DOWNLOAD (WORKING VERSION) ---
+        // --- 7. PDF DOWNLOAD (FOR PHONE & MS WORD) ---
         async function downloadPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('p', 'mm', 'a4');
@@ -691,10 +685,11 @@
                 doc.addImage(c, 'JPEG', 10, y, h_mm * r, h_mm);
                 y += h_mm + gap;
             }
+            // DOWNLOAD FILE (MS Word compatible PDF)
             doc.save('IDs.pdf');
         }
 
-        // --- 7.1 PDF PREVIEW (BASED ON WORKING LOGIC) ---
+        // --- 8. PDF PREVIEW (FOR LAPTOP) ---
         async function previewPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('p', 'mm', 'a4');
@@ -709,11 +704,11 @@
                 doc.addImage(c, 'JPEG', 10, y, h_mm * r, h_mm);
                 y += h_mm + gap;
             }
-            // OPEN IN NEW TAB INSTEAD OF SAVE
+            // OPEN IN NEW TAB
             window.open(doc.output('bloburl'), '_blank');
         }
 
-        // --- 8. IMAGE SCREENSHOT ---
+        // --- 9. IMAGE SCREENSHOT ---
         async function downloadFirstCardScreenshot() {
             const c = document.querySelector('.workspace .canvas-wrapper');
             if(!c) return alert("Generate IDs first.");
@@ -722,123 +717,115 @@
             a.download = 'ID.png'; a.href = canvas.toDataURL(); a.click();
         }
 
-        // --- 9. EXPORT FOR PHONE (STANDALONE) ---
-        async function exportForPhone() {
-            alert("Phone Export Logic Ready. (Based on previous full context)");
-        }
-        async function openViewPhone() {
-            alert("View Phone Logic Ready.");
-        }
-        
-// --- 10. SAVE CARD TO SUPABASE (DEBUG VERSION) ---
-async function saveCardToSupabase() {
-    const cards = document.querySelectorAll('.workspace .canvas-wrapper');
-    const selectedOptions = listRightElem.options;
+        // --- 10. SAVE CARD TO SUPABASE (FINAL) ---
+        async function saveCardToSupabase() {
+            const cards = document.querySelectorAll('.workspace .canvas-wrapper');
+            const selectedOptions = listRightElem.options;
 
-    if (cards.length === 0 || selectedOptions.length === 0) {
-        return alert("Please generate IDs first and ensure members are selected.");
-    }
-
-    statusMsg.textContent = "Uploading to Bucket...";
-    let successCount = 0;
-    let errorMessages = [];
-
-    for (let i = 0; i < cards.length; i++) {
-        try {
-            const cardElement = cards[i];
-            const canvas = await html2canvas(cardElement, { scale: 2, backgroundColor: "#ffffff" });
-            const imgData = canvas.toDataURL('image/png');
-
-            const memberData = JSON.parse(selectedOptions[i].dataset.memberData);
-            const memberId = memberData.id;
-
-            const payload = {
-                member_id: memberId,
-                image_data: imgData
-            };
-
-            statusMsg.textContent = `Uploading ${i+1}/${cards.length}...`;
-
-            const response = await fetch(`${API_URL}/save_card_image`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            const result = await response.json();
-
-            if (!response.ok) {
-                console.error("Server Error:", result);
-                errorMessages.push(`Member ID ${memberId}: ${result.message || 'Unknown Error'}`);
-            } else {
-                successCount++;
-                console.log(`Member ID ${memberId} saved successfully.`);
+            if (cards.length === 0 || selectedOptions.length === 0) {
+                return alert("Please generate IDs first and ensure members are selected.");
             }
 
-        } catch (e) {
-            console.error("JS Error saving card:", e);
-            errorMessages.push(`JS Error: ${e.message}`);
-        }
-    }
+            statusMsg.textContent = "Uploading to Bucket...";
+            let successCount = 0;
+            let errorMessages = [];
 
-    statusMsg.textContent = "Ready";
+            for (let i = 0; i < cards.length; i++) {
+                try {
+                    const cardElement = cards[i];
+                    const canvas = await html2canvas(cardElement, { scale: 2, backgroundColor: "#ffffff" });
+                    const imgData = canvas.toDataURL('image/png');
 
-    if (errorMessages.length > 0) {
-        alert(`SAVING FAILED!\n\nSaved: ${successCount}\nFailed: ${errorMessages.length}\n\nDetails:\n${errorMessages.join('\n')}`);
-    } else {
-        alert(`Success! All ${successCount} cards saved.`);
-    }
-}
+                    const memberData = JSON.parse(selectedOptions[i].dataset.memberData);
+                    const memberId = memberData.id;
 
-// --- 11. BATCH DELETE CARDS FUNCTION (IMMEDIATE CLEANUP) ---
-async function deleteBatchCards() {
-    const selectedOptions = listRightElem.options;
+                    const payload = {
+                        member_id: memberId,
+                        image_data: imgData
+                    };
 
-    if (selectedOptions.length === 0) {
-        return alert("Please select members from 'Selected' list first.");
-    }
+                    statusMsg.textContent = `Uploading ${i+1}/${cards.length}...`;
 
-    const confirmDelete = confirm(
-        `WARNING: This will delete ID cards for ${selectedOptions.length} members.\n\n` +
-        `1. This will remove images from Bucket.\n` +
-        `2. This will reset their ID status in Database.\n\n` +
-        `Continue?`
-    );
+                    const response = await fetch(`${API_URL}/save_card_image`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
 
-    if (!confirmDelete) return;
+                    const result = await response.json();
 
-    const memberIds = [];
-    for (let i = 0; i < selectedOptions.length; i++) {
-        const memberData = JSON.parse(selectedOptions[i].dataset.memberData);
-        memberIds.push(memberData.id);
-    }
+                    if (!response.ok) {
+                        console.error("Server Error:", result);
+                        errorMessages.push(`Member ID ${memberId}: ${result.message || 'Unknown Error'}`);
+                    } else {
+                        successCount++;
+                        console.log(`Member ID ${memberId} saved successfully.`);
+                    }
 
-    statusMsg.textContent = "Deleting IDs from Bucket & Database...";
+                } catch (e) {
+                    console.error("JS Error saving card:", e);
+                    errorMessages.push(`JS Error: ${e.message}`);
+                }
+            }
 
-    try {
-        const response = await fetch(`${API_URL}/delete_cards_batch`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ member_ids: memberIds })
-        });
+            statusMsg.textContent = "Ready";
 
-        const result = await response.json();
-
-        if (response.ok) {
-            alert(result.message); 
-            moveAllLeft(); 
-            statusMsg.textContent = "IDs Cleared.";
-        } else {
-            alert("Error: " + result.message);
-            statusMsg.textContent = "Error.";
+            if (errorMessages.length > 0) {
+                alert(`SAVING FAILED!\n\nSaved: ${successCount}\nFailed: ${errorMessages.length}\n\nDetails:\n${errorMessages.join('\n')}`);
+            } else {
+                alert(`Success! All ${successCount} cards saved.`);
+            }
         }
 
-    } catch (e) {
-        console.error(e);
-        alert("Connection Error.");
-        statusMsg.textContent = "Error.";
-    }
-}
+        // --- 11. BATCH DELETE CARDS FUNCTION ---
+        async function deleteBatchCards() {
+            const selectedOptions = listRightElem.options;
+
+            if (selectedOptions.length === 0) {
+                return alert("Please select members from 'Selected' list first.");
+            }
+
+            const confirmDelete = confirm(
+                `WARNING: This will delete ID cards for ${selectedOptions.length} members.\n\n` +
+                `1. This will remove images from Bucket.\n` +
+                `2. This will reset their ID status in Database.\n\n` +
+                `Continue?`
+            );
+
+            if (!confirmDelete) return;
+
+            const memberIds = [];
+            for (let i = 0; i < selectedOptions.length; i++) {
+                const memberData = JSON.parse(selectedOptions[i].dataset.memberData);
+                memberIds.push(memberData.id);
+            }
+
+            statusMsg.textContent = "Deleting IDs from Bucket & Database...";
+
+            try {
+                const response = await fetch(`${API_URL}/delete_cards_batch`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ member_ids: memberIds })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert(result.message); 
+                    moveAllLeft(); 
+                    statusMsg.textContent = "IDs Cleared.";
+                } else {
+                    alert("Error: " + result.message);
+                    statusMsg.textContent = "Error.";
+                }
+
+            } catch (e) {
+                console.error(e);
+                alert("Connection Error.");
+                statusMsg.textContent = "Error.";
+            }
+        }
 
         // UPLOAD HANDLERS
         document.getElementById('templateUpload').addEventListener('change', function(e) {
