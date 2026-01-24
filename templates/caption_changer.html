@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caption Changer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        
+        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px; }
+        
+        /* Form Styles */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        .file-upload { border: 2px dashed #ccc; padding: 20px; text-align: center; cursor: pointer; border-radius: 5px; }
+        .file-upload:hover { border-color: #2563eb; background: #f0f7ff; }
+        
+        /* Preview Styles */
+        .preview-box { border: 1px solid #ddd; padding: 20px; border-radius: 8px; background: #fff; text-align: center; position: relative; }
+        .preview-title { font-weight: bold; color: #666; margin-bottom: 10px; text-transform: uppercase; font-size: 0.8rem; }
+        
+        /* Mock ID Card */
+        .mock-card {
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #preview-logo { max-width: 100%; max-height: 150px; display: none; margin-bottom: 15px; }
+        #preview-placeholder { color: #999; font-style: italic; display: block; }
+        
+        .btn { background: #2563eb; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; width: 100%; margin-top: 20px; }
+        .btn:hover { background: #1d4ed8; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        @media (max-width: 768px) {
+            .grid-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>⚙️ Caption & Logo Editor</h1>
+    <p style="text-align: center; color: #666;">Palitan ang pangalan ng sistema at logo dito.</p>
+    
+    <div class="grid-layout">
+        <!-- Editor Form -->
+        <div class="editor-section">
+            <h3>Edit Settings</h3>
+            <br>
+            <div class="form-group">
+                <label>Main Title (Header)</label>
+                <input type="text" id="input-main-title" placeholder="e.g. UGBROMOVE Members">
+                <small style="color: #888;">Lalabas ito sa taas ng page.</small>
+            </div>
+
+            <div class="form-group">
+                <label>Sub Title / Description</label>
+                <input type="text" id="input-sub-title" placeholder="e.g. Placeholder">
+            </div>
+
+            <div class="form-group">
+                <label>Company Name (Footer/Body)</label>
+                <input type="text" id="input-company" placeholder="e.g. Abeleda Corporation">
+            </div>
+
+            <div class="form-group">
+                <label>Client Logo (Replaces "No Members Found")</label>
+                <div class="file-upload" onclick="document.getElementById('input-logo').click()">
+                    <span id="file-label">Click to upload Logo</span>
+                    <input type="file" id="input-logo" accept="image/*" style="display: none;">
+                </div>
+            </div>
+
+            <button class="btn" id="save-btn" onclick="saveSettings()">💾 Save Changes</button>
+            <p id="status-msg" style="text-align: center; margin-top: 10px; color: green;"></p>
+            <a href="/admin" style="display:block; text-align:center; margin-top:15px; color:#2563eb;">&larr; Back to Admin</a>
+        </div>
+
+        <!-- Live Preview -->
+        <div class="preview-section">
+            <div class="preview-box">
+                <div class="preview-title">Live Preview</div>
+                <div class="mock-card">
+                    <!-- Logo / Placeholder Area -->
+                    <img id="preview-logo" src="" alt="Logo">
+                    <span id="preview-placeholder">No members found</span>
+                    
+                    <!-- Text Area -->
+                    <hr style="width: 100%; border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+                    
+                    <h3 id="preview-title-text" style="margin: 0; color: #333;">UGBROMOVE Members</h3>
+                    <p id="preview-sub-text" style="color: #666; font-size: 0.9rem; margin-top: 5px;">Placeholder</p>
+                    <p id="preview-company-text" style="color: #2563eb; font-weight: bold; margin-top: 10px;">Abeleda Corporation</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Current State
+    let currentLogoBase64 = "";
+
+    // 1. Load Settings on Start
+    window.onload = function() {
+        fetch('/api/get_settings')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('input-main-title').value = data.main_title;
+                document.getElementById('input-sub-title').value = data.sub_title;
+                document.getElementById('input-company').value = data.company_name;
+                
+                updatePreview(data.main_title, data.sub_title, data.company_name);
+                
+                if (data.logo_url) {
+                    document.getElementById('preview-logo').src = data.logo_url;
+                    document.getElementById('preview-logo').style.display = 'block';
+                    document.getElementById('preview-placeholder').style.display = 'none';
+                    document.getElementById('file-label').textContent = "Change Logo";
+                }
+            })
+            .catch(err => console.error("Error loading settings:", err));
+    };
+
+    // 2. Live Preview Updates (Typing)
+    const inputs = ['input-main-title', 'input-sub-title', 'input-company'];
+    inputs.forEach(id => {
+        document.getElementById(id).addEventListener('input', function() {
+            updatePreview(
+                document.getElementById('input-main-title').value,
+                document.getElementById('input-sub-title').value,
+                document.getElementById('input-company').value
+            );
+        });
+    });
+
+    function updatePreview(title, sub, company) {
+        document.getElementById('preview-title-text').textContent = title || 'UGBROMOVE Members';
+        document.getElementById('preview-sub-text').textContent = sub || 'Placeholder';
+        document.getElementById('preview-company-text').textContent = company || 'Company Name';
+    }
+
+    // 3. Logo Handling
+    document.getElementById('input-logo').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                currentLogoBase64 = event.target.result; // Save base64 string
+                
+                // Show in Preview immediately
+                const img = document.getElementById('preview-logo');
+                img.src = currentLogoBase64;
+                img.style.display = 'block';
+                document.getElementById('preview-placeholder').style.display = 'none';
+                document.getElementById('file-label').textContent = file.name;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // 4. Save Function
+    function saveSettings() {
+        const btn = document.getElementById('save-btn');
+        const msg = document.getElementById('status-msg');
+        
+        btn.disabled = true;
+        btn.textContent = "Saving...";
+        msg.textContent = "";
+
+        const payload = {
+            main_title: document.getElementById('input-main-title').value,
+            sub_title: document.getElementById('input-sub-title').value,
+            company_name: document.getElementById('input-company').value,
+            logo_data: currentLogoBase64
+        };
+
+        fetch('/api/save_settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                msg.textContent = "✅ Saved Successfully!";
+                msg.style.color = "green";
+                // Clear logo base64 to prevent re-uploading on next save if logo didn't change
+                if(currentLogoBase64 !== "") currentLogoBase64 = ""; 
+            } else {
+                msg.textContent = "❌ Error: " + data.message;
+                msg.style.color = "red";
+            }
+        })
+        .catch(err => {
+            msg.textContent = "❌ Network Error";
+            msg.style.color = "red";
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.textContent = "💾 Save Changes";
+        });
+    }
+</script>
+
+</body>
+</html>
