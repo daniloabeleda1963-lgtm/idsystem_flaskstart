@@ -8,9 +8,9 @@
 <style>
     /* Center form and give it a max width on large screens */
     .form-container {
-        width: 100%;
+        width:100%;
         max-width: 800px; /* Dito nagkaka-center sa desktop */
-        margin: 0 auto;
+        margin:0 auto;
         box-sizing: border-box;
     }
 
@@ -100,6 +100,64 @@
             display: inline-flex !important; /* Make them inline */
         }
     }
+
+    /* --- ID PREVIEW MODAL STYLES (ADDED) --- */
+    #id_preview_modal {
+        display: none; /* Hidden by default */
+        position: fixed;
+        z-index: 5000; /* Nasa taas ng lahat (Lock) */
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.85); /* Dark background para focus sa ID */
+        overflow: auto;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(5px); /* Epekto na blurred ang likuran */
+    }
+
+    #id_preview_content {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 95%;
+        max-height: 95%;
+        overflow: auto;
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* Ito yung mismong container ng ID card */
+    #preview_canvas_wrapper {
+        /* Ang laki nito ay depende sa layout na i-load */
+        transform-origin: top center;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    #close_preview_btn {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-size: 30px;
+        color: #333;
+        cursor: pointer;
+        z-index: 5001;
+        font-weight: bold;
+    }
+    #close_preview_btn:hover { color: red; }
+
+    #preview_header {
+        color: white;
+        font-size: 18px;
+        margin-bottom: 20px;
+        font-weight: bold;
+        text-shadow: 1px 1px 2px black;
+    }
 </style>
 
 <h1 style="text-align:center; color:#333;">Add New Member</h1>
@@ -112,7 +170,7 @@
     <input type="hidden" name="member_id" id="member_id_field" value="">
 
     <!-- ID TOOLS SECTION -->
-    <div style="border: 1px solid #eee; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+    <div style="border:1px solid #eee; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
         <label for="id_no_field" style="font-weight: bold;">ID No.:</label>
         <div style="display: flex; align-items: center; gap: 10px;">
             <input type="text" id="id_no_field" name="id_no" placeholder="e.g., ID-2024-0001" readonly style="padding:10px; font-size:16px; flex-grow: 1; background-color: #e9e9e9;">
@@ -346,10 +404,7 @@
     </div>
 
     <!-- Hidden Elements -->
-    <input type="file" id="file_input" accept="image/*" style="display:none;">
-    <canvas id="canvas" width="280" height="280" style="display:none;"></canvas>
-    <input type="hidden" name="photo_data" id="photo_data">
-    <input type="hidden" name="photo_url" id="photo_url_field">
+    <input type="file" id="file_input" accept="image/*" style="display:none;">    <canvas id="canvas" width="280" height="280" style="display:none;"></canvas>    <input type="hidden" name="photo_data" id="photo_data">    <input type="hidden" name="photo_url" id="photo_url_field">
 
     <!-- Magic Button -->
     <button type="button" id="magic_btn" style="margin:10px auto; display:block; padding:10px 20px; background:#6a1b9a; color:white; border:none; border-radius:8px; cursor:pointer;">Button Show</button>
@@ -376,8 +431,8 @@
         </div>
     </div>
 
-    <!-- Submit (ID Templates) -->
-    <button type="button" id="submit_btn" style="margin-top:10px; padding:10px; background:#333; color:white; border:none; cursor:pointer;">ID Templates</button>
+    <!-- Submit (View Your ID CARD) -->
+    <button type="button" id="submit_btn" style="margin-top:10px; padding:10px; background:#333; color:white; border:none; cursor:pointer;">View Your ID CARD</button>
 
 </form>
 
@@ -417,6 +472,18 @@
     </div>
 </div>
 
+<!-- ID PREVIEW MODAL (ADDED) -->
+<div id="id_preview_modal">
+    <div id="preview_header">ID CARD PREVIEW</div>
+    <div id="id_preview_content">
+        <!-- Close Button -->
+        <span id="close_preview_btn">&times;</span>
+        
+        <!-- Dito lalabas ang ID Card -->
+        <div id="preview_canvas_wrapper"></div>
+    </div>
+</div>
+
 <script>
 /* 
   FINAL VERSION: FIXED TOUCH & ADDED DELETE BUTTON
@@ -431,8 +498,7 @@
   FIX: PSEUDO NAME FIELD INCLUDED
   FIX: SIGNATURE PAD SENSITIVITY (Responsive)
   FIX: EDIT ID VERIFICATION (Alert Check)
-  FIX: ID TEMPLATES BUTTON LINK TO ID_PDF_GENERATOR
-  FIX: SIGNATURE CLIPPING (Fixed Delay and Initialization)
+  INTEGRATED ID PREVIEW (LOAD & MERGE)
 */
 
 (function () {
@@ -645,7 +711,7 @@
                 const data = await response.json();
                 if (data && data.idnumber) {
                     const parts = data.idnumber.split('-');
-                    if (parts.length >= 2) {
+                    if (parts.length >=2) {
                         wordField.value = parts[0];
                         numberField.value = parts.slice(1).join('-');
                     } else {
@@ -895,7 +961,7 @@
                 form_action_field.value = 'add'; 
                 member_id_field.value = '';
 
-                submitBtn.textContent = "ID Templates";
+                submitBtn.textContent = "View Your ID CARD";
                 submitBtn.style.backgroundColor = "#333";
                 submitBtn.style.color = "white";
                 
@@ -1033,10 +1099,10 @@
                     }
 
                     //2. Update ID Regenerate Table (Only if NEW MEMBER)
-                    // We update's database to ID we just used for this member.
+                    // We updates database to ID we just used for this member.
                     if (!isEditMode && currentId) {
                         try {
-                            // Send's current ID to database to update's sequence
+                            // Sends current ID to database to updates sequence
                             await fetch('/save_id_to_db', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -1048,7 +1114,7 @@
                         }
                     }
 
-                    //3. Finally Submit's Form
+                    //3. Finally Submit Form
                     form.submit();
                 }
             }
@@ -1062,7 +1128,7 @@
                 member_id_field.value = '';
                 idNoField.value = ''; // Clear ID specifically just to be safe
 
-                submitBtn.textContent = "ID Templates";
+                submitBtn.textContent = "View Your ID CARD";
                 submitBtn.style.backgroundColor = "#333";
                 submitBtn.style.color = "white";
 
@@ -1185,7 +1251,7 @@
         }
 
         // Set internal size to match CSS size * pixelRatio
-        const ratio = Math.max(window.devicePixelRatio ||1,1);
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
         
         sigCanvas.width = rect.width * ratio;
         sigCanvas.height = rect.height * ratio;
@@ -1274,7 +1340,7 @@
             // Confirm Delete
             if(confirm("Delete signature? This will remove saved signature.")) {
                 signaturePad.clear();
-                signatureField.value = ""; // Empty's textbox
+                signatureField.value = ""; // Empties textbox
                 signatureModal.style.display = 'none'; // Close modal
             }
         });
@@ -1295,15 +1361,176 @@
     });
 
     // ==============================
-    //8. ID TEMPLATES BUTTON LOGIC (REDIRECT TO PDF GENERATOR)
+    //8. ID PREVIEW LOGIC (LOAD & MERGE) (INTEGRATED)
     // ==============================
-    if(submitBtn) {
-        submitBtn.addEventListener('click', function(e) {
-            e.preventDefault();
+    const previewModal = document.getElementById('id_preview_modal');
+    const previewWrapper = document.getElementById('preview_canvas_wrapper');
+    const closePreviewBtn = document.getElementById('close_preview_btn');
+
+    // Helper function to get member data from form
+    function getFormData() {
+        return {
+            name: document.getElementById('name_field').value,
+            pseudo_name: document.getElementById('pseudo_name_field').value,
+            idnumb: document.getElementById('id_no_field').value,
+            gender: document.getElementById('gender_field').value,
+            blood_type: document.getElementById('blood_type_field').value,
+            birthdate: document.getElementById('birthdate_field').value,
+            civil_status: document.getElementById('civil_status_field').value,
+            designation: document.getElementById('designation_field').value,
+            chapter: document.getElementById('chapter_field').value,
+            issued_date: document.getElementById('issued_date_field').value,
+            valid_until: document.getElementById('valid_until_field').value,
+            contact_no: document.getElementById('contact_no_field').value,
+            email: document.getElementById('email_field').value,
+            home_address: document.getElementById('home_address_field').value,
+            height: document.getElementById('height_field').value,
+            weight: document.getElementById('weight_field').value,
+            occupation: document.getElementById('occupation_field').value,
+            emergency_person_name: document.getElementById('emergency_person_name_field').value,
+            emergency_contact_no: document.getElementById('emergency_contact_no_field').value,
+            emergency_address: document.getElementById('emergency_address_field').value,
             
-            // UPDATED: Direct redirect to ID PDF Generator page
-            window.location.href = '/id_pdf_generator';
+            // Images & Base64 Data
+            photo_data: document.getElementById('photo_data').value,
+            signature: document.getElementById('signature_field').value,
+            qr_code: document.getElementById('qr_code_field').value
+        };
+    }
+
+    // Helper to merge value (Same as getMemberVal from previous code)
+    function getValFromKeyword(cap, data) {
+        cap = cap.toUpperCase();
+        if(cap==="FULL NAME") return data.name||"";
+        if(cap==="PSEUDO NAME") return data.pseudo_name||"";
+        if(cap==="ID NUMBER") return data.idnumb||"";
+        if(cap==="DESIGNATION") return data.designation||"";
+        if(cap==="BLOOD TYPE") return data.blood_type||"";
+        if(cap==="ADDRESS") return data.home_address||"";
+        if(cap==="CONTACT NO") return data.contact_no||"";
+        if(cap==="EMERGENCY PERSON NAME" || cap==="EMERGENCY NAME") return data.emergency_person_name||"";
+        if(cap==="EMERGENCY ADDRESS") return data.emergency_address || data.home_address || "";
+        if(cap==="EMERGENCY CONTACT" || cap==="EMERGENCY CONTACT NO") return data.emergency_contact_no || "";
+        if(cap==="DATE ISSUED") return data.issued_date||"";
+        if(cap==="VALID UNTIL") return data.valid_until||"";
+        if(cap==="CHAPTER") return data.chapter||"";
+        if(cap==="HEIGHT") return data.height||"";
+        if(cap==="WEIGHT") return data.weight||"";
+        if(cap==="OCCUPATION") return data.occupation||"";
+        if(cap==="BIRTHDATE") return data.birthdate||"";
+        if(cap==="CIVIL STATUS") return data.civil_status||"";
+        if(cap==="PHOTO") return data.photo_data||"";
+        if(cap==="SIGNATURE") return data.signature||"";
+        if(cap==="QR CODE"||cap==="OR CODES") return data.qr_code||"";
+        return "";
+    }
+
+    // MAIN FUNCTION: VIEW ID
+    async function viewMyID() {
+        // 1. Validate muna
+        if(!document.getElementById('name_field').value) {
+            alert("Please enter Name first.");
+            return;
+        }
+
+        try {
+            // 2. Load Layout from Database
+            const res = await fetch('/load_layout');
+            const saved = (await res.json()).data;
+            if(!saved) return alert("No ID Layout found in database.");
+
+            // 3. Prepare Data
+            const memberData = getFormData();
+            
+            // 4. Clear previous preview
+            previewWrapper.innerHTML = '';
+            
+            // 5. Set Wrapper Dimensions & Background
+            previewWrapper.style.width = saved.template.width;
+            previewWrapper.style.height = saved.template.height;
+            previewWrapper.style.backgroundImage = saved.template.backgroundImage;
+            previewWrapper.style.backgroundRepeat = 'no-repeat';
+            previewWrapper.style.backgroundSize = 'contain';
+            previewWrapper.style.backgroundPosition = 'top left';
+            previewWrapper.style.position = 'relative'; // Important for absolute positioning of elements
+
+            // 6. Recreate Elements (MERGE LOGIC)
+            const MERGE_KEYWORDS = ["FULL NAME", "PSEUDO NAME", "ID NUMBER", "BLOOD TYPE", "DATE ISSUED", "VALID UNTIL", "ADDRESS", "CONTACT NO", "CHAPTER", "HEIGHT", "WEIGHT", "OCCUPATION", "EMERGENCY PERSON NAME", "EMERGENCY ADDRESS", "EMERGENCY CONTACT", "EMERGENCY CONTACT NO", "BIRTHDATE", "CIVIL STATUS", "DESIGNATION", "PHOTO", "SIGNATURE", "QR CODE", "OR CODES"];
+
+            saved.fields.forEach(f => {
+                const el = document.createElement('div');
+                // Copy styles from saved layout
+                el.style.left = f.left; 
+                el.style.top = f.top;
+                el.style.width = f.width; 
+                el.style.height = f.height;
+                el.style.color = f.color; 
+                el.style.fontSize = f.fontSize;
+                el.style.fontFamily = f.fontFamily; 
+                el.style.fontWeight = f.fontWeight;
+                el.style.textAlign = 'center'; // Centering fix
+                el.style.display = 'flex';
+                el.style.alignItems = 'center';
+                el.style.justifyContent = 'center';
+                el.style.position = 'absolute'; // Must be absolute inside relative wrapper
+                el.style.boxSizing = 'border-box';
+
+                const txt = (f.text || "").trim().toUpperCase();
+                
+                if(f.imgSrc) {
+                    // Static Image (like Logo or Signature Officer)
+                    el.innerHTML = `<img src="${f.imgSrc}" style="width:100%;height:100%;object-fit:contain;">`;
+                } 
+                else if (MERGE_KEYWORDS.includes(txt)) {
+                    const val = getValFromKeyword(txt, memberData);
+                    if(["PHOTO","SIGNATURE","QR CODE","OR CODES"].includes(txt)) {
+                        // If image (Photo/Sig/QR)
+                        if(val) {
+                            el.innerHTML = `<img src="${val}" style="width:100%;height:100%;object-fit:contain;">`;
+                            el.style.border = "none";
+                        } else {
+                            el.innerText = "(No Image)";
+                        }
+                    } else {
+                        // If Text (Name, Address, etc.)
+                        el.innerText = val;
+                    }
+                } else {
+                    // Static Text
+                    el.innerText = f.text;
+                }
+                
+                previewWrapper.appendChild(el);
+            });
+
+            // 7. Open Modal (Lock Screen)
+            previewModal.style.display = 'flex';
+
+        } catch(e) {
+            console.error(e);
+            alert("Error generating preview. Please check connection.");
+        }
+    }
+
+    // Event Listener for "View Your ID CARD" Button
+    if (submitBtn) {
+        submitBtn.addEventListener('click', function(e) {
+            e.preventDefault(); // Huwag muna i-submit ang form
+            viewMyID(); // Tawagin lang yung viewer
         });
+    }
+
+    if (closePreviewBtn) {
+        closePreviewBtn.addEventListener('click', () => {
+            previewModal.style.display = 'none'; // Balik sa normal (Unlock)
+        });
+    }
+
+    // Close if clicked outside white box
+    window.onclick = function(event) {
+        if (event.target == previewModal) {
+            previewModal.style.display = 'none';
+        }
     }
 
     document.addEventListener('DOMContentLoaded', resetPhotoUI);
