@@ -58,6 +58,32 @@ def vb6_replace(text):
     )
 
 # ==============================
+# 🆕 CAPTION CHANGER UTILITY
+# ==============================
+def get_system_settings():
+    try:
+        db = get_db()
+        response = db.from_('system_settings').select('*').eq('id', 1).execute()
+        if response.data:
+            return response.data[0]
+        else:
+            # Default fallback kung walang laman
+            return {
+                'main_title': 'UGBROMOVE App',
+                'sub_title': 'Placeholder',
+                'company_name': 'No Company',
+                'logo_url': ''
+            }
+    except Exception as e:
+        print(f"Error getting settings: {e}")
+        return {}
+
+# 🆕 CONTEXT PROCESSOR: Makes 'settings' available in ALL HTML templates
+@app.context_processor
+def inject_settings():
+    return dict(settings=get_system_settings())
+
+# ==============================
 # 🆕 AUTO CLEANUP SCANNER (13H INTERVAL + STORAGE CLEANUP)
 # ==============================
 @app.before_request
@@ -509,6 +535,82 @@ def load_layout():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # ==============================
+# 🆕 CAPTION CHANGER ROUTES (API)
+# ==============================
+@app.route('/api/get_settings', methods=['GET'])
+def api_get_settings():
+    return jsonify(get_system_settings())
+
+@app.route('/api/save_settings', methods=['POST'])
+def api_save_settings():
+    try:
+        db = get_db()
+        data = request.json
+        
+        main_title = data.get('main_title')
+        sub_title = data.get('sub_title')
+        company_name = data.get('company_name')
+        logo_base64 = data.get('logo_data') # Kung may upload na bago
+
+        # Logic para sa Logo Upload
+        logo_url_to_save = None
+        
+        if logo_base64 and logo_base64 != "":
+            # Upload to Supabase Storage
+            bucket_name = "public_id_cards"
+            filename = "client_logos/current_logo.png" # Static filename, overwrites always
+            
+            try:
+                # Decode Base64
+                if "," in logo_base64:
+                    base64_string = logo_base64.split(",")[1]
+                else:
+                    base64_string = logo_base64
+                
+                image_bytes = base64.b64decode(base64_string)
+                
+                # Create Temp File
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                    tmp_file.write(image_bytes)
+                    temp_path = tmp_file.name
+                
+                # Upload
+                options = {"content-type": "image/png", "upsert": "true"}
+                supabase.storage.from_(bucket_name).upload(path=filename, file=temp_path, file_options=options)
+                
+                # Cleanup
+                os.remove(temp_path)
+                
+                # Get URL
+                logo_url_to_save = supabase.storage.from_(bucket_name).get_public_url(filename)
+                print(f">>> Logo Uploaded: {logo_url_to_save}")
+                
+            except Exception as upload_err:
+                print(f">>> Logo Upload Error: {upload_err}")
+                # Pag nag-error sa upload, huwag na lang palitan yung logo sa DB
+                pass
+
+        # I-construct ang payload para sa Database
+        update_payload = {
+            'main_title': main_title,
+            'sub_title': sub_title,
+            'company_name': company_name
+        }
+        
+        # Lang i-update yung logo_url kung successful yung upload
+        if logo_url_to_save:
+            update_payload['logo_url'] = logo_url_to_save
+
+        # Update sa Database (Assuming ID 1)
+        db.from_('system_settings').update(update_payload).eq('id', 1).execute()
+
+        return jsonify({'success': True, 'message': 'Settings saved successfully!'})
+        
+    except Exception as e:
+        print(f">>> Save Settings Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# ==============================
 # ADMIN FORMS ROUTES (ACTIVE - Connected to Supabase)
 # ==============================
 
@@ -794,7 +896,7 @@ def save_card_image():
 
         log(f">>> Processing Member ID: {member_id}")
 
-        # --- STEP 1: DECODE BASE64 ---
+        # --- STEP1: DECODE BASE64 ---
         try:
             # Remove header kung meron
             if "," in image_data:
@@ -809,7 +911,7 @@ def save_card_image():
             log(f">>> DECODING ERROR: {decode_err}")
             return jsonify({'success': False, 'message': 'Invalid Image Data'}), 400
 
-        # --- STEP 2: UPLOAD TO SUPABASE STORAGE (Using Temp File) ---
+        # --- STEP2: UPLOAD TO SUPABASE STORAGE (Using Temp File) ---
         bucket_name = "public_id_cards" 
         
         # --- UPDATE: STATIC FILENAME (Overwrite instead of Duplicate) ---
@@ -863,7 +965,7 @@ def save_card_image():
                 
             return jsonify({'success': False, 'message': f"Upload Failed: {error_msg}"}), 500
 
-        # --- STEP 3: GET PUBLIC URL ---
+        # --- STEP3: GET PUBLIC URL ---
         try:
             image_url_data = supabase.storage.from_(bucket_name).get_public_url(filename)
             log(f">>> Public URL: {image_url_data}")
@@ -872,7 +974,7 @@ def save_card_image():
             # Fallback manual URL construction
             image_url_data = f"{SUPAB_URL}/storage/v1/object/public/{bucket_name}/{filename}"
 
-        # --- STEP 4: SAVE URL TO DATABASE ---
+        # --- STEP4: SAVE URL TO DATABASE ---
         try:
             payload = {
                 'generated_card_image': image_url_data, 
@@ -948,7 +1050,7 @@ def delete_cards_batch():
         print(f">>> TOTAL COMMANDS PREPARED: {len(final_list)}")
         print(f">>> SENDING COMMANDS TO SUPABASE: {final_list}")
 
-        # --- STEP 2: EXECUTE DELETE ---
+        # --- STEP2: EXECUTE DELETE ---
         if final_list:
             try:
                 response = supabase.storage.from_('public_id_cards').remove(final_list)
@@ -960,7 +1062,7 @@ def delete_cards_batch():
         else:
             print(">>> No files found to delete.")
 
-        # --- STEP 3: CLEAR DATABASE ---
+        # --- STEP3: CLEAR DATABASE ---
         payload = {
             'generated_card_image': None,
             'generated_at': None
