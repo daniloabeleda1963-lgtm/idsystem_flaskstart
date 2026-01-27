@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Signature - Full</title>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .signature-card {
+            background: white;
+            width: 100%;
+            max-width: 750px;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        h2 { margin-top: 0; color: #333; }
+        p { color: #666; margin-bottom: 25px; font-size: 14px; }
+
+        .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="text"], select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+            background: #fff;
+        }
+        
+        input[type="text"]:focus, select:focus {
+            border-color: #2563eb;
+            outline: none;
+        }
+
+        /* Canvas Styles */
+        #canvasWrap {
+            border: 2px solid #333;
+            margin: 0 auto 20px auto;
+            background: #fff;
+            touch-action: none; /* Prevent scroll on mobile */
+            cursor: crosshair;
+            height: 300px;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Button Styles */
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: bold;
+            transition: all 0.2s;
+            flex: 1 0 auto; /* Grow automatically */
+            min-height: 48px;
+        }
+
+        button:active { transform: scale(0.98); }
+
+        .btn-clear { background-color: #e2e8f0; color: #475569; }
+        .btn-clear:hover { background-color: #cbd5e0; }
+
+        /* BAGO: Load DB Button (Blue) */
+        .btn-load { 
+            background-color: #17a2b8; 
+            color: white; 
+        }
+        .btn-load:hover { background-color: #138496; }
+
+        .btn-bg { background-color: #f59e0b; color: white; }
+        .btn-bg:hover { background-color: #d97706; }
+
+        .btn-upload { background-color: #0ea5e9; color: white; }
+        .btn-upload:hover { background-color: #0284c7; }
+
+        .btn-download { background-color: #f59e0b; color: white; }
+        .btn-download:hover { background-color: #d97706; }
+
+        .btn-save { background-color: #2563eb; color: white; }
+        .btn-save:hover { background-color: #1d4ed8; }
+
+        #status {
+            margin-top: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            min-height: 24px;
+        }
+
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+    </style>
+</head>
+<body>
+
+<div class="signature-card">
+    <h2>🏢 Company Signature</h2>
+    <p>Pili ang pangalan sa Combo Box o i-load ang huling pirma.</p>
+
+    <!-- Name Input -->
+    <div class="input-group">
+        <label for="nameInput">Name of Company / Person:</label>
+        <input type="text" id="nameInput" placeholder="Ilagay ang Pangalan Dito..." autocomplete="off">
+    </div>
+
+    <!-- BAGO: Member Combo Box (Populate from SIGNATURETABLE) -->
+    <div class="input-group">
+        <label for="memberSelect">Search List:</label>
+        <select id="memberSelect">
+            <option value="">Loading list...</option>
+        </select>
+    </div>
+
+    <!-- Canvas Area -->
+    <div id="canvasWrap">
+        <canvas id="signatureCanvas"></canvas>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+        <!-- Clear -->
+        <button id="clearBtn" class="btn-clear" type="button">🗑️ Clear</button>
+        
+        <!-- BAGO: Load Last (DB) -->
+        <button id="loadDbBtn" class="btn-load" type="button">📥 Load Last (DB)</button>
+        
+        <!-- Upload -->
+        <input id="uploadFile" type="file" accept="image/*" style="display:none" />
+        <button id="uploadBtn" class="btn-upload" type="button">📂 Upload</button>
+        
+        <button id="bgBtn" class="btn-bg" type="button">🟩 Paper</button>
+        
+        <button id="downloadBtn" class="btn-download" type="button">📥 Proof</button>
+        
+        <button id="saveBtn" class="btn-save" type="button">💾 Save to DB</button>
+    </div>
+
+    <!-- Status Message -->
+    <div id="status">Ready</div>
+</div>
+
+<!-- Library: Signature Pad -->
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+<!-- MAIN SCRIPT -->
+<script>
+(function () {
+    // --- ELEMENTS ---
+    const canvas = document.getElementById('signatureCanvas');
+    const canvasWrap = document.getElementById('canvasWrap');
+    const nameInput = document.getElementById('nameInput');
+    const memberSelect = document.getElementById('memberSelect'); // Combo Box
+    
+    const clearBtn = document.getElementById('clearBtn');
+    const loadDbBtn = document.getElementById('loadDbBtn'); 
+    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadFile = document.getElementById('uploadFile');
+    const bgBtn = document.getElementById('bgBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const status = document.getElementById('status');
+
+    let signaturePad = null;
+    let currentImg = null;
+    let isGreenBg = false; 
+
+    // --- RESIZE CANVAS ---
+    function resizeCanvas() {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+        canvas.width = rect.width * ratio;
+        canvas.height = rect.height * ratio;
+        const ctx = canvas.getContext("2d");
+        ctx.scale(ratio, ratio);
+    }
+
+    function applyBackground() {
+        const ctx = canvas.getContext("2d");
+        if (isGreenBg) {
+            canvasWrap.style.backgroundColor = '#e8f5e9'; 
+        } else {
+            canvasWrap.style.backgroundColor = '#ffffff'; 
+        }
+    }
+
+    function fitImageToCanvas() {
+        if (!currentImg || !signaturePad) return;
+        const ctx = canvas.getContext('2d');
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        ctx.clearRect(0, 0, canvas.width / ratio, canvas.height / ratio);
+        
+        const hRatio = canvas.width / currentImg.width / ratio;
+        const vRatio = canvas.height / currentImg.height / ratio;
+        const ratioUse = Math.min(hRatio, vRatio);
+        const centerShift_x = (canvas.width / ratio - currentImg.width * ratioUse) / 2;
+        const centerShift_y = (canvas.height / ratio - currentImg.height * ratioUse) / 2;  
+        
+        ctx.drawImage(currentImg, 0, 0, currentImg.width, currentImg.height,
+                      centerShift_x, centerShift_y, currentImg.width * ratioUse, currentImg.height * ratioUse);
+    }
+
+    // --- UPDATED: POPULATE COMBO BOX FROM SIGNATURETABLE ---
+    async function fetchMembersList() {
+        try {
+            // Tawagin ang NEW API endpoint
+            // Tumutok na ito sa signaturetable, hindi sa members table
+            const response = await fetch('/api/signaturetable/json'); // <--- NA-UPDATE NA TO!
+            
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const data = await response.json();
+            
+            // I-clear muna ang combo box
+            memberSelect.innerHTML = '<option value="">-- Pumili ng Pangalan --</option>';
+            
+            // Siguraduhin na may data
+            if (data && data.length > 0) {
+                data.forEach(item => {
+                    // KUNIN ANG DATA MULA SA FIELD NA "NAME"
+                    // Ginamit ko ang (item.NAME || item.name) para sigurado kahit lowercase ang ibalik
+                    const nameValue = item.NAME || item.name;
+
+                    if (nameValue) {
+                        const opt = document.createElement('option');
+                        opt.value = nameValue; 
+                        opt.textContent = nameValue; // Ito ang lalabas sa list
+                        memberSelect.appendChild(opt);
+                    }
+                });
+                status.textContent = `Loaded ${data.length} names from SIGNATURETABLE.`;
+            } else {
+                status.textContent = "SIGNATURETABLE is empty.";
+            }
+            
+        } catch (e) {
+            console.error("Error loading list:", e);
+            memberSelect.innerHTML = '<option value="">Error loading list</option>';
+            status.textContent = "Error loading from SIGNATURETABLE (Check Backend)";
+        }
+    }
+
+    // --- INIT ---
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            resizeCanvas();
+            
+            signaturePad = new SignaturePad(canvas, {
+                backgroundColor: 'rgba(255,255,255, 0)',
+                penColor: 'rgb(0, 0, 0)',
+                minDistance: 1.5, 
+                throttle: 0,
+                minWidth: 2.0,
+                maxWidth: 4.0
+            });
+            
+            applyBackground();
+            
+            // Tawagin ang function para i-load ang list
+            fetchMembersList();
+        }, 100);
+    });
+
+    // --- BUTTONS ---
+
+    // CLEAR
+    clearBtn.addEventListener('click', () => {
+        if (signaturePad) signaturePad.clear();
+        currentImg = null;
+        status.textContent = 'Cleared';
+        status.className = '';
+    });
+
+    // LOAD LAST (DATABASE)
+    loadDbBtn.addEventListener('click', async () => {
+        status.textContent = "Fetching last signature...";
+        status.className = '';
+
+        try {
+            const response = await fetch('/get_latest_signature');
+            const result = await response.json();
+
+            if (result.success && result.signature) {
+                nameInput.value = result.name;
+
+                const img = new Image();
+                img.onload = function () {
+                    if (signaturePad) signaturePad.clear();
+                    currentImg = img;
+                    fitImageToCanvas();
+                    
+                    status.textContent = "Loaded: " + result.name;
+                    status.className = 'success';
+                };
+                img.src = result.signature; 
+            } else {
+                 status.textContent = "No previous signature found.";
+                 status.className = "error";
+            }
+            
+        } catch (error) {
+            console.error("Load Error:", error);
+            status.textContent = "Error loading from DB.";
+            status.className = "error";
+        }
+    });
+
+    // UPLOAD
+    uploadBtn.addEventListener('click', () => uploadFile.click());
+
+    uploadFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function (ev) {
+            const img = new Image();
+            img.onload = function () {
+                if (signaturePad) signaturePad.clear();
+                currentImg = img;
+                fitImageToCanvas();
+                status.textContent = 'Image Uploaded';
+                status.className = '';
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // BG TOGGLE
+    bgBtn.addEventListener('click', () => {
+        isGreenBg = !isGreenBg;
+        applyBackground();
+        
+        if (isGreenBg) {
+            bgBtn.textContent = '🟩 Paper';
+            status.textContent = 'Green Paper Active';
+        } else {
+            bgBtn.textContent = '⚪ Paper';
+            status.textContent = 'White/Transparent Active';
+        }
+    });
+
+    // DOWNLOAD
+    downloadBtn.addEventListener('click', () => {
+        if (!signaturePad || (signaturePad.isEmpty() && !currentImg)) return alert("Please sign or upload a signature first.");
+        const dataURL = signaturePad.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = dataURL;
+        const nameVal = nameInput.value.trim() || "signature";
+        a.download = `proof_${nameVal}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        status.textContent = 'Downloaded (Proof)';
+    });
+
+    // SAVE TO DATABASE
+    saveBtn.addEventListener('click', async () => {
+        const name = nameInput.value.trim();
+        if (!name) return alert("Please enter a name.");
+
+        if (!signaturePad || (signaturePad.isEmpty() && !currentImg)) return alert("Please sign or upload a signature first.");
+
+        const signatureData = signaturePad.toDataURL('image/png');
+
+        try {
+            status.textContent = "Saving to Database...";
+            status.className = '';
+            
+            const response = await fetch('/save_company_signature', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, signature: signatureData })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                status.textContent = result.message;
+                status.className = 'success';
+            } else {
+                status.textContent = "Error: " + result.message;
+                status.className = 'error';
+            }
+        } catch (error) {
+            console.error(error);
+            status.textContent = "Network Error.";
+            status.className = 'error';
+        }
+    });
+    
+    // EVENT: Kapag pumili sa combo box, ilagay sa text box
+    memberSelect.addEventListener('change', function() {
+        if(this.value) {
+            nameInput.value = this.value;
+        }
+    });
+
+    // Window Resize
+    window.addEventListener('resize', () => {
+        resizeCanvas();
+        if (currentImg) fitImageToCanvas();
+    });
+
+})();
+</script>
+
+</body>
+</html>
