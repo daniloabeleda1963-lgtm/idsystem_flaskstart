@@ -1514,6 +1514,47 @@ def save_signature_table():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # ==============================
+# 🆕 NEW ROUTE: GET SIGNATURE BY NAME
+# ==============================
+@app.route('/get_signature_by_name', methods=['GET'])
+def get_signature_by_name():
+    """
+    Fetches a specific signature based on the Name.
+    Used by the 'Load (DB)' button.
+    """
+    try:
+        db = get_db()
+        name = request.args.get('name') # Kunin ang name galing sa URL
+        
+        if not name:
+            return jsonify({'success': False, 'message': 'No name provided'}), 400
+            
+        # Hanapin ang record sa signaturetable na match yung name
+        # Ginamit ko 'ilike' (case insensitive search) para mas user friendly
+        response = db.from_('signaturetable').select('*').ilike('name', name).execute()
+        
+        if response.data and len(response.data) > 0:
+            # Kunin ang first match
+            record = response.data[0]
+            # Siguraduhin na nakuha yung field na 'signature'
+            sig_data = record.get('signature')
+            
+            if sig_data:
+                return jsonify({
+                    'success': True, 
+                    'name': record.get('name'),
+                    'signature': sig_data
+                })
+            else:
+                return jsonify({'success': False, 'message': 'Signature data missing in DB'}), 404
+        else:
+            return jsonify({'success': False, 'message': 'Name not found'}), 404
+            
+    except Exception as e:
+        print(f"Error fetching by name: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# ==============================
 # Run App
 # ==============================
 if __name__ == '__main__':
