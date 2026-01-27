@@ -134,7 +134,7 @@
 
 <div class="signature-card">
     <h2>🏢 Company Signature</h2>
-    <p>Pili ang pangalan sa Combo Box o i-load ang huling pirma.</p>
+    <p>Pili ang pangalan sa Combo Box at pindutin ang 'Load (DB)' para i-retrieve ang pirma.</p>
 
     <!-- Name Input -->
     <div class="input-group">
@@ -160,14 +160,14 @@
         <!-- Clear -->
         <button id="clearBtn" class="btn-clear" type="button">🗑️ Clear</button>
         
-        <!-- BAGO: Load Last (DB) -->
-        <button id="loadDbBtn" class="btn-load" type="button">📥 Load Last (DB)</button>
+        <!-- BAGO: Load (DB) - Updated Caption -->
+        <button id="loadDbBtn" class="btn-load" type="button">📥 Load (DB)</button>
         
         <!-- Upload -->
         <input id="uploadFile" type="file" accept="image/*" style="display:none" />
         <button id="uploadBtn" class="btn-upload" type="button">📂 Upload</button>
         
-        <button id="bgBtn" class="btn-bg" type="button">🟩 Paper</button>
+        <button id="bgBtn" class="bg-btn" type="button">🟩 Paper</button>
         
         <button id="downloadBtn" class="btn-download" type="button">📥 Proof</button>
         
@@ -243,7 +243,6 @@
     async function fetchMembersList() {
         try {
             // Tawagin ang NEW API endpoint
-            // Tumutok na ito sa signaturetable, hindi sa members table
             const response = await fetch('/api/signaturetable/json'); // <--- NA-UPDATE NA TO!
             
             if (!response.ok) {
@@ -259,7 +258,6 @@
             if (data && data.length > 0) {
                 data.forEach(item => {
                     // KUNIN ANG DATA MULA SA FIELD NA "NAME"
-                    // Ginamit ko ang (item.NAME || item.name) para sigurado kahit lowercase ang ibalik
                     const nameValue = item.NAME || item.name;
 
                     if (nameValue) {
@@ -312,18 +310,26 @@
         status.className = '';
     });
 
-    // LOAD LAST (DATABASE)
+    // LOAD (DATABASE) - UPDATED LOGIC
     loadDbBtn.addEventListener('click', async () => {
-        status.textContent = "Fetching last signature...";
+        const selectedName = nameInput.value.trim(); // Kunin ang pangalan sa text box
+
+        if (!selectedName) {
+            alert("Paki-pili muna pangalan sa Combo Box.");
+            return;
+        }
+
+        status.textContent = `Fetching signature for ${selectedName}...`;
         status.className = '';
 
         try {
-            const response = await fetch('/get_latest_signature');
+            // 1. Tawagin ang bagong endpoint na '/get_signature_by_name'
+            // Ipinapasa natin yung pangalan sa URL query parameter
+            const response = await fetch(`/get_signature_by_name?name=${encodeURIComponent(selectedName)}`);
             const result = await response.json();
 
             if (result.success && result.signature) {
-                nameInput.value = result.name;
-
+                // 2. I-load ang signature sa canvas
                 const img = new Image();
                 img.onload = function () {
                     if (signaturePad) signaturePad.clear();
@@ -335,7 +341,7 @@
                 };
                 img.src = result.signature; 
             } else {
-                 status.textContent = "No previous signature found.";
+                 status.textContent = "No signature found for " + selectedName;
                  status.className = "error";
             }
             
