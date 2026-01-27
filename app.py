@@ -30,6 +30,19 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "supersecretkey") 
 
 # ==============================
+# 🆕 STANDALONE SIGNATURE PAD SETUP
+# ==============================
+SIGN_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'signatures')
+os.makedirs(SIGN_DIR, exist_ok=True)
+
+def last_signature_path():
+    files = [f for f in os.listdir(SIGN_DIR) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+    if not files:
+        return None
+    files.sort(key=lambda x: os.path.getmtime(os.path.join(SIGN_DIR, x)), reverse=True)
+    return os.path.join(SIGN_DIR, files[0])
+
+# ==============================
 # Supabase Client
 # ==============================
 supabase: Client = create_client(SUPAB_URL, SUPAB_SERVICE_KEY)
@@ -63,7 +76,7 @@ def vb6_replace(text):
 def get_system_settings():
     try:
         db = get_db()
-        response = db.from_('system_settings').select('*').eq('id', 1).execute()
+        response = db.from_('system_settings').select('*').eq('id',1).execute()
         if response.data:
             return response.data[0]
         else:
@@ -102,7 +115,8 @@ def cleanup_old_cards_scanner():
         db = get_db()
 
         # 1. KUNIN ANG LAST CLEANUP TIME SA 'idgenerate' TABLE
-        response = db.from_('idgenerate').select('last_card_cleanup').limit(1).execute()
+        # FIXED: Sort by id desc to ensure we hit controller row
+        response = db.from_('idgenerate').select('last_card_cleanup').order('id', desc=True).limit(1).execute()
         
         last_cleanup = None
         if response.data and response.data[0]:
@@ -392,6 +406,36 @@ def api_members_json():
         print(f"API Error: {e}")
         return jsonify([]), 500
 
+# ============================================================
+# 🆕 FINAL FIX ROUTE: SIGNATURETABLE API (COMBO BOX)
+# ============================================================
+@app.route('/api/signaturetable/json', methods=["GET"])
+def api_signaturetable_json():
+    """
+    Fetches list from SIGNATURETABLE for the Combo Box.
+    Field used: name (lowercase) to match DB Column.
+    """
+    try:
+        db = get_db()
+        
+        # 1. SELECT 'name' (lowercase) dahit ito ang column sa Supabase
+        response = db.from_('signaturetable').select('name').execute()
+        
+        data = []
+        if response.data:
+            for item in response.data:
+                # 2. KUNIN 'name' (lowercase)
+                val = item.get("name")
+                
+                if val:
+                    # 3. IBALIK SA JSON FORMAT
+                    data.append({"name": val})
+                    
+        return jsonify(data)
+    except Exception as e:
+        print(f"Error fetching signature table: {e}")
+        return jsonify([]), 500
+
 @app.route('/api/members/search', methods=["GET"])
 def api_members_search():
     """Live search endpoint (Name OR Pseudo Name OR Chapter)."""
@@ -492,26 +536,46 @@ def delete_member(member_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # ==============================
-# LAYOUT EDITOR LOGIC
+# LAYOUT EDITOR LOGIC (UPDATED)
 # ==============================
 @app.route('/save_layout', methods=['POST'])
 def save_layout():
+    """
+    Updated: Saves layout SPECIFICALLY per client_slug (Carbon Copy).
+    If client_slug exists -> Update. If not -> Insert.
+    """
     try:
         payload = request.json
         db = get_db()
-        # FIXED: db.table to db.from_
-        response = db.from_('layouts').select("*").limit(1).execute()
-        existing_data = response.data
         
-        if existing_data and len(existing_data) > 0:
-            record_id = existing_data[0]['id']
-            # FIXED: db.table to db.from_
-            db.from_('layouts').update({"config_json": payload}).eq('id', record_id).execute()
-            print(f"Updated Layout ID: {record_id}")
+        # 1. GET CLIENT SLUG FROM PAYLOAD
+        client_slug = payload.get('client_slug')
+
+        if not client_slug:
+            # Fallback: Save generic if no client selected (Old behavior)
+            # FIXED: Sort by created_at desc to ensure we update the latest layout
+            response = db.from_('layouts').select("*").order('created_at', desc=True).limit(1).execute()
+            existing_data = response.data
+            
+            if existing_data and len(existing_data) > 0:
+                record_id = existing_data[0]['id']
+                db.from_('layouts').update({"config_json": payload}).eq('id', record_id).execute()
+            else:
+                db.from_('layouts').insert({"config_json": payload}).execute()
         else:
-            # FIXED: db.table to db.from_
-            db.from_('layouts').insert({"config_json": payload}).execute()
-            print("Inserted New Layout")
+            # 2. CARBON COPY LOGIC: Check existing layout for this specific company
+            response = db.from_('layouts').select("*").eq('client_slug', client_slug).execute()
+            existing_data = response.data
+            
+            if existing_data and len(existing_data) > 0:
+                # UPDATE: May existing na sa company na 'to
+                record_id = existing_data[0]['id']
+                db.from_('layouts').update({"config_json": payload}).eq('id', record_id).execute()
+                print(f">>> UPDATED LAYOUT FOR: {client_slug}")
+            else:
+                # INSERT: Bagong company entry
+                db.from_('layouts').insert({"config_json": payload, "client_slug": client_slug}).execute()
+                print(f">>> INSERTED NEW LAYOUT FOR: {client_slug}")
 
         return jsonify({"status": "success", "message": "Layout saved successfully!"}), 200
 
@@ -521,10 +585,24 @@ def save_layout():
 
 @app.route('/load_layout', methods=['GET'])
 def load_layout():
+    """
+    Updated: Loads layout SPECIFICALLY per client_slug.
+    If no client_slug provided -> Load latest (Fallback).
+    """
     try:
         db = get_db()
-        # FIXED: db.table to db.from_
-        response = db.from_('layouts').select("*").order('updated_at', desc=True).limit(1).execute()
+        
+        # 1. GET CLIENT SLUG FROM URL PARAMS
+        client_slug = request.args.get('client_slug')
+        
+        if client_slug:
+            # Load specific company
+            response = db.from_('layouts').select("*").eq('client_slug', client_slug).execute()
+            print(f">>> LOADING LAYOUT FOR: {client_slug}")
+        else:
+            # Fallback: Load latest layout
+            response = db.from_('layouts').select("*").order('created_at', desc=True).limit(1).execute()
+        
         data = response.data
         if not data:
             return jsonify({"status": "error", "message": "No saved layout found."}), 404
@@ -533,6 +611,78 @@ def load_layout():
     except Exception as e:
         print(f"Error loading layout: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+# ==============================
+# 🆕 NEW: FETCH CLIENT SLUGS (FOR ADMIN COMBO BOX)
+# ==============================
+@app.route('/api/layouts', methods=['GET'])
+def get_client_slugs():
+    """
+    Fetches unique client_slug from layouts table.
+    Ito ang tatawagin ng admin.html combo box.
+    """
+    try:
+        db = get_db()
+        
+        # 1. Kunin lahat ng client_slug
+        response = db.from_('layouts').select('client_slug').execute()
+        
+        if response.data:
+            # 2. Kunin lang yung UNIQUE values (Wang duplicate)
+            seen = set()
+            unique_slugs = []
+            
+            for item in response.data:
+                slug = item.get('client_slug')
+                if slug and slug.strip() != "":
+                    if slug not in seen:
+                        seen.add(slug)
+                        unique_slugs.append({ 'client_slug': slug })
+            
+            return jsonify(unique_slugs), 200
+        else:
+            return jsonify([]), 200
+            
+    except Exception as e:
+        print(f">>> ERROR fetching client slugs: {e}")
+        return jsonify([]), 500
+
+# ==============================
+# 🆕 NEW ROUTE: SAVE ID NUMBER PER CLIENT (THE ID GENERATOR)
+# ==============================
+@app.route('/save_id_for_client', methods=['POST'])
+def save_id_for_client():
+    """
+    Saves or Updates ID Number for a specific Company/Client.
+    CARBON COPY: Kung existing na -> Update. Kung wala -> Insert.
+    """
+    try:
+        db = get_db()
+        data = request.json
+        
+        client_slug = data.get('client_slug')
+        idnumber = data.get('idnumber')
+
+        if not client_slug or not idnumber:
+            return jsonify({'success': False, 'message': 'Missing Client or ID Number'}), 400
+
+        # CHECK KUNG MAY EXISTING NA BA
+        response = db.from_('idgenerate').select('*').eq('client_slug', client_slug).execute()
+        
+        if response.data:
+            # UPDATE (CARBON COPY: I-update lang yung existing na record)
+            db.from_('idgenerate').update({'idnumber': idnumber}).eq('client_slug', client_slug).execute()
+            print(f">>> UPDATED ID for {client_slug}: {idnumber}")
+        else:
+            # INSERT (New Company Entry)
+            db.from_('idgenerate').insert({'idnumber': idnumber, 'client_slug': client_slug}).execute()
+            print(f">>> INSERTED NEW ID for {client_slug}: {idnumber}")
+
+        return jsonify({'success': True, 'message': 'ID Number saved successfully!'}), 200
+
+    except Exception as e:
+        print(f"Error saving ID for client: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 # ==============================
 # 🆕 CAPTION CHANGER ROUTES (API)
@@ -587,7 +737,7 @@ def api_save_settings():
                 
             except Exception as upload_err:
                 print(f">>> Logo Upload Error: {upload_err}")
-                # Pag nag-error sa upload, huwag na lang palitan yung logo sa DB
+                # Pag nagerror sa upload, huwag na lang palitan yung logo sa DB
                 pass
 
         # I-construct ang payload para sa Database
@@ -601,7 +751,6 @@ def api_save_settings():
         if logo_url_to_save:
             update_payload['logo_url'] = logo_url_to_save
 
-        # Update sa Database (Assuming ID 1)
         db.from_('system_settings').update(update_payload).eq('id', 1).execute()
 
         return jsonify({'success': True, 'message': 'Settings saved successfully!'})
@@ -619,13 +768,10 @@ def get_admin_forms():
     """Fetches all forms from admin_forms table."""
     try:
         db = get_db()
-        # FIXED: db.table to db.from_
         response = db.from_('admin_forms').select("*").order('created_at', desc=True).execute()
         
         if response.data:
             return jsonify(response.data), 200
-        
-        # Fallback kung walang laman
         return jsonify([]), 200
     except Exception as e:
         print(f">>> ERROR CONNECTING TO SUPABASE (get_admin_forms): {e}")
@@ -642,7 +788,6 @@ def add_admin_form():
         if not forms_name:
             return jsonify({'success': False, 'message': 'Form name is required'}), 400
 
-        # FIXED: db.table to db.from_
         response = db.from_('admin_forms').insert({"forms_name": forms_name}).execute()
 
         return jsonify({
@@ -659,7 +804,6 @@ def delete_admin_form(id):
     """Deletes a form from admin_forms table by ID."""
     try:
         db = get_db()
-        # FIXED: db.table to db.from_
         db.from_('admin_forms').delete().eq('id', id).execute()
         
         return jsonify({'success': True, 'message': 'Form deleted successfully'}), 200
@@ -678,7 +822,6 @@ def get_officers_list():
     """Returns all officers from officer_list table."""
     try:
         db = get_db()
-        # FIXED: db.table to db.from_ (To prevent future errors)
         response = db.from_('officer_list').select("*").order('created_at', desc=True).execute()
         return jsonify(response.data), 200
     except Exception as e:
@@ -694,7 +837,7 @@ def save_officer_signature():
         data = request.json
 
         name_officer = data.get('name_officer')
-        designation = data.get('designation')  # ADDED: Designation field
+        designation = data.get('designation')  
         man_signature = data.get('man_signature') 
         text_signature = data.get('text_signature', '') 
 
@@ -703,12 +846,11 @@ def save_officer_signature():
 
         payload = {
             'name_officer': name_officer,
-            'designation': designation,  # ADDED: Designation field
+            'designation': designation,
             'man_signature': man_signature,
             'text_signature': text_signature
         }
 
-        # FIXED: db.table to db.from_
         response = db.from_('officer_list').insert(payload).execute()
 
         return jsonify({
@@ -727,7 +869,6 @@ def get_officer(officer_id):
     """Fetches a single officer's details for editing."""
     try:
         db = get_db()
-        # FIXED: db.table to db.from_
         response = db.from_('officer_list').select("*").eq('id', officer_id).execute()
         
         if response.data:
@@ -748,7 +889,7 @@ def update_officer_signature(officer_id):
         data = request.json
 
         name_officer = data.get('name_officer')
-        designation = data.get('designation')  # ADDED: Designation field
+        designation = data.get('designation')
         man_signature = data.get('man_signature')
         text_signature = data.get('text_signature', '')
 
@@ -757,12 +898,11 @@ def update_officer_signature(officer_id):
 
         payload = {
             'name_officer': name_officer,
-            'designation': designation,  # ADDED: Designation field
+            'designation': designation,
             'man_signature': man_signature,
             'text_signature': text_signature
         }
 
-        # FIXED: db.table to db.from_
         response = db.from_('officer_list').update(payload).eq('id', officer_id).execute()
 
         return jsonify({
@@ -781,7 +921,6 @@ def delete_officer(officer_id):
     """Deletes an officer by ID."""
     try:
         db = get_db()
-        # FIXED: db.table to db.from_
         db.from_('officer_list').delete().eq('id', officer_id).execute()
         return jsonify({'success': True, 'message': 'Officer deleted successfully'}), 200
     except Exception as e:
@@ -797,14 +936,30 @@ def health_check():
 
 @app.route('/get_current_id')
 def get_current_id():
-    """Fetches latest ID format."""
+    """
+    Updated: Fetches ID format based on selected client_slug.
+    If client_slug is provided, gets specific ID. Else, gets latest ID.
+    """
     try:
         db = get_db()
-        # FIXED: db.table to db.from_ (Making consistent)
-        response = db.from_('idgenerate').select('*').order('id', desc=True).limit(1).execute()
-        if response.data:
-            return jsonify({'idnumber': response.data[0].get('idnumber')})
-        return jsonify({'idnumber': ''})
+        client_slug = request.args.get('client_slug')
+
+        if client_slug:
+            # NEW LOGIC: Hanapin specific na ID para sa company na to
+            response = db.from_('idgenerate').select('*').eq('client_slug', client_slug).limit(1).execute()
+            
+            if response.data:
+                return jsonify({'idnumber': response.data[0].get('idnumber')})
+            else:
+                # Walang nahanap na ID format para sa company na to
+                return jsonify({'idnumber': ''})
+        else:
+            # OLD LOGIC: Kunin yung last created kahit walang slug (Fallback)
+            response = db.from_('idgenerate').select('*').order('id', desc=True).limit(1).execute()
+            if response.data:
+                return jsonify({'idnumber': response.data[0].get('idnumber')})
+            return jsonify({'idnumber': ''})
+
     except Exception as e:
         print(f"Error getting ID: {e}")
         return jsonify({'idnumber': ''})
@@ -819,14 +974,11 @@ def save_id_to_db():
         if not id_value:
             return jsonify({'success': False, 'message': 'No ID value provided'}), 400
 
-        # FIXED: db.table to db.from_
         check_response = db.from_('idgenerate').select('id').order('id', desc=True).limit(1).execute()
         if check_response.data:
             record_id = check_response.data[0].get('id')
-            # FIXED: db.table to db.from_
             db.from_('idgenerate').update({"idnumber": id_value}).eq('id', record_id).execute()
         else:
-            # FIXED: db.table to db.from_
             db.from_('idgenerate').insert({"idnumber": id_value}).execute()
 
         return jsonify({'success': True, 'message': 'ID saved successfully!', 'id': id_value})
@@ -866,8 +1018,6 @@ def view_phone():
     Celphone Only ID Viewer (User Friendly).
     Direct access for members to select name and download ID without Admin tools.
     """
-    # === FIX: PASS SUPAB_URL TO HTML ===
-    # Dito pumapasok yung variable na gagamitin ng HTML (JavaScript)
     return render_template('view_phone.html', supabase_url=SUPAB_URL)
 
 # ==============================
@@ -898,13 +1048,11 @@ def save_card_image():
 
         # --- STEP1: DECODE BASE64 ---
         try:
-            # Remove header kung meron
             if "," in image_data:
                 base64_string = image_data.split(",")[1]
             else:
                 base64_string = image_data
             
-            # Decode string to bytes
             image_bytes = base64.b64decode(base64_string)
             log(f">>> Decoded Image Size: {len(image_bytes)} bytes")
         except Exception as decode_err:
@@ -932,7 +1080,7 @@ def save_card_image():
                 "upsert": "true"  # <--- NAG-IISA LANG ANG FILE PER MEMBER
             }
 
-            # C. Upload using the File Path (String)
+            # C. Upload using File Path (String)
             upload_response = supabase.storage.from_(bucket_name).upload(
                 path=filename, 
                 file=temp_path,  # <-- String path, not io.BytesIO
@@ -941,7 +1089,7 @@ def save_card_image():
             
             log(f">>> Upload Response: {upload_response}")
 
-            # D. Delete the temporary file after upload (Cleanup)
+            # D. Delete temporary file after upload (Cleanup)
             try:
                 os.remove(temp_path)
                 log(f">>> Deleted Temp File: {temp_path}")
@@ -1009,7 +1157,7 @@ def delete_cards_batch():
         if not member_ids:
             return jsonify({'success': False, 'message': 'No members selected'}), 400
 
-        print(f">>> BATCH DELETE INITIATED (Umpisa-Umaga Fix) for {len(member_ids)} members.")
+        print(f">>> BATCH DELETE INITIATED for {len(member_ids)} members.")
 
         # --- STEP1: GATHER FILES TO DELETE ---
         files_to_remove = set() 
@@ -1240,6 +1388,126 @@ def download_zip_files():
 
     except Exception as e:
         print(f">>> ZIP ERROR: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# ============================================================
+# 🆕 NEW ROUTE: MAKE SIGNATURE PAGE (Standalone)
+# ============================================================
+@app.route('/make_signature')
+def make_signature_route():
+    """Tumutugon sa ✍️ button sa base.html."""
+    return render_template('make_signature.html')
+
+@app.route('/upload', methods=['POST'])
+def upload_signature_standalone():
+    if request.data is None or len(request.data) == 0:
+        return jsonify({'error': 'No image data received'}), 400
+    timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+    filename = f'signature_{timestamp}.png'
+    path = os.path.join(SIGN_DIR, secure_filename(filename))
+    with open(path, 'wb') as f:
+        f.write(request.data)
+    return jsonify({'message': 'Signature uploaded', 'path': filename})
+
+@app.route('/signature', methods=['DELETE'])
+def delete_signature_standalone():
+    path = last_signature_path()
+    if not path:
+        return jsonify({'message': 'No signature to delete'}), 404
+    try:
+        os.remove(path)
+        return jsonify({'message': f'Deleted {os.path.basename(path)}'})
+    except Exception as e:
+        print(f"Error deleting signature: {e}")
+        return jsonify({'message': 'Delete failed'}), 500
+
+# ==============================
+# NEW ROUTE: SAVE COMPANY SIGNATURE (Standalone Page) - FIXED
+# ==============================
+@app.route('/save_company_signature', methods=['POST'])
+def save_company_signature():
+    """
+    Saves signature directly to 'signaturetable'.
+    Fields: name (lowercase), signature (base64).
+    """
+    try:
+        db = get_db()
+        data = request.json
+        
+        name = data.get('name')
+        signature_data = data.get('signature')
+        
+        if not name or not signature_data:
+            return jsonify({'success': False, 'message': 'Paki-lagay ng Pangalan at Pirma'}), 400
+            
+        # INSERT INTO SIGNATURE TABLE
+        # FIXED: Using 'name' (lowercase) to match DB Column
+        payload = {
+            'name': name,
+            'signature': signature_data
+        }
+        
+        db.from_('signaturetable').insert(payload).execute()
+        
+        return jsonify({'success': True, 'message': 'Pirma na nai-save sa database!'}), 200
+        
+    except Exception as e:
+        print(f"Error saving company signature: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# ==============================
+# 🆕 ROUTE: GET SIGNATURE TABLE (For Company Signature Page ONLY) - FIXED
+# ==============================
+@app.route('/get_signaturetable', methods=['GET'])
+def get_signature_table():
+    """
+    Fetches list from 'signaturetable'.
+    Used for listing.
+    FIXED: Field name updated to 'name' (lowercase)
+    """
+    try:
+        db = get_db()
+        
+        # Fetch all records
+        # FIXED: Changed 'NAME' to 'name'
+        response = db.from_('signaturetable').select('*').order('name', desc=True).execute()
+        return jsonify(response.data), 200
+        
+    except Exception as e:
+        print(f"Error fetching signaturetable: {e}")
+        return jsonify([]), 500
+
+# ==============================
+# 🆕 ROUTE: SAVE SIGNATURE TO SIGNATURE TABLE (For Company Signature Page ONLY) - FIXED
+# ==============================
+@app.route('/save_signaturetable', methods=['POST'])
+def save_signature_table():
+    """
+    Saves signature directly to 'signaturetable'.
+    Used exclusively for 'Company Signature' page.
+    FIXED: Field name updated to 'name' (lowercase)
+    """
+    try:
+        db = get_db()
+        data = request.json
+        
+        name = data.get('name')
+        signature_data = data.get('signature')
+        
+        if not name or not signature_data:
+            return jsonify({'success': False, 'message': 'Paki-lagay ng Pangalan at Pirma'}), 400
+            
+        # INSERT INTO SIGNATURE TABLE
+        # FIXED: Using 'name' (lowercase) to match DB
+        db.from_('signaturetable').insert({
+            'name': name,
+            'man_signature': signature_data
+        }).execute()
+        
+        return jsonify({'success': True, 'message': f'Saved to SignatureTable!'}), 200
+        
+    except Exception as e:
+        print(f"Error saving to signaturetable: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # ==============================
