@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, jsonify, send_file # ADDED: send_file
 from dotenv import load_dotenv
 from supabase import create_client, Client
+from werkzeug.utils import secure_filename # ADDED: FIX FOR UPLOAD ERROR
 
 # ==============================
 # Load Environment Variables
@@ -407,34 +408,36 @@ def api_members_json():
         return jsonify([]), 500
 
 # ============================================================
-# 🆕 FINAL FIX ROUTE: SIGNATURETABLE API (COMBO BOX)
+# 🆕 ULTIMATE FIX ROUTE: SIGNATURETABLE API (COMBO BOX)
 # ============================================================
 @app.route('/api/signaturetable/json', methods=["GET"])
 def api_signaturetable_json():
     """
     Fetches list from SIGNATURETABLE for the Combo Box.
-    Field used: name (lowercase) to match DB Column.
+    Robust: Uses '*' select to handle any case of 'name' column.
     """
     try:
         db = get_db()
         
-        # 1. SELECT 'name' (lowercase) dahit ito ang column sa Supabase
-        response = db.from_('signaturetable').select('name').execute()
+        # SELECT '*' para makuha kahit anong case ang column (name, Name, NAME)
+        response = db.from_('signaturetable').select('*').execute()
         
         data = []
         if response.data:
             for item in response.data:
-                # 2. KUNIN 'name' (lowercase)
-                val = item.get("name")
+                # Kunin yung value kahit 'name', 'Name', o 'NAME' ang key
+                val = item.get("name") or item.get("Name") or item.get("NAME")
                 
                 if val:
-                    # 3. IBALIK SA JSON FORMAT
+                    # Standardize key to 'name' (lowercase) for the frontend
                     data.append({"name": val})
                     
         return jsonify(data)
     except Exception as e:
-        print(f"Error fetching signature table: {e}")
-        return jsonify([]), 500
+        # I-print sa Python Terminal para makita natin yung tunay na error
+        print(f"ERROR fetching signature table: {e}")
+        # Ibalik ang error message sa response para alam natin
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/members/search', methods=["GET"])
 def api_members_search():
