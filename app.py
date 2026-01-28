@@ -1425,13 +1425,14 @@ def delete_signature_standalone():
         return jsonify({'message': 'Delete failed'}), 500
 
 # ==============================
-# NEW ROUTE: SAVE COMPANY SIGNATURE (Standalone Page) - FIXED
+# NEW ROUTE: SAVE COMPANY SIGNATURE (Standalone Page) - UPDATED FOR UPSERT
 # ==============================
 @app.route('/save_company_signature', methods=['POST'])
 def save_company_signature():
     """
     Saves signature directly to 'signaturetable'.
-    Fields: name (lowercase), signature (base64).
+    LOGIC: Kung may existing na pangalan -> Update (Overwrite).
+           Kung wala pang pangalan -> Insert (New Record).
     """
     try:
         db = get_db()
@@ -1443,17 +1444,27 @@ def save_company_signature():
         if not name or not signature_data:
             return jsonify({'success': False, 'message': 'Paki-lagay ng Pangalan at Pirma'}), 400
             
-        # INSERT INTO SIGNATURE TABLE
-        # FIXED: Using 'name' (lowercase) to match DB Column
-        payload = {
-            'name': name,
-            'signature': signature_data
-        }
+        # 1. CHECK KUNG MAY EXISTING NA BA (Carbon Copy Logic)
+        # Tinitignan natin kung may record na sa table na kapareho ng 'name'
+        response = db.from_('signaturetable').select('*').eq('name', name).execute()
         
-        db.from_('signaturetable').insert(payload).execute()
-        
-        return jsonify({'success': True, 'message': 'Pirma na nai-save sa database!'}), 200
-        
+        if response.data:
+            # 2. UPDATE: May existing na sa pangalan na 'to
+            # I-uupdate lang yung signature field, hindi na gumagawa ng bagong row
+            db.from_('signaturetable').update({'signature': signature_data}).eq('name', name).execute()
+            print(f">>> UPDATED SIGNATURE FOR: {name}")
+            return jsonify({'success': True, 'message': f'Updated signature for {name}!'}), 200
+            
+        else:
+            # 3. INSERT: Walang nahanap na pangalan, so gagawa ng bago
+            payload = {
+                'name': name,
+                'signature': signature_data
+            }
+            db.from_('signaturetable').insert(payload).execute()
+            print(f">>> INSERTED NEW SIGNATURE FOR: {name}")
+            return jsonify({'success': True, 'message': f'Saved new signature for {name}!'}), 200
+            
     except Exception as e:
         print(f"Error saving company signature: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
